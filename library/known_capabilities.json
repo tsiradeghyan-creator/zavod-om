@@ -1,0 +1,39 @@
+{
+  "updated": "2026-06-18",
+  "note": "What ZavodOM already knows. Scout dedups new findings against this before proposing upgrades.",
+  "capabilities": {
+    "video_models": [
+      {"id": "kling3_0", "aliases": ["kling3_0_turbo", "kling2_6"], "via": "higgsfield"},
+      {"id": "veo3_1", "aliases": ["veo3", "veo3_1_lite"], "via": "higgsfield"},
+      {"id": "seedance_2_0", "aliases": ["seedance_1_5"], "via": "higgsfield"},
+      {"id": "grok_video_v15", "aliases": ["grok_video"], "via": "higgsfield"},
+      {"id": "minimax_hailuo", "via": "higgsfield"},
+      {"id": "wan2_7", "aliases": ["wan2_6"], "via": "higgsfield"},
+      {"id": "cinematic_studio_3_0", "via": "higgsfield"}
+    ],
+    "image_models": [
+      {"id": "nano_banana_pro", "aliases": ["nano_banana_2", "nano_banana"], "via": "higgsfield"},
+      {"id": "soul_2", "aliases": ["soul_cinematic", "soul_cast", "soul_location"], "via": "higgsfield"},
+      {"id": "seedream_v4_5", "aliases": ["seedream_v5_lite"], "via": "higgsfield"},
+      {"id": "flux_2", "aliases": ["flux_kontext"], "via": "higgsfield"},
+      {"id": "gpt_image_2", "aliases": ["gpt_image"], "via": "higgsfield"},
+      {"id": "recraft-v4-1", "via": "higgsfield"}
+    ],
+    "audio_models": [
+      {"id": "inworld_text_to_speech", "via": "higgsfield"},
+      {"id": "sonilo_music", "via": "higgsfield"},
+      {"id": "mirelo_text_to_audio", "via": "higgsfield"},
+      {"id": "elevenlabs_v3", "note": "Armenian TTS route (external)"}
+    ],
+    "render_compose": [
+      {"id": "remotion", "note": "react composition"},
+      {"id": "hyperframes", "note": "html/gsac composition"},
+      {"id": "ffmpeg", "note": "stitch/mux/encode; portable discovery"}
+    ],
+    "editing_tools": [
+      {"id": "motion_control"}, {"id": "reframe"}, {"id": "outpaint_image"},
+      {"id": "upscale_video"}, {"id": "remove_background"}, {"id": "personal_clipper"},
+      {"id": "virality_predictor"}, {"id": "marketing_studio"}
+    ]
+  }
+}
