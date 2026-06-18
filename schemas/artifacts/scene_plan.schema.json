@@ -105,6 +105,37 @@
               },
               "required": ["type", "description", "source"]
             }
+          },
+          "staging": {
+            "type": "object",
+            "description": "Mise-en-scène the art department locks for this beat (from zavod-craft/art-department.md)",
+            "properties": {
+              "blocking": { "type": "string", "description": "where subjects stand and how they move through the frame" },
+              "in_hand_objects": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "objects a subject holds — MUST stay continuous across the beat; the continuity gate checks these (the 06-18 disappearing-glass class)"
+              },
+              "props": { "type": "array", "items": { "type": "string" } },
+              "set_dressing": { "type": "string" },
+              "wardrobe": { "type": "string" }
+            },
+            "additionalProperties": false
+          },
+          "text_policy": {
+            "type": "object",
+            "description": "How on-screen text is produced — enforces the no-AI-baked-text + Armenian-language rules (zavod-craft + rules)",
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": ["overlay", "ai_baked", "none"],
+                "default": "overlay",
+                "description": "overlay = brand font via HTML/Canva (default); ai_baked allowed ONLY for short display words that pass the glyph gate; none = no text"
+              },
+              "language": { "type": "string", "description": "language tag (hy, en, ru…); hy triggers the Armenian glyph gate" },
+              "text": { "type": "string", "description": "the actual on-screen copy — run through armenian_glyph_gate when language=hy" }
+            },
+            "additionalProperties": false
           }
         },
         "additionalProperties": false
