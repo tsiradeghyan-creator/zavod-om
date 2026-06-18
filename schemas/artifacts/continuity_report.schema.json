@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openmontage/artifacts/continuity_report",
+  "title": "Continuity Report",
+  "description": "Per-clip object-permanence + identity check produced by the continuity gate (lib/continuity_checker.py).",
+  "type": "object",
+  "required": ["version", "clip", "anchors", "verdict"],
+  "properties": {
+    "version": { "type": "string", "const": "1.0" },
+    "clip": { "type": "string" },
+    "frames_sampled": { "type": "integer", "minimum": 1 },
+    "anchors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "kind", "persists"],
+        "properties": {
+          "name": { "type": "string" },
+          "kind": { "type": "string", "enum": ["object", "identity", "architecture"] },
+          "persists": { "type": ["boolean", "null"], "description": "true=continuous; false=dropped/changed; null=not yet judged" },
+          "note": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "verdict": { "type": "string", "enum": ["pass", "fail", "needs_human"] },
+    "violations": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": false
+}
