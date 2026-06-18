@@ -1,0 +1,108 @@
+name: zavod-promo
+version: "1.0"
+description: >
+  General promo reel built by animating REAL photos (image-to-video) + brand-font overlay
+  + VO/music — the generalized desert-owl-promo path. Stages mirror zavod-reel but the
+  asset stage is REAL-PHOTO-FIRST: every property/product visual is an image-to-image edit
+  of a real source photo (never generic text-to-image). Continuity gate is mandatory on
+  every generated clip.
+category: generated
+stability: beta
+default_checkpoint_policy: guided
+
+orchestration:
+  mode: executive-producer
+  skill: pipelines/zavod/executive-producer
+  budget_default_usd: 3.00
+  max_revisions_per_stage: 3
+  max_send_backs: 3
+  max_wall_time_minutes: 40
+
+extensions:
+  custom_scripts: true
+  custom_playbooks: true
+  custom_skills: true
+  custom_tools: true
+
+required_skills:
+  - pipelines/zavod/executive-producer
+  - pipelines/zavod/idea-director
+  - pipelines/zavod/script-director
+  - pipelines/zavod/scene-director
+  - pipelines/zavod/asset-director
+  - pipelines/zavod/edit-director
+  - pipelines/zavod/compose-director
+  - pipelines/zavod/publish-director
+  - meta/reviewer
+  - meta/checkpoint-protocol
+
+compatible_playbooks:
+  recommended: []
+  custom_allowed: true
+
+stages:
+  - name: idea
+    skill: pipelines/zavod/idea-director
+    produces: [brief]
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus: [One segment + one hook; real source media identified]
+    success_criteria: [Schema-valid brief]
+  - name: script
+    skill: pipelines/zavod/script-director
+    required_artifacts_in: [brief]
+    produces: [script]
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - Voice per brand-voice.md
+      - "GATE: glyph gate on Armenian text"
+    success_criteria: [Schema-valid script]
+  - name: scene_plan
+    skill: pipelines/zavod/scene-director
+    required_artifacts_in: [script]
+    produces: [scene_plan]
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - Each shot maps to a REAL source photo; shot_language + staging set
+      - in_hand_objects declared (continuity); text_policy=overlay
+    success_criteria: [Schema-valid scene_plan]
+  - name: assets
+    skill: pipelines/zavod/asset-director
+    required_artifacts_in: [scene_plan]
+    produces: [asset_manifest]
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - "REAL-PHOTO-ONLY: image-to-image with the real photo attached (medias inside params)"
+      - Engine choice respects moderation (e.g. Kling for tasteful swimwear, not Veo)
+      - QC each output vs source — pool/architecture unchanged
+    success_criteria: [Schema-valid asset_manifest; every visual references a real photo]
+  - name: edit
+    skill: pipelines/zavod/edit-director
+    required_artifacts_in: [scene_plan, asset_manifest]
+    produces: [edit_decisions]
+    checkpoint_required: true
+    human_approval_default: false
+    review_focus: [Arc/order; transitions; brand-font overlay plan]
+    success_criteria: [Schema-valid edit_decisions]
+  - name: compose
+    skill: pipelines/zavod/compose-director
+    required_artifacts_in: [edit_decisions, asset_manifest]
+    produces: [render_report, final_review]
+    required_tools: [video_compose]
+    checkpoint_required: true
+    human_approval_default: false
+    review_focus:
+      - "GATE: continuity_checker passes on EVERY generated clip (object-permanence)"
+      - VO/music mix per sound-craft.md; loudness target; ffprobe validates
+    success_criteria: [render_report valid; output passes ffprobe]
+  - name: publish
+    skill: pipelines/zavod/publish-director
+    required_artifacts_in: [render_report, final_review]
+    produces: [publish_log]
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus: [Caption/hashtags; AI-content label]
+    success_criteria: [Schema-valid publish_log]

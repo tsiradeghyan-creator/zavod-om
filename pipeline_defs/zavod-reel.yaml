@@ -1,0 +1,122 @@
+name: zavod-reel
+version: "1.0"
+description: >
+  General short-form vertical reel (9:16) in the zavod's voice: idea → script →
+  scene_plan → assets → edit → compose → publish. Brain = skills/zavod-craft (wired
+  per stage via skills/zavod-craft/INDEX.md). Hard gates: Armenian glyph gate (when
+  text_policy.language=hy), object-permanence continuity on every generated clip,
+  delivery-promise (no silent slideshow), variation (anti-generic), human checkpoints.
+category: generated
+stability: beta
+default_checkpoint_policy: guided
+
+orchestration:
+  mode: executive-producer
+  skill: pipelines/zavod/executive-producer
+  budget_default_usd: 2.00
+  max_revisions_per_stage: 3
+  max_send_backs: 3
+  max_wall_time_minutes: 30
+
+extensions:
+  custom_scripts: true
+  custom_playbooks: true
+  custom_skills: true
+  custom_tools: true
+
+required_skills:
+  - pipelines/zavod/executive-producer
+  - pipelines/zavod/idea-director
+  - pipelines/zavod/script-director
+  - pipelines/zavod/scene-director
+  - pipelines/zavod/asset-director
+  - pipelines/zavod/edit-director
+  - pipelines/zavod/compose-director
+  - pipelines/zavod/publish-director
+  - meta/reviewer
+  - meta/checkpoint-protocol
+
+compatible_playbooks:
+  recommended: []
+  also_works: []
+  custom_allowed: true
+
+stages:
+  - name: idea
+    skill: pipelines/zavod/idea-director
+    produces: [brief]
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - One segment + one hook is explicit (idea-lab.md gates)
+      - Format/duration/platform realistic for 9:16
+    success_criteria:
+      - Schema-valid brief
+  - name: script
+    skill: pipelines/zavod/script-director
+    required_artifacts_in: [brief]
+    produces: [script]
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - Voice matches style-profile.md / brand-voice.md
+      - "GATE: Armenian text passes the glyph gate (lib/armenian_glyph_gate.py)"
+    success_criteria:
+      - Schema-valid script
+  - name: scene_plan
+    skill: pipelines/zavod/scene-director
+    required_artifacts_in: [script]
+    produces: [scene_plan]
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - Every scene has shot_language + staging (cinematography.md / art-department.md)
+      - in_hand_objects declared for any held prop (feeds continuity gate)
+      - text_policy set (overlay default; language tag for glyph gate)
+      - Shot variety passes variation_checker (no slideshow)
+    success_criteria:
+      - Schema-valid scene_plan
+  - name: assets
+    skill: pipelines/zavod/asset-director
+    required_artifacts_in: [scene_plan]
+    produces: [asset_manifest]
+    checkpoint_required: true
+    human_approval_default: false
+    review_focus:
+      - Real-subject edits are image-to-image with the real photo attached (higgsfield-capabilities.md)
+      - On-image text is overlay, not AI-baked
+    success_criteria:
+      - Schema-valid asset_manifest
+  - name: edit
+    skill: pipelines/zavod/edit-director
+    required_artifacts_in: [scene_plan, asset_manifest]
+    produces: [edit_decisions]
+    checkpoint_required: true
+    human_approval_default: false
+    review_focus:
+      - Hook in first 2-3s; pacing per playbook (post-production.md)
+    success_criteria:
+      - Schema-valid edit_decisions
+  - name: compose
+    skill: pipelines/zavod/compose-director
+    required_artifacts_in: [edit_decisions, asset_manifest]
+    produces: [render_report, final_review]
+    required_tools: [video_compose]
+    checkpoint_required: true
+    human_approval_default: false
+    review_focus:
+      - "GATE: continuity_checker passes on every generated clip (object-permanence)"
+      - "GATE: delivery_promise honored (motion-led not silently downgraded)"
+      - Audio mix / loudness per playbook; ffprobe validates output
+    success_criteria:
+      - Schema-valid render_report; output passes ffprobe
+  - name: publish
+    skill: pipelines/zavod/publish-director
+    required_artifacts_in: [render_report, final_review]
+    produces: [publish_log]
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - Caption/hashtags per playbook.md; AI-content label per platform
+    success_criteria:
+      - Schema-valid publish_log

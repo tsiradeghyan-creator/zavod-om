@@ -1,0 +1,94 @@
+name: zavod-carousel
+version: "1.0"
+description: >
+  General Instagram carousel (1080x1350 4:5) in the zavod voice. Background-only image
+  generation + brand-font text overlay (never AI-baked text). Stages: idea → script →
+  scene_plan(slides) → assets(backgrounds) → compose(render slides) → publish. Armenian
+  glyph gate hard-required on every slide's text_policy when language=hy.
+category: generated
+stability: beta
+default_checkpoint_policy: guided
+
+orchestration:
+  mode: executive-producer
+  skill: pipelines/zavod/executive-producer
+  budget_default_usd: 1.00
+  max_revisions_per_stage: 3
+  max_send_backs: 3
+  max_wall_time_minutes: 20
+
+extensions:
+  custom_scripts: true
+  custom_playbooks: true
+  custom_skills: true
+  custom_tools: true
+
+required_skills:
+  - pipelines/zavod/executive-producer
+  - pipelines/zavod/idea-director
+  - pipelines/zavod/script-director
+  - pipelines/zavod/scene-director
+  - pipelines/zavod/asset-director
+  - pipelines/zavod/compose-director
+  - pipelines/zavod/publish-director
+  - meta/reviewer
+  - meta/checkpoint-protocol
+
+compatible_playbooks:
+  recommended: []
+  custom_allowed: true
+
+stages:
+  - name: idea
+    skill: pipelines/zavod/idea-director
+    produces: [brief]
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus: [One hook per carousel; slide count realistic]
+    success_criteria: [Schema-valid brief]
+  - name: script
+    skill: pipelines/zavod/script-director
+    required_artifacts_in: [brief]
+    produces: [script]
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - Voice per style-profile.md
+      - "GATE: Armenian text passes glyph gate"
+    success_criteria: [Schema-valid script]
+  - name: scene_plan
+    skill: pipelines/zavod/scene-director
+    required_artifacts_in: [script]
+    produces: [scene_plan]
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - Each slide is a text_card or generated background with text_policy=overlay (carousel-template.md)
+      - language tag set so the glyph gate runs on Armenian copy
+    success_criteria: [Schema-valid scene_plan]
+  - name: assets
+    skill: pipelines/zavod/asset-director
+    required_artifacts_in: [scene_plan]
+    produces: [asset_manifest]
+    checkpoint_required: true
+    human_approval_default: false
+    review_focus: [Backgrounds generated WITHOUT baked text; brand palette]
+    success_criteria: [Schema-valid asset_manifest]
+  - name: compose
+    skill: pipelines/zavod/compose-director
+    required_artifacts_in: [scene_plan, asset_manifest]
+    produces: [render_report, final_review]
+    checkpoint_required: true
+    human_approval_default: false
+    review_focus:
+      - Brand-font text overlaid (motion-design.md / identity-guard.md), 1080x1350
+      - "GATE: final glyph gate on every rendered slide's copy"
+    success_criteria: [render_report valid; all slides exported]
+  - name: publish
+    skill: pipelines/zavod/publish-director
+    required_artifacts_in: [render_report, final_review]
+    produces: [publish_log]
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus: [Caption + <=5 hashtags per playbook.md]
+    success_criteria: [Schema-valid publish_log]
