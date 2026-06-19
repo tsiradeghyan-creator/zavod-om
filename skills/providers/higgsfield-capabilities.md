@@ -90,6 +90,13 @@ and `ms_image`/DTC. Use for product ads, UGC, virtual try-on, "recreate this ad"
 - Rough costs seen: nano_banana_pro ~0.5cr/img · kling3_0 turbo 5s ~10cr · kling3_0 pro 5s ~12.5cr ·
   veo3_1 fast 6s ~16.5cr · grok 6s ~27cr · seedance_2_0 std 1080p 10s ~90cr · inworld TTS a few cr.
 
+## RUNTIME ROUTING (how generation actually flows in ZavodOM)
+Generation is **agent-driven via the Higgsfield MCP tools** at runtime (generate_image/video/audio,
+job_status, media_upload, etc.) — not a Python provider class. This capability map is the reference the
+asset-director reads to pick the right model + params. The `lib/scoring.py` code-path defaults to **fal**
+(FAL_KEY configured) when a non-interactive selection is needed; Higgsfield is the primary interactive
+backend because of the PLUS credit balance. New backends register in `library/known_capabilities.json` (Scout).
+
 ## DECISION QUICK-PICK
 - Real photo + add people/edit → `nano_banana_pro` (image role, real photo attached).
 - Recurring character → train Soul ID → `soul_2`/`soul_cinematic`.
