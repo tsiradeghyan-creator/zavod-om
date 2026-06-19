@@ -87,6 +87,24 @@ def _schemas():
     return (not bad, f"{len(files)} artifact schemas valid" if not bad else f"INVALID: {bad}")
 
 
+def _enforcement():
+    # the wiring that makes gates non-bypassable: a dirty zavod checkpoint MUST be blocked.
+    from lib.checkpoint import _enforce_zavod_gates, CheckpointValidationError
+    dirty = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "completed",
+             "artifacts": {"continuity_report": {"clip": "c.mp4",
+                "anchors": [{"name": "glass", "kind": "object", "persists": False}]}}}
+    try:
+        _enforce_zavod_gates(dirty)
+        return (False, "NOT WIRED — a broken zavod checkpoint was NOT blocked")
+    except CheckpointValidationError:
+        # and an upstream pipeline must remain ungated
+        ok_up = {"pipeline_type": "cinematic", "stage": "compose", "status": "completed",
+                 "artifacts": {"continuity_report": {"clip": "c.mp4",
+                    "anchors": [{"name": "glass", "kind": "object", "persists": False}]}}}
+        _enforce_zavod_gates(ok_up)  # must NOT raise
+        return (True, "checkpoint seam blocks dirty zavod artifacts; upstream untouched")
+
+
 def _scout():
     p = os.path.join(ROOT, "library/known_capabilities.json")
     if not os.path.exists(p):
@@ -102,6 +120,7 @@ if __name__ == "__main__":
     check("render (ffmpeg)", _ffmpeg)
     check("pipelines", _manifests)
     check("gates", _gates)
+    check("enforcement seam", _enforcement)
     check("schemas", _schemas)
     check("scout registry", _scout)
     print("\n  ZavodOM health-check\n  " + "-" * 24)

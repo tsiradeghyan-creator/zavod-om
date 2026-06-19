@@ -11,10 +11,10 @@
   <key>ProgramArguments</key>
   <array>
     <string>__ZAVOD_HOME__/.venv/bin/python</string>
-    <string>__ZAVOD_HOME__/lib/healthcheck.py</string>
+    <string>__ZAVOD_HOME__/lib/scout_run.py</string>
   </array>
-  <!-- Weekly: Mondays 09:00; fires on next wake if asleep. Swap the healthcheck line for the
-       Scout driver once it is agent-invoked; healthcheck is the safe default gate. -->
+  <!-- Weekly: Mondays 09:00; fires on next wake if asleep. scout_run.py runs the health-check
+       FIRST (aborts on RED) and only ever writes a GATED memo — it never installs anything. -->
   <key>StartCalendarInterval</key>
   <dict>
     <key>Weekday</key><integer>1</integer>

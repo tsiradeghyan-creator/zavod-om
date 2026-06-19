@@ -34,6 +34,12 @@ corpus/
 # User music library (personal royalty-free tracks — not part of repo)
 music_library/
 
+# Scout runtime artifacts (logs + gated memos) — generated, not source
+library/scout.log
+library/scout.err
+library/scout_memo_*.md
+library/scout_inbox.json
+
 # Environment & credentials
 .env
 .env.local

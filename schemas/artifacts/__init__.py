@@ -31,6 +31,11 @@ ARTIFACT_NAMES = [
     "final_review",
     "character_qa_report",
     "video_analysis_brief",
+    # ZavodOM additions — without these, checkpoint.py silently skips validating them.
+    "brand_brief",
+    "voice_profile",
+    "glyph_gate_report",
+    "continuity_report",
 ]
 
 

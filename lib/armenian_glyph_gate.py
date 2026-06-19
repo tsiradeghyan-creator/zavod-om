@@ -34,26 +34,49 @@ CONFUSABLES = {
 
 
 def check_text(text: str, field: str = "") -> list[dict[str, str]]:
-    """Return violations for a single string."""
+    """Return violations for a single string.
+
+    Catches two failure modes:
+      1. Mixed-script: an Armenian-bearing token that also contains Latin/Cyrillic letters
+         (e.g. "Vanը", "Դարpասները") — the classic transliteration splice.
+      2. Homoglyph masquerade: inside Armenian context, a token written entirely in
+         Cyrillic look-alikes with NO Armenian letters (e.g. an Armenian word typed with
+         Cyrillic "а/о/е/с/р/у/н"). Pure-Latin tokens are left alone here because English
+         brand words ("Joshua Tree", "Airbnb") legitimately appear in Armenian copy;
+         stray Cyrillic in Armenian content is, in practice, always wrong.
+    """
     violations: list[dict[str, str]] = []
     if not text:
         return violations
-    for m in TOKEN.finditer(text):
-        tok = m.group(0)
+    tokens = [m.group(0) for m in TOKEN.finditer(text)]
+    armenian_context = any(ARMENIAN.search(t) for t in tokens)
+    for tok in tokens:
         has_arm = bool(ARMENIAN.search(tok))
-        if not has_arm:
-            continue  # pure non-Armenian token (e.g. an English brand word) is fine
-        # An Armenian-bearing token must NOT contain Latin or Cyrillic letters.
         bad_latin = LATIN.findall(tok)
         bad_cyr = CYRILLIC.findall(tok)
-        if bad_latin or bad_cyr:
-            mixed = "".join(sorted(set(bad_latin + bad_cyr)))
+        if has_arm:
+            # An Armenian-bearing token must NOT contain Latin or Cyrillic letters.
+            if bad_latin or bad_cyr:
+                mixed = "".join(sorted(set(bad_latin + bad_cyr)))
+                violations.append({
+                    "text": tok,
+                    "field": field,
+                    "reason": (
+                        f"Mixed-script Armenian word — contains non-Armenian letters "
+                        f"'{mixed}'. Use proper Eastern Armenian Unicode for the whole word."
+                    ),
+                })
+        elif bad_cyr and armenian_context:
+            # No Armenian letters, but Cyrillic inside Armenian content → likely a
+            # homoglyph masquerade / wrong-script word.
+            confusables = "".join(sorted({c for c in tok if c in CONFUSABLES}))
+            hint = f" (look-alike chars: '{confusables}')" if confusables else ""
             violations.append({
                 "text": tok,
                 "field": field,
                 "reason": (
-                    f"Mixed-script Armenian word — contains non-Armenian letters "
-                    f"'{mixed}'. Use proper Eastern Armenian Unicode for the whole word."
+                    f"Cyrillic word in Armenian context — likely a homoglyph masquerade or "
+                    f"wrong-script word{hint}. Retype it in proper Eastern Armenian Unicode."
                 ),
             })
     return violations
