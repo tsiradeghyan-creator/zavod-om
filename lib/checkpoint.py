@@ -119,6 +119,71 @@ def _validate_artifacts_for_stage(
             ) from exc
 
 
+def _all_strings(obj: Any) -> list[str]:
+    """Collect every string leaf of an artifact (for text-based gates)."""
+    if isinstance(obj, str):
+        return [obj]
+    if isinstance(obj, dict):
+        return [s for v in obj.values() for s in _all_strings(v)]
+    if isinstance(obj, list):
+        return [s for v in obj for s in _all_strings(v)]
+    return []
+
+
+def _continuity_reports(artifacts: dict[str, Any]) -> list[dict[str, Any]]:
+    cr = artifacts.get("continuity_report") or artifacts.get("continuity_reports")
+    if cr is None:
+        rr = artifacts.get("render_report")
+        if isinstance(rr, dict):
+            cr = rr.get("continuity_reports")
+    if cr is None:
+        return []
+    return cr if isinstance(cr, list) else [cr]
+
+
+def _enforce_zavod_gates(checkpoint: dict[str, Any]) -> None:
+    """Hard-gate enforcement at the checkpoint seam — the wiring that makes the code
+    gates non-bypassable instead of prose the agent can skip.
+
+    Only ``zavod-*`` pipelines are gated, so upstream OpenMontage behavior is byte-for-byte
+    unchanged. A stage cannot persist a ``completed`` / ``awaiting_human`` checkpoint whose
+    artifacts fail their gate. A hard ``fail`` always blocks; ``needs_human`` is allowed only
+    while ``awaiting_human`` (it must never reach ``completed`` unjudged).
+    """
+    ptype = checkpoint.get("pipeline_type") or ""
+    if not ptype.startswith("zavod"):
+        return
+    if checkpoint.get("status") not in {"completed", "awaiting_human"}:
+        return
+
+    stage = checkpoint.get("stage")
+    artifacts = checkpoint.get("artifacts") or {}
+
+    # Lazy import: keeps the spine importable without the gate libs, and avoids any cycle.
+    from lib.gatechain import run_script_gates, run_scene_plan_gates, run_compose_gates
+
+    result: dict[str, Any] | None = None
+    if stage == "script" and "script" in artifacts:
+        result = run_script_gates("\n".join(_all_strings(artifacts["script"])))
+    elif stage == "scene_plan" and "scene_plan" in artifacts:
+        result = run_scene_plan_gates(artifacts["scene_plan"])
+    elif stage == "compose":
+        reports = _continuity_reports(artifacts)
+        if reports:
+            result = run_compose_gates(reports)
+
+    if result is None or result.get("ok"):
+        return
+
+    if result.get("verdict") == "needs_human" and checkpoint.get("status") == "awaiting_human":
+        return  # legitimate pause at the human checkpoint
+
+    detail = result.get("violations") or result.get("pending") or result
+    raise CheckpointValidationError(
+        f"Gate block at stage {stage!r} ({ptype}): {detail}"
+    )
+
+
 def validate_checkpoint(checkpoint: dict[str, Any]) -> None:
     """Validate checkpoint structure and canonical artifact payloads.
 
@@ -151,6 +216,9 @@ def validate_checkpoint(checkpoint: dict[str, Any]) -> None:
         jsonschema.validate(instance=checkpoint, schema=_load_checkpoint_schema())
     except jsonschema.ValidationError as exc:
         raise CheckpointValidationError(f"Checkpoint failed schema validation: {exc.message}") from exc
+
+    # Code-enforced craft gates (zavod pipelines only) — the non-bypassable wiring.
+    _enforce_zavod_gates(checkpoint)
 
 
 def _checkpoint_path(pipeline_dir: Path, project_id: str, stage: str) -> Path:

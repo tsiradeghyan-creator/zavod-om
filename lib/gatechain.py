@@ -43,10 +43,12 @@ def run_scene_plan_gates(scene_plan: dict[str, Any]) -> dict[str, Any]:
     except jsonschema.ValidationError as e:
         schema_ok = False
         violations.append(f"schema: {e.message}")
-    # 2. glyph gate on any Armenian on-screen text
+    # 2. glyph gate on EVERY on-screen text, regardless of the declared language.
+    #    The gate is a no-op on pure-Latin copy, so running it unconditionally is safe
+    #    and closes the bypass where Armenian text was mislabeled language!=hy.
     for sc in scene_plan.get("scenes", []):
         tp = sc.get("text_policy") or {}
-        if str(tp.get("language", "")).lower().startswith("hy") and tp.get("text"):
+        if tp.get("text"):
             g = glyph_gate(tp["text"])
             if not g["ok"]:
                 violations += [f"scene {sc.get('id')}: {x['reason']}" for x in g["violations"]]
@@ -64,12 +66,23 @@ def declared_anchors(scene_plan: dict[str, Any]) -> dict[str, list[str]]:
 
 
 def run_compose_gates(continuity_reports: list[dict[str, Any]]) -> dict[str, Any]:
+    """Compose-stage continuity gate.
+
+    Keeps "fail" (a real continuity break — hard reject) distinct from "needs_human"
+    (anchors not yet judged — pause at the human checkpoint, do NOT mark completed).
+    Collapsing the two would either silently pass un-judged clips or block a legitimate
+    human-review pause; the pipeline's whole premise is human checkpoints, so we surface both.
+    """
     violations: list[str] = []
+    pending: list[str] = []
     for r in continuity_reports:
         v = continuity_verdict(r)
-        if v["verdict"] != "pass":
-            violations.append(f"{r.get('clip','clip')}: continuity {v['verdict']} — {v['violations']}")
-    return {"ok": not violations, "violations": violations}
+        if v["verdict"] == "fail":
+            violations.append(f"{r.get('clip','clip')}: continuity fail — {v['violations']}")
+        elif v["verdict"] == "needs_human":
+            pending.append(f"{r.get('clip','clip')}: continuity needs human judgment — {v['violations']}")
+    verdict = "fail" if violations else ("needs_human" if pending else "pass")
+    return {"ok": verdict == "pass", "verdict": verdict, "violations": violations, "pending": pending}
 
 
 if __name__ == "__main__":
