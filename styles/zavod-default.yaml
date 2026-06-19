@@ -1,0 +1,44 @@
+identity:
+  name: "ZavodOM Default"
+  category: general
+  mood: clean, intentional, on-brand (override per project)
+  pace: moderate
+  best_for: "General zavod production default; projects override with their own style"
+
+visual_language:
+  composition: rule-of-thirds, deliberate negative space
+  texture: project-defined
+
+typography:
+  headings: { font: "project-locked", weight: 600 }
+  body: { font: "project-locked", weight: 400, line_height: 1.5 }
+  label: { font: "project-locked", weight: 500, tracking: "0.20em" }
+
+motion:
+  transitions: [fade, dissolve]
+  animation_style: "ease-in-out, restrained, no trend-bait"
+  pacing_rules:
+    min_scene_hold_seconds: 2.5
+    max_scene_hold_seconds: 8
+    transition_duration_seconds: 0.5
+
+audio:
+  music_volume: 0.10
+  ducking_threshold_db: -3
+  loudness_target_lufs: -14
+
+text_policy:
+  default: "overlay"        # brand-font via HTML/Canva; never AI-baked
+  ai_baked_text: "exception-only"   # short display words that PASS the glyph gate (test-then-trust)
+  language: "project-defined"
+
+asset_generation:
+  real_subject_method: "image-to-image of a real source photo (never generic text-to-image)"
+
+quality_rules:
+  - "Every production runs a pipeline (Rule Zero)"
+  - "On-image text = overlay; AI-baked only for short display words that pass the glyph gate"
+  - "Armenian text = Eastern Unicode only (glyph gate)"
+  - "Real subjects reference a real photo; QC output vs source"
+  - "No disappearing in-hand objects across a generated clip (continuity gate)"
+  - "Vary shot sizes/movement — no slideshow (variation gate)"

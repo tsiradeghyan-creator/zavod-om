@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ZavodOM Scout — wake-safe weekly self-improvement run (launchd, not cron).
+     StartCalendarInterval fires on next wake if the Mac was asleep at the scheduled time.
+     Install (owner): cp to ~/Library/LaunchAgents/ then `launchctl load`. Grant Full Disk
+     Access if it touches ~/Documents (macOS TCC). Edit ZAVOD_HOME to your path. -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.zavodom.scout</string>
+  <key>WorkingDirectory</key><string>__ZAVOD_HOME__</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__ZAVOD_HOME__/.venv/bin/python</string>
+    <string>__ZAVOD_HOME__/lib/healthcheck.py</string>
+  </array>
+  <!-- Weekly: Mondays 09:00; fires on next wake if asleep. Swap the healthcheck line for the
+       Scout driver once it is agent-invoked; healthcheck is the safe default gate. -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Weekday</key><integer>1</integer>
+    <key>Hour</key><integer>9</integer>
+    <key>Minute</key><integer>0</integer>
+  </dict>
+  <key>StandardOutPath</key><string>__ZAVOD_HOME__/library/scout.log</string>
+  <key>StandardErrorPath</key><string>__ZAVOD_HOME__/library/scout.err</string>
+  <key>RunAtLoad</key><false/>
+</dict>
+</plist>

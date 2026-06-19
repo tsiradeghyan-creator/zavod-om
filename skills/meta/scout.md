@@ -23,5 +23,17 @@ and the registry `library/known_capabilities.json`.
 6. **Benchmark** (periodic): re-score our stations vs the market using `world-benchmark.md`; flag any
    station that's been beaten.
 
+## Reliability (wake-safe — the recurring failure the audit flagged)
+The prior zavod's automation kept dying silently: cron jobs asleep at night, DNS errors, an
+obsidian-sync blocked by macOS TCC. Scout must not repeat that.
+- Schedule via **launchd** (`tools/com.zavodom.scout.plist`), NOT cron — `StartCalendarInterval`
+  fires on next wake if the machine was asleep. (cron skips missed runs.)
+- Each run **first executes `lib/healthcheck.py`**; if RED, Scout posts the health failure instead
+  of silently proceeding (human-readable signal — the council's #1 ask).
+- Network failures → retry with backoff, then log a "scout-degraded" note rather than dying quiet.
+- On macOS, the launchd job needs Full Disk Access if it touches `~/Documents` (TCC).
+- Install (owner action, not auto): `cp tools/com.zavodom.scout.plist ~/Library/LaunchAgents/ &&
+  launchctl load ~/Library/LaunchAgents/com.zavodom.scout.plist`.
+
 ## Hard rule
 Scout proposes; the owner disposes. No capability is wired into a pipeline without an approved memo.

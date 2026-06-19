@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openmontage/artifacts/voice_profile",
+  "title": "Voice Profile",
+  "description": "TTS/VO casting for a production. Armenian (hy) MUST route to an Armenian-capable engine.",
+  "type": "object",
+  "required": ["version", "engine", "voice_id", "language"],
+  "properties": {
+    "version": { "type": "string", "const": "1.0" },
+    "engine": { "type": "string", "description": "e.g. inworld_text_to_speech, elevenlabs_v3" },
+    "voice_id": { "type": "string" },
+    "language": { "type": "string", "description": "hy → must use an Armenian-capable engine (Inworld has NO Armenian)" },
+    "gender": { "type": "string", "enum": ["female", "male", "neutral"] },
+    "tone": { "type": "string" },
+    "pronunciation_notes": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openmontage/artifacts/brand_brief",
+  "title": "Brand Brief",
+  "description": "Per-project brand contract the idea-director produces: who/what/voice/look.",
+  "type": "object",
+  "required": ["version", "project", "segment", "hook", "platform"],
+  "properties": {
+    "version": { "type": "string", "const": "1.0" },
+    "project": { "type": "string" },
+    "segment": { "type": "string", "description": "the ONE target segment" },
+    "hook": { "type": "string", "description": "the ONE hook" },
+    "audience": { "type": "string" },
+    "voice_register": { "type": "string", "description": "which style-profile register / brand-voice mode" },
+    "language": { "type": "string", "description": "hy / en / ru …" },
+    "palette": { "type": "array", "items": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" } },
+    "font_lock": { "type": "array", "items": { "type": "string" } },
+    "format": { "type": "string", "enum": ["reel", "carousel", "promo", "single", "story"] },
+    "duration_seconds": { "type": "number", "minimum": 0 },
+    "platform": { "type": "array", "items": { "type": "string" } },
+    "success_metric": { "type": "string" }
+  },
+  "additionalProperties": false
+}
