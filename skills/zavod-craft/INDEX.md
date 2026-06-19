@@ -1,6 +1,7 @@
-# ZavodOM — Brain index (49 craft files → spine slots)
+# ZavodOM — Brain index (48 craft files → spine slots)
 
-> The zavod's brain (taste / voice / craft) lives here as 49 craft files. This index WIRES each
+> The zavod's brain (taste / voice / craft) lives here as 48 craft files (+ `SKILL.md` and this
+> `INDEX.md` = 50 `.md` total). This index WIRES each
 > one to the OpenMontage spine: which pipeline **stage/role** consults it and which **gate** it
 > feeds. Director skills (`skills/pipelines/<pipeline>/<role>-director.md`) MUST cite the craft
 > files listed for their stage. General first; Maghakian-specific marked [HY].
@@ -22,11 +23,15 @@
 `show-khaghaliq.md`, `carousel-khaghaliq-prompts.md`, `filmography.md` → Maghakian project packs.
 
 ## Hard gates the brain must pass (code-enforced, see `lib/`)
-1. `armenian_glyph_gate.py` — any Armenian text (`text_policy.language=hy`) with Latin/Cyrillic → **fail**. ✅ live
-2. `continuity_checker.py` — `staging.in_hand_objects` must persist across each generated clip (object-permanence). ⏳
-3. `delivery_promise.py` — motion-led can't silently become slideshow. (port) ⏳
-4. `variation_checker.py` — slideshow/generic-phrasing taste check. (native, tune GENERIC_PHRASES) ⏳
-5. `brand_voice_check.py` — drift vs `style-profile.md`/`brand-voice.md`. ⏳
+These are wired into the **checkpoint enforcement seam** (`lib/checkpoint._enforce_zavod_gates`,
+dispatched by `lib/gatechain.py`): a `zavod-*` stage **cannot** persist a `completed`/`awaiting_human`
+checkpoint whose artifacts fail their gate. Upstream pipelines are untouched. Covered by
+`tests/zavod/test_gates.py` (19 tests).
+1. `armenian_glyph_gate.py` — any on-screen text with Latin/Cyrillic spliced into an Armenian word, OR a Cyrillic homoglyph word in Armenian context → **fail**. Runs on **all** text regardless of declared language (the old `language=hy` bypass is closed). ✅ live & enforced (script + scene_plan seam)
+2. `continuity_checker.py` — `staging.in_hand_objects` must persist across each generated clip (object-permanence); `fail` blocks, `needs_human` pauses at the human checkpoint (kept distinct). ✅ live & enforced (compose seam)
+3. `variation_checker.py` — slideshow/generic-phrasing taste check. ✅ live & enforced (scene_plan seam)
+4. `brand_voice_check.py` — generic-AI-trope / drift vs `style-profile.md`/`brand-voice.md`. ✅ live & enforced (script seam)
+5. `delivery_promise.py` — motion-led can't silently become slideshow. Present (upstream-native); reviewer-invoked, not yet in the checkpoint seam. ⏳
 
 ## Rule (Rule Zero + voice law)
 - Every production runs a pipeline; every stage cites its craft files above; no stage advances without
