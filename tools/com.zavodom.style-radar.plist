@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ZavodOM Style Radar — wake-safe weekly visual-taste scan (launchd, not cron).
+     Twin of com.zavodom.scout.plist. StartCalendarInterval fires on next wake if the Mac
+     was asleep at the scheduled time. Install (owner): cp to ~/Library/LaunchAgents/ then
+     `launchctl load`. Grant Full Disk Access if it touches ~/Documents (macOS TCC).
+     Edit __ZAVOD_HOME__ to your path. -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.zavodom.style-radar</string>
+  <key>WorkingDirectory</key><string>__ZAVOD_HOME__</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__ZAVOD_HOME__/.venv/bin/python</string>
+    <string>__ZAVOD_HOME__/lib/style_radar.py</string>
+  </array>
+  <!-- Weekly: Thursdays 09:00 (offset from Scout's Monday so they don't collide); fires on
+       next wake if asleep. style_radar.py runs the health-check FIRST (aborts on RED) and only
+       ever writes a GATED card-proposal memo — it never adds a style on its own. -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Weekday</key><integer>4</integer>
+    <key>Hour</key><integer>9</integer>
+    <key>Minute</key><integer>0</integer>
+  </dict>
+  <key>StandardOutPath</key><string>__ZAVOD_HOME__/library/style_radar.log</string>
+  <key>StandardErrorPath</key><string>__ZAVOD_HOME__/library/style_radar.err</string>
+  <key>RunAtLoad</key><false/>
+</dict>
+</plist>
