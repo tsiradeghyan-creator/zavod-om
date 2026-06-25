@@ -34,15 +34,35 @@ REGISTRY = os.path.join(LIB_DIR, "style_radar.json")
 INBOX = os.path.join(LIB_DIR, "style_inbox.json")
 LOG = os.path.join(LIB_DIR, "style_radar.log")
 
-# The four axes and where the agent scans them. Owner-approved 2026-06-25.
+# The exact pages the owner chose to scan (style-rider.md sections 8-11). The weekly scan
+# reads ONLY these — taste updates come from these tastemakers, nothing else. Owner-set 2026-06-25.
 SCAN_SOURCES = {
-    "reddit": ["r/cinematography", "r/colorists", "r/graphic_design", "r/editors", "r/motiondesign"],
-    "design_blogs": ["creativebloq.com", "itsnicethat.com", "behance.net", "adobe.com/express/learn"],
-    "cinema": ["shotdeck community", "oscars best-cinematography shortlist", "festival coverage (Cannes/Venice/Berlin)"],
-    "creator_trends": ["x.com (edit/transition/look virality)", "tiktok creator trends"],
+    "linkedin": [
+        "Chris Do", "Debbie Millman", "Jessica Walsh", "Brian Collins", "Paula Scher",
+        "Pentagram", "The Futur", "AIGA", "It's Nice That",
+        "Brand New / UnderConsideration", "Andy Budd", "Julie Zhuo",
+    ],
+    "x": [
+        "@chrisdo", "@jessicahische", "@brad_frost", "@maggieappleton", "@vanschneider",
+        "@joulee", "@davidhoang", "@rachelnabors", "@awwwards", "@motionographer",
+        "@letterboxd", "@criterion", "@A24", "@shotdeck",
+    ],
+    "instagram": [
+        "@thebrandidentity", "@itsnicethat", "@aigaeyeondesign", "@bpando", "@designmilk",
+        "@awwwards", "@motionographer", "@typewolf", "@thedesignkids",
+        "@worldbranddesignsociety", "@posteritati", "@criterioncollection", "@mubi",
+        "@shotdeck", "@letterboxd",
+    ],
+    "reddit": [
+        "r/graphic_design", "r/Design", "r/typography", "r/logodesign", "r/branding",
+        "r/web_design", "r/UI_Design", "r/cinematography", "r/Filmmakers", "r/editors",
+        "r/colorists", "r/MotionDesign", "r/animation", "r/AfterEffects", "r/ObscureMedia",
+    ],
 }
 
-AXES = ("design_styles", "cinema_dp", "color_luts", "montage")
+# Taste axes covered by the rider (style-rider.md sections 1-7) + grading.
+AXES = ("directors", "cinematographers", "montage", "animators",
+        "design_styles", "production_designers", "costume_designers", "color_luts")
 
 
 def score_style_finding(f: dict[str, Any]) -> float:

@@ -11,19 +11,26 @@
 > `library/style_inbox.json` → driver dedups/scores → a card-proposal memo → **owner approves**
 > → a card is written. Nothing enters the taste automatically.
 
-## The four axes
-1. **Design / visual** — overlay, title, carousel, thumbnail, motion-graphics (the design layer).
-2. **Cinema / DP** — named directors & cinematographers as look references (incl. Armenian masters).
-3. **Color / LUT** — grade looks, film-stock emulation, emotional palettes.
-4. **Montage** — transition & editing grammar (named editors/directors).
+## Canon + axes
+The OWNER-CURATED canon is **`style-rider.md`** — this file (`style-radar.md`) is the
+self-updating loop that keeps it current; it proposes GATED additions, never overwrites the canon.
+Eight taste axes (rider sections 1–7 + grading), mirrored in `library/style_radar.json`:
+**directors · cinematographers · montage · animators · design_styles · production_designers ·
+costume_designers · color_luts** (151 entries).
 
-## Cadence & sources (owner-approved 2026-06-25)
-Weekly via the launchd job (reuse the Scout plist pattern; run `lib/style_radar.py`).
-Scan targets (`SCAN_SOURCES` in `lib/style_radar.py`):
-- **Reddit** — r/cinematography, r/colorists, r/graphic_design, r/editors, r/motiondesign
-- **Design blogs** — Creative Bloq, It's Nice That, Behance, Adobe Express Learn
-- **Cinema** — ShotDeck community, Oscar best-cinematography shortlist, festival coverage
-- **Creator trends** — X (edit/transition/look virality), TikTok creator trends
+## Cadence & sources — the owner's pages ONLY (style-rider.md §8–11)
+Weekly via the launchd job (`com.zavodom.style-radar`, Thu 09:00; runs `lib/style_radar.py`).
+Taste updates come from THESE tastemakers and nothing else (`SCAN_SOURCES` in `lib/style_radar.py`):
+- **LinkedIn** — Chris Do, Debbie Millman, Jessica Walsh, Brian Collins, Paula Scher, Pentagram,
+  The Futur, AIGA, It's Nice That, Brand New/UnderConsideration, Andy Budd, Julie Zhuo
+- **X** — @chrisdo, @jessicahische, @brad_frost, @maggieappleton, @vanschneider, @joulee,
+  @davidhoang, @rachelnabors, @awwwards, @motionographer, @letterboxd, @criterion, @A24, @shotdeck
+- **Instagram** — @thebrandidentity, @itsnicethat, @aigaeyeondesign, @bpando, @designmilk, @awwwards,
+  @motionographer, @typewolf, @thedesignkids, @worldbranddesignsociety, @posteritati,
+  @criterioncollection, @mubi, @shotdeck, @letterboxd
+- **Reddit** — r/graphic_design, r/Design, r/typography, r/logodesign, r/branding, r/web_design,
+  r/UI_Design, r/cinematography, r/Filmmakers, r/editors, r/colorists, r/MotionDesign, r/animation,
+  r/AfterEffects, r/ObscureMedia
 
 ## Protocol (per pass)
 1. Scan the four source groups for what's **in demand THIS year**, by axis.
@@ -67,3 +74,6 @@ top-20 2026 · AAA Presets "2026 LUT forecast" · Increditors "editing trends 20
 
 ## Changelog
 - 2026-06-25 — created; seeded registry (11 design · 9 DP · 7 color · 8 montage) from first web pass.
+- 2026-06-25 — adopted owner-curated `style-rider.md` as canon: registry expanded to **151 entries
+  across 8 axes** (directors / cinematographers / montage / animators / design / production / costume
+  / color); SCAN_SOURCES repointed to the owner's exact LinkedIn/X/Instagram/Reddit pages (§8–11).

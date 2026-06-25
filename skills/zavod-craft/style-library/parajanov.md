@@ -1,4 +1,4 @@
-# Sergei Parajanov (tableau) — cinema_dp  [Armenian master]
+# Sergei Parajanov (tableau) — directors  [Armenian anchor]
 
 - id: parajanov
 - essence: the frame as a living folk-icon — frontal, static, symmetrical tableaux saturated with ritual objects and color.

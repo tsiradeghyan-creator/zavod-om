@@ -1,4 +1,4 @@
-# Roger Deakins — cinema_dp
+# Roger Deakins — cinematographers
 
 - id: roger_deakins
 - essence: restraint + motivated naturalism — every light has a real-world source; the frame is composed, the move is subtle.
