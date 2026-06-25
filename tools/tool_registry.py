@@ -9,6 +9,7 @@ from __future__ import annotations
 import importlib
 import inspect
 import pkgutil
+import warnings
 from types import ModuleType
 from typing import Any, Optional
 
@@ -58,6 +59,7 @@ class ToolRegistry:
     def __init__(self) -> None:
         self._tools: dict[str, BaseTool] = {}
         self._discovered_packages: set[str] = set()
+        self._failed_modules: dict[str, str] = {}
 
     def register(self, tool: BaseTool) -> None:
         """Register a tool instance."""
@@ -69,6 +71,7 @@ class ToolRegistry:
         """Clear registered tools and discovery state."""
         self._tools.clear()
         self._discovered_packages.clear()
+        self._failed_modules.clear()
 
     def register_module(self, module: ModuleType) -> list[str]:
         """Register all concrete BaseTool subclasses defined in a module."""
@@ -114,7 +117,20 @@ class ToolRegistry:
         for module_info in pkgutil.walk_packages(package_paths, f"{package.__name__}."):
             if module_info.name.endswith(".base_tool") or module_info.name.endswith(".tool_registry"):
                 continue
-            module = importlib.import_module(module_info.name)
+            try:
+                module = importlib.import_module(module_info.name)
+            except Exception as exc:
+                # A single tool module with an unmet optional dependency (e.g. a
+                # missing numpy/torch) must not take down the whole registry.
+                # Skip it and record it as undiscoverable rather than crashing
+                # discovery for every other tool. Declared deps live in
+                # requirements.txt; this is defense-in-depth for the rest.
+                self._failed_modules[module_info.name] = repr(exc)
+                warnings.warn(
+                    f"tool module {module_info.name!r} skipped during discovery: {exc}",
+                    stacklevel=2,
+                )
+                continue
             discovered.extend(self.register_module(module))
 
         self._discovered_packages.add(package_name)
