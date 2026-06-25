@@ -424,6 +424,9 @@ for i, scene in enumerate(scene_plan["scenes"]):
 
 edit_decisions = {
     "version": "1.0",
+    # Carried forward unchanged from the proposal's production_plan.render_runtime
+    # (runtime is locked at proposal stage; Edit must not silently change it).
+    "render_runtime": "remotion",
     "cuts": [
         {
             "id": f"cut_{scene['id']}",
@@ -651,3 +654,18 @@ print(f"{'='*60}")
 if os.path.exists(final_video):
     print(f"\nFinal video: {final_video}")
     print("INSPECT: Open in VLC/media player to verify A/V sync, transitions, and content.")
+
+
+# ===================================================================
+# Pytest entry point + script exit code
+# ===================================================================
+# The full pipeline runs once at import (above), accumulating PASS/FAIL.
+# This makes the result actually enforceable: pytest discovers the test below
+# and fails the suite if any stage check failed or no final video was produced.
+def test_end_to_end_pipeline():
+    assert FAIL == 0, f"{FAIL} end-to-end checks failed (see stdout above)"
+    assert os.path.exists(final_video), "end-to-end pipeline produced no final video"
+
+
+if __name__ == "__main__":
+    sys.exit(1 if (FAIL or not os.path.exists(final_video)) else 0)
