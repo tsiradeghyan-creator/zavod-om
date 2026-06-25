@@ -59,7 +59,7 @@ Two live design lanes — keep BOTH; pick per project, never blend by accident:
 | Design | tactile/human, mixed-media collage, oversized type, bento, liquid glass | editorial + minimalism = our spine; collage/tactile for warmth |
 | Color/LUT | **analog nostalgia (Kodachrome/Fuji emulation)** #1, emotional desat, warm-intimate, teal&orange (deliberate) | analog-grain + emotional palette fit Maghakian's memory theme |
 | Montage | **minimalist "barely-edited"**, retro-film effect, glitch (edgy) | restraint matches her register; PCW/Peleshyan for the turns |
-| Cinema/DP | Deakins, Lubezki, Khondji, Laustsen; **+ Parajanov, Peleshyan, Egoyan (Armenian)** | Armenian masters = signature differentiator |
+| Cinema/DP | **GLOBAL-first**: Deakins, Lubezki, Morano, Young, Khondji, Laustsen (+ scan world DPs) | Armenian (Parajanov/Peleshyan/Egoyan) = a few anchors only, occasional signature accent — not the focus |
 
 Sources (2026-06-25): Creative Bloq "texture/warmth/tactile rebellion 2026" · Digital Synopsis
 top-20 2026 · AAA Presets "2026 LUT forecast" · Increditors "editing trends 2026" · StudioBinder

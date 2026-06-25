@@ -1,6 +1,7 @@
 {
   "updated": "2026-06-25",
   "note": "Style/taste registry — what ZavodOM's visual taste already knows across 4 axes (design, cinema/DP, color-LUT, montage). The style Scout dedups new web findings against this before proposing a GATED card. Mirrors known_capabilities.json so lib/scout.py helpers (known_ids/is_new) work directly. Mature entries get a card in skills/zavod-craft/style-library/.",
+  "scope": "GLOBAL-first. The roster and weekly scan target world-scale styles, directors, DPs and trends. Armenian masters are kept only as a few anchors (parajanov/peleshyan/egoyan) — an occasional signature accent, never the focus. Do not over-weight toward Armenian.",
   "capabilities": {
     "design_styles": [
       {"id": "liquid_glass", "aliases": ["glassmorphism_2", "apple_liquid_glass"], "essence": "refractive translucent material, edge lensing, specular sheen, layered depth"},
