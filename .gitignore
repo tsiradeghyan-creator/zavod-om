@@ -39,6 +39,10 @@ library/scout.log
 library/scout.err
 library/scout_memo_*.md
 library/scout_inbox.json
+# Style Radar runtime artifacts (same contract as Scout)
+library/style_radar.log
+library/style_memo_*.md
+library/style_inbox.json
 
 # Environment & credentials
 .env
