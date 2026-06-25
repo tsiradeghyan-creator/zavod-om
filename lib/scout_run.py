@@ -40,15 +40,15 @@ def _log(line: str) -> None:
 
 
 def _healthcheck_green() -> bool:
-    """Run lib/healthcheck.py and return True only on ALL GREEN (exit 0)."""
-    proc = subprocess.run(
-        [sys.executable, os.path.join(ROOT, "lib", "healthcheck.py")],
-        capture_output=True, text=True,
-    )
-    if proc.returncode != 0:
-        _log("health RED — aborting Scout run (wake-safe). Last line: "
-             + (proc.stdout.strip().splitlines() or ["<no output>"])[-1])
-    return proc.returncode == 0
+    """Scan-safe gate: full health MINUS the TCC-gated corpus (~/Documents) and the render
+    binary — a trend-scan touches neither and only writes a GATED memo. This lets the weekly
+    launchd run survive before Full Disk Access is granted, while still aborting on a genuinely
+    broken tree (gates / schemas / enforcement / registries must still pass)."""
+    from lib import healthcheck
+    ok, reds = healthcheck.scan_safe_ok()
+    if not ok:
+        _log(f"scan-safe health RED — aborting Scout run (wake-safe). Red: {reds}")
+    return ok
 
 
 def _load_inbox() -> list[dict]:

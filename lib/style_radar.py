@@ -97,14 +97,13 @@ def _log(line: str) -> None:
 
 
 def _healthcheck_green() -> bool:
-    proc = subprocess.run(
-        [sys.executable, os.path.join(ROOT, "lib", "healthcheck.py")],
-        capture_output=True, text=True,
-    )
-    if proc.returncode != 0:
-        last = (proc.stdout.strip().splitlines() or ["<no output>"])[-1]
-        _log(f"health RED — aborting Style Radar run (wake-safe). Last line: {last}")
-    return proc.returncode == 0
+    """Scan-safe gate (see lib/scout_run._healthcheck_green): full health minus the TCC-gated
+    corpus and the render binary, neither of which a scan needs."""
+    from lib import healthcheck
+    ok, reds = healthcheck.scan_safe_ok()
+    if not ok:
+        _log(f"scan-safe health RED — aborting Style Radar run (wake-safe). Red: {reds}")
+    return ok
 
 
 def _load_inbox() -> list[dict]:

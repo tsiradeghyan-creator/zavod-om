@@ -17,15 +17,6 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
 OK, BAD = "✅", "❌"
-results: list[tuple[bool, str]] = []
-
-
-def check(name: str, fn) -> None:
-    try:
-        ok, detail = fn()
-    except Exception as e:  # never let the health-check itself crash
-        ok, detail = False, f"error: {e}"
-    results.append((ok, f"{name}: {detail}"))
 
 
 def _corpus():
@@ -126,16 +117,48 @@ def _style_radar():
     return (n > 0, f"{n} styles across {len(axes)} axes, {cards} matured cards (Style Radar ready)")
 
 
+# Named checks (label, fn) — the full production profile, in display order.
+_ALL_CHECKS = [
+    ("corpus (voice source)", _corpus),
+    ("brain (craft files)", _brain),
+    ("render (ffmpeg)", _ffmpeg),
+    ("pipelines", _manifests),
+    ("gates", _gates),
+    ("enforcement seam", _enforcement),
+    ("schemas", _schemas),
+    ("scout registry", _scout),
+    ("style radar", _style_radar),
+]
+
+# What a trend-scan actually needs. The Scout / Style-Radar weekly scans only web-scan and
+# write a GATED memo — they touch neither the corpus nor the render binary — so excluding the
+# TCC-protected corpus (~/Documents) and ffmpeg lets the launchd scan run GREEN even before
+# Full Disk Access is granted, while still refusing to act on a genuinely broken tree
+# (gates / schemas / enforcement / registries must still pass).
+_SCAN_EXCLUDE = {"corpus (voice source)", "render (ffmpeg)"}
+
+
+def evaluate(checks: list | None = None) -> list[tuple[bool, str]]:
+    out: list[tuple[bool, str]] = []
+    for label, fn in (checks if checks is not None else _ALL_CHECKS):
+        try:
+            ok, detail = fn()
+        except Exception as e:  # never let the health-check itself crash
+            ok, detail = False, f"error: {e}"
+        out.append((ok, f"{label}: {detail}"))
+    return out
+
+
+def scan_safe_ok() -> tuple[bool, list[str]]:
+    """Lighter gate for the weekly scans: full profile minus the TCC-gated corpus and the
+    render binary. Returns (ok, [red lines])."""
+    res = evaluate([c for c in _ALL_CHECKS if c[0] not in _SCAN_EXCLUDE])
+    reds = [line for ok, line in res if not ok]
+    return (not reds, reds)
+
+
 if __name__ == "__main__":
-    check("corpus (voice source)", _corpus)
-    check("brain (craft files)", _brain)
-    check("render (ffmpeg)", _ffmpeg)
-    check("pipelines", _manifests)
-    check("gates", _gates)
-    check("enforcement seam", _enforcement)
-    check("schemas", _schemas)
-    check("scout registry", _scout)
-    check("style radar", _style_radar)
+    results = evaluate()
     print("\n  ZavodOM health-check\n  " + "-" * 24)
     for ok, line in results:
         print(f"  {OK if ok else BAD} {line}")
