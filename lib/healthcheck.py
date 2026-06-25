@@ -114,6 +114,18 @@ def _scout():
     return (n > 0, f"{n} known capabilities (Scout dedup ready)")
 
 
+def _style_radar():
+    # the living visual-taste registry (style Scout dedups against it)
+    p = os.path.join(ROOT, "library/style_radar.json")
+    if not os.path.exists(p):
+        return (False, "style_radar.json missing")
+    reg = json.load(open(p))
+    axes = reg.get("capabilities", {})
+    n = sum(len(v) for v in axes.values())
+    cards = len(glob.glob(os.path.join(ROOT, "skills/zavod-craft/style-library/*.md")))
+    return (n > 0, f"{n} styles across {len(axes)} axes, {cards} matured cards (Style Radar ready)")
+
+
 if __name__ == "__main__":
     check("corpus (voice source)", _corpus)
     check("brain (craft files)", _brain)
@@ -123,6 +135,7 @@ if __name__ == "__main__":
     check("enforcement seam", _enforcement)
     check("schemas", _schemas)
     check("scout registry", _scout)
+    check("style radar", _style_radar)
     print("\n  ZavodOM health-check\n  " + "-" * 24)
     for ok, line in results:
         print(f"  {OK if ok else BAD} {line}")
