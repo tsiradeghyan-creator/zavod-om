@@ -40,8 +40,9 @@ Higgsfield, and a compose stage whose runtime does not match the lane. A fresh-s
 not ask would silently default to Remotion — that is the exact failure this contract prevents.
 
 ## Produces
-`brief` (canonical artifact) + `engine_lock` (the locked Remotion/Higgsfield lane). Schema-validated by
-the reviewer; the seam blocks a completed idea stage without a locked lane.
+`brief` (canonical artifact) + `engine_lock` (the locked Remotion/Higgsfield lane) + `run_mode`
+(`supervised` or `automatic`). Schema-validated by the reviewer; the seam blocks a completed idea stage
+without a locked lane AND a locked run mode.
 
 ## Gate
 Reviewer checks: one hook is explicit, scope realistic, source media identified. Big bets also pass an

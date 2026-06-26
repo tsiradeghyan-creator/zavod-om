@@ -33,19 +33,20 @@ from lib.pipeline_loader import load_pipeline, get_stage_order
 from lib.style_selection import required_roles, validate_selections
 
 
-def _scene_plan_ladder(style_overrides=None):
+def _scene_plan_ladder(style_overrides=None, approved=True):
     """A fully-walked scene_plan ladder: every owner-gated rung recorded, council
-    carrying a named Style Radar pick per craft role."""
+    carrying a named Style Radar pick per craft role. `approved=False` models an
+    automatic run that walked the ladder without an owner freeze."""
     styles = {role: f"pick-{role}" for role in required_roles()}
     if style_overrides is not None:
         styles = style_overrides
     return {
         "sub_stages": [
             {"name": "creative_language_council", "produces": "creative_language",
-             "owner_approved": True, "style_selections": styles},
-            {"name": "technical_preparation", "produces": "technical_plan", "owner_approved": True},
-            {"name": "storyboard_shot_cards", "produces": "shot_cards", "owner_approved": True},
-            {"name": "preproduction_plan", "produces": "preproduction_plan", "owner_approved": True},
+             "owner_approved": approved, "style_selections": styles},
+            {"name": "technical_preparation", "produces": "technical_plan", "owner_approved": approved},
+            {"name": "storyboard_shot_cards", "produces": "shot_cards", "owner_approved": approved},
+            {"name": "preproduction_plan", "produces": "preproduction_plan", "owner_approved": approved},
         ]
     }
 
@@ -272,7 +273,8 @@ def test_idea_with_engine_lock_passes(tmp_path):
     p = write_checkpoint(
         tmp_path, "p-eng", "idea", "completed",
         {"brief": _brief(), "production_ladder": _ladder(_IDEA_SUBS),
-         "engine_lock": {"engine": "higgsfield", "compose_runtime": "ffmpeg"}},
+         "engine_lock": {"engine": "higgsfield", "compose_runtime": "ffmpeg"},
+         "run_mode": "automatic"},
         pipeline_type="zavod-reel",
     )
     assert p.exists()
@@ -333,6 +335,77 @@ def test_remotion_compose_via_remotion_passes(tmp_path):
         pipeline_type="zavod-reel",
     )
     assert p.exists()
+
+
+# ------------------------------------------------- run modes (supervised vs automatic)
+def _publish_log():
+    return {"version": "1.0", "entries": [
+        {"platform": "instagram", "status": "draft", "timestamp": "2026-06-26T00:00:00Z"}]}
+
+
+def _scene_plan():
+    return _scene("Your desert weekend", language="en")
+
+
+def test_idea_requires_run_mode_lock(tmp_path):
+    # Same structure, but the run direction (supervised vs automatic) must be explicit.
+    with pytest.raises(CheckpointValidationError) as exc:
+        write_checkpoint(
+            tmp_path, "p-nomode", "idea", "completed",
+            {"brief": _brief(), "production_ladder": _ladder(_IDEA_SUBS),
+             "engine_lock": {"engine": "remotion", "compose_runtime": "remotion"}},
+            pipeline_type="zavod-reel",
+        )
+    assert "Run mode not locked" in str(exc.value)
+
+
+def test_automatic_run_completes_without_per_rung_approval(tmp_path):
+    # The new gates are structural, not approval-based: an automatic run walks the full
+    # ladder and completes without any owner freeze. Proves automatic was not damaged.
+    p = write_checkpoint(
+        tmp_path, "p-auto", "scene_plan", "completed",
+        {"scene_plan": _scene_plan(),
+         "production_ladder": _scene_plan_ladder(approved=False),
+         "run_mode": "automatic"},
+        pipeline_type="zavod-reel",
+    )
+    assert p.exists()
+
+
+def test_supervised_run_requires_rung_approval(tmp_path):
+    with pytest.raises(CheckpointValidationError) as exc:
+        write_checkpoint(
+            tmp_path, "p-sup-bad", "scene_plan", "completed",
+            {"scene_plan": _scene_plan(),
+             "production_ladder": _scene_plan_ladder(approved=False),
+             "run_mode": "supervised"},
+            pipeline_type="zavod-reel",
+        )
+    assert "owner approval" in str(exc.value)
+
+
+def test_supervised_run_with_approval_passes(tmp_path):
+    p = write_checkpoint(
+        tmp_path, "p-sup-ok", "scene_plan", "completed",
+        {"scene_plan": _scene_plan(),
+         "production_ladder": _scene_plan_ladder(approved=True),
+         "run_mode": "supervised"},
+        pipeline_type="zavod-reel",
+    )
+    assert p.exists()
+
+
+def test_final_delivery_needs_owner_even_in_automatic(tmp_path):
+    # Automatic still stops at the irreversible external gate (publish/delivery).
+    ladder = {"sub_stages": [{"name": "presentation_route", "produces": "presentation_route",
+                              "owner_approved": False}]}
+    with pytest.raises(CheckpointValidationError) as exc:
+        write_checkpoint(
+            tmp_path, "p-pub", "publish", "completed",
+            {"publish_log": _publish_log(), "production_ladder": ladder, "run_mode": "automatic"},
+            pipeline_type="zavod-reel",
+        )
+    assert "Final delivery" in str(exc.value)
 
 
 def test_upstream_pipeline_is_not_gated():

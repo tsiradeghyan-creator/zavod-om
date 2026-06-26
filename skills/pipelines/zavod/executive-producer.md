@@ -13,7 +13,8 @@ skill → produces a schema-valid artifact → passes `meta/reviewer` → hits t
 ## Process
 0. **Session start:** run `lib/healthcheck.py`. If RED, stop and report — do not produce on a broken system.
 1. **Mode + engine question:** before production, ask the owner two things:
-   (a) is this run **քո հաստատումներով՝ փուլ առ փուլ** (default) or **ավտոմատ լրիվ սևագրային վազք**;
+   (a) is this run **քո հաստատումներով՝ փուլ առ փուլ** (supervised) or **ավտոմատ լրիվ սևագրային վազք**
+   (automatic) — lock it in **`artifacts.run_mode`** at the idea stage and carry it forward;
    (b) **Remotion թե՞ Higgsfield** — the production engine. These are mutually-exclusive lanes
    (`metadata.production_engine`): Remotion = programmatic build, zero AI footage, compose via
    remotion/hyperframes; Higgsfield = AI footage, **zero Remotion**, compose/overlay via ffmpeg.
@@ -43,10 +44,15 @@ skill → produces a schema-valid artifact → passes `meta/reviewer` → hits t
    any paid gen) and `max_revisions_per_stage` / `max_send_backs`.
 6. Run `meta/reviewer` (CHAI) + every gate that applies (glyph, continuity, variation, delivery_promise).
    A failed gate = send back, do NOT proceed.
-7. Checkpoint. In owner-gated mode, freeze at every sub-stage and every stage, present the Agent
-   Report, then wait for the owner's one command. In automatic draft mode, internal retakes may
-   continue, but publish, spend, rights/likeness/location approval, and final delivery still require
-   explicit owner approval.
+7. Checkpoint. **Both run modes build the SAME structure** (ladder + engine + per-role styles — the seam
+   enforces these identically); only the stopping behavior differs:
+   - **supervised** — freeze at every owner-gated sub-stage, present the Agent Report, wait for the owner's
+     one command, and record `owner_approved: true` on each rung. The seam rejects a supervised stage whose
+     rungs are not owner-approved.
+   - **automatic** — run through without stopping; internal retakes continue. The seam does NOT require
+     per-rung approval here. But the irreversible external gates — **spend, publish, rights/likeness/location,
+     and final delivery** — still require explicit owner approval (`presentation_route` must be
+     `owner_approved` even in an automatic run).
 8. **Record the ladder you walked.** When you close a stage (`status: "completed"`), the stage
    checkpoint's `artifacts` MUST carry a `production_ladder` proving each owner-gated sub-stage ran:
    ```yaml

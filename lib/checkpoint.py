@@ -268,6 +268,11 @@ LANE_COMPOSE_RUNTIMES = {
 # Stages where the engine actually drives the toolchain.
 _ENGINE_RELEVANT_STAGES = {"idea", "assets", "compose"}
 
+# Two run modes. Same structure either way; only the stopping behavior differs.
+VALID_RUN_MODES = {"supervised", "automatic"}
+# Even an automatic run must stop for the owner at these irreversible external gates.
+_OWNER_ALWAYS_RUNGS = {"presentation_route"}  # final delivery / publish
+
 
 def _asset_uses_higgsfield(asset: dict[str, Any]) -> bool:
     blob = " ".join(
@@ -329,6 +334,61 @@ def _enforce_engine_lane(checkpoint: dict[str, Any]) -> None:
             )
 
 
+def _enforce_run_mode(checkpoint: dict[str, Any]) -> None:
+    """Keep supervised and automatic runs cleanly separated — both ideal, different stops.
+
+    `artifacts.run_mode` is chosen at the idea stage and carried forward. Both modes must
+    produce the same structure (the ladder/engine/style gates apply equally); the ONLY
+    difference is the stopping behavior:
+    - idea:     the run mode must be locked (supervised|automatic).
+    - supervised: every owner-gated rung in this stage must be recorded `owner_approved`
+                  (proof the freeze happened).
+    - any mode: the irreversible external gates (final delivery / publish) still require
+                owner approval even in an automatic run.
+    Only zavod pipelines, only on `completed`.
+    """
+    ptype = checkpoint.get("pipeline_type") or ""
+    if not ptype.startswith("zavod"):
+        return
+    if checkpoint.get("status") != "completed":
+        return
+
+    stage = checkpoint.get("stage")
+    artifacts = checkpoint.get("artifacts") or {}
+    mode = artifacts.get("run_mode")
+    recorded = {
+        e["name"]: e
+        for e in ((artifacts.get("production_ladder") or {}).get("sub_stages") or [])
+        if isinstance(e, dict) and e.get("name")
+    }
+
+    if stage == "idea" and mode not in VALID_RUN_MODES:
+        raise CheckpointValidationError(
+            f"Run mode not locked at stage {stage!r} ({ptype}): artifacts.run_mode must be one of "
+            f"{sorted(VALID_RUN_MODES)}. The Executive Producer asks supervised vs automatic up front "
+            f"and carries it forward. Got {mode!r}."
+        )
+
+    # External gates: owner approval is mandatory in BOTH modes (automatic still stops here).
+    for rung in _OWNER_ALWAYS_RUNGS:
+        if rung in recorded and not recorded[rung].get("owner_approved"):
+            raise CheckpointValidationError(
+                f"Final delivery gate at stage {stage!r} ({ptype}): rung {rung!r} must be "
+                f"owner_approved even in an automatic run (publish/spend/rights/delivery never auto-approve)."
+            )
+
+    # Supervised runs must show the per-rung freeze; automatic runs are exempt (they don't stop).
+    if mode == "supervised":
+        required = _required_ladder_sub_stages(ptype, stage)
+        not_approved = [n for n in required if not recorded.get(n, {}).get("owner_approved")]
+        if not_approved:
+            raise CheckpointValidationError(
+                f"Supervised run at stage {stage!r} ({ptype}) is missing owner approval on rung(s) "
+                f"{not_approved}. In supervised mode every owner-gated sub-stage freezes for the owner; "
+                f"record owner_approved: true once approved (or switch run_mode to automatic)."
+            )
+
+
 def validate_checkpoint(checkpoint: dict[str, Any]) -> None:
     """Validate checkpoint structure and canonical artifact payloads.
 
@@ -368,6 +428,8 @@ def validate_checkpoint(checkpoint: dict[str, Any]) -> None:
     _enforce_production_ladder(checkpoint)
     # Remotion and Higgsfield lanes stay separate at the same seam.
     _enforce_engine_lane(checkpoint)
+    # Supervised and automatic runs stay separated (same structure, different stops).
+    _enforce_run_mode(checkpoint)
 
 
 def _checkpoint_path(pipeline_dir: Path, project_id: str, stage: str) -> Path:
