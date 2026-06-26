@@ -33,6 +33,15 @@ already does this — enforce it as a gate: a prompt with a banned adjective get
 
 ## Armenian-text protocol (downgrade of the absolute ban)
 
+## Promo generation protocol (owner-approved only)
+
+For `zavod-promo`, generated motion defaults to **Higgsfield** when the owner has that account/tooling
+available. The pipeline must not silently substitute Remotion, Ken Burns, or another provider for the
+approved video-generation route.
+
+No image/video generation call is allowed until the owner has approved the exact prompt pack: prompt,
+negative prompt, model, params, source media attachments, and cost estimate.
+
 **"Background-default; test-then-trust with glyph QC."** Armenian is far rarer in training
 data than CJK/Arabic, so never trust it blind:
 1. Render a fixed Armenian **test-phrase set** per model.

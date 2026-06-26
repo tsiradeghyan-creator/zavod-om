@@ -15,4 +15,4 @@
 
 ## Ինտեգրացիա
 Մուտք՝ [[voice-director]] VO + [[composer-music-supervisor]] cues + [[sound-craft]] sfx/foley։
-Ելք՝ mix → [[mastering-delivery-qc]] (loudness/спек) → հրապարակում։
+Ելք՝ mix → [[mastering-delivery-qc]] (loudness/սպեկ) → հրապարակում։

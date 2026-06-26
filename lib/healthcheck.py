@@ -29,8 +29,15 @@ def _corpus():
 
 def _brain():
     d = os.path.join(ROOT, "skills/zavod-craft")
-    n = len(glob.glob(d + "/*.md"))
-    return (n >= 40 and os.path.exists(d + "/INDEX.md"), f"{n} craft files + INDEX" if n else "missing")
+    files = glob.glob(d + "/*.md")
+    craft = [
+        p for p in files
+        if os.path.basename(p) not in {"SKILL.md", "INDEX.md"}
+    ]
+    return (
+        len(craft) >= 40 and os.path.exists(d + "/INDEX.md"),
+        f"{len(craft)} craft files + SKILL + INDEX" if craft else "missing",
+    )
 
 
 def _ffmpeg():
@@ -117,6 +124,69 @@ def _style_radar():
     return (n > 0, f"{n} styles across {len(axes)} axes, {cards} matured cards (Style Radar ready)")
 
 
+def _production_sequence():
+    from lib.pipeline_loader import load_pipeline, get_stage_order
+
+    required = {
+        "zavod-reel": {
+            "idea.intake_or_writer_room",
+            "script.expanded_story_structure",
+            "scene_plan.creative_language_council",
+            "scene_plan.technical_preparation",
+            "scene_plan.preproduction_plan",
+            "assets.prompt_pack_or_shoot_pack_approval",
+            "edit.story_cut",
+            "compose.color_vfx_master_qc",
+        },
+        "zavod-promo": {
+            "idea.intake_or_writer_room",
+            "script.expanded_story_structure",
+            "scene_plan.creative_language_council",
+            "scene_plan.source_frame_selection",
+            "scene_plan.technical_preparation",
+            "assets.prompt_pack_approval",
+            "edit.story_cut",
+            "compose.color_vfx_master_qc",
+        },
+    }
+    problems = []
+    for name, expected in required.items():
+        manifest = load_pipeline(name)
+        order = set(get_stage_order(manifest, include_sub_stages=True))
+        problems.extend(f"{name}:{item} missing" for item in sorted(expected - order))
+        # Every owner-gated sub-stage must be artifact-backed (produces) so the ladder
+        # is enforceable at the checkpoint seam, not merely named in prose.
+        for stage in manifest["stages"]:
+            for ss in stage.get("sub_stages", []):
+                if ss.get("human_approval_default", True) and not ss.get("produces"):
+                    problems.append(f"{name}:{stage['name']}.{ss['name']} not artifact-backed")
+    msg = (
+        "reel/promo specialist ladders wired + artifact-backed (non-collapsible)"
+        if not problems else f"{problems}"
+    )
+    return (not problems, msg)
+
+
+def _engine_lanes():
+    """Both lanes declared and mutually exclusive: Remotion (no AI footage) vs Higgsfield
+    (zero Remotion, ffmpeg compose). Mirrors lib/checkpoint.LANE_COMPOSE_RUNTIMES."""
+    from lib.pipeline_loader import load_pipeline
+    problems = []
+    for name in ("zavod-reel", "zavod-promo"):
+        pe = load_pipeline(name).get("metadata", {}).get("production_engine", {})
+        lanes = pe.get("lanes", {})
+        if not pe.get("ask_at_start"):
+            problems.append(f"{name}: production_engine.ask_at_start not set")
+        for lane in ("remotion", "higgsfield"):
+            if lane not in lanes:
+                problems.append(f"{name}: lane {lane!r} missing")
+        if lanes.get("higgsfield", {}).get("compose_runtime") != ["ffmpeg"]:
+            problems.append(f"{name}: higgsfield lane must compose via [ffmpeg] (zero Remotion)")
+        if "higgsfield" not in (lanes.get("remotion", {}).get("forbids") or []):
+            problems.append(f"{name}: remotion lane must forbid higgsfield")
+    return (not problems, "remotion/higgsfield lanes separated (ask-first, no cross-lane)" if not problems else f"{problems}")
+
+
 # Named checks (label, fn) — the full production profile, in display order.
 _ALL_CHECKS = [
     ("corpus (voice source)", _corpus),
@@ -128,6 +198,8 @@ _ALL_CHECKS = [
     ("schemas", _schemas),
     ("scout registry", _scout),
     ("style radar", _style_radar),
+    ("production sequence", _production_sequence),
+    ("engine lanes", _engine_lanes),
 ]
 
 # What a trend-scan actually needs. The Scout / Style-Radar weekly scans only web-scan and

@@ -47,4 +47,5 @@ Frame S__ — QC Supervisor
 ## Ինտեգրացիա
 - Մասնակցում է [[pre-advance-council]]-ին որպես «Continuity» ձայն (ռիսկերը նախապես)։
 - Կիրառում է [[qc-continuity-gate]]-ի rejection criteria-ն ու [[no-duplicate-character-empty-plate]] մեթոդը։
-- Ավտոնոմ ռեժիմում վազում է ԱՄԵՆ frame-ի վրա, owner-ից անկախ։
+- Ավտոմատ սևագրային ռեժիմում վազում է ԱՄԵՆ frame-ի վրա՝ սեփականատիրոջ ներկայությունից անկախ,
+  բայց չի հաստատում հաջորդ փուլը։

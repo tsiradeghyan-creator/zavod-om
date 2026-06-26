@@ -107,8 +107,14 @@
                 "description": { "type": "string" },
                 "condition": { "type": "string", "description": "When this sub-stage activates (e.g., video_analysis_brief_exists)" },
                 "human_approval_default": { "type": "boolean", "default": true },
+                "produces": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Artifact key this sub-stage produces. Owner-gated sub-stages that declare produces become non-collapsible rungs: a stage cannot close until each is recorded in artifacts.production_ladder."
+                },
                 "tools_available": { "type": "array", "items": { "type": "string" } },
-                "review_focus": { "type": "array", "items": { "type": "string" } }
+                "review_focus": { "type": "array", "items": { "type": "string" } },
+                "success_criteria": { "type": "array", "items": { "type": "string" } }
               }
             }
           }

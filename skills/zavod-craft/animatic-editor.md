@@ -15,5 +15,5 @@
 Տեմպը կողպվում է animatic-ով → նոր ռենդեր։ (Ֆիքսում է «սխալ ռիթմ՝ արդեն ռենդերից հետո» վատնումը։)
 
 ## Ինտեգրացիա
-Մուտք՝ [[storyboard]] frames + [[voice-director]] draft VO։ Ելք՝ կողպված տեմp → [[vfx-render-supervisor]]։
+Մուտք՝ [[storyboard]] frames + [[voice-director]] draft VO։ Ելք՝ կողպված տեմպ → [[vfx-render-supervisor]]։
 Հսկվում է [[production-manager-orchestrator]]-ի կողմից; հաջորդ օղակ՝ [[editor-final-catch]]։

@@ -26,5 +26,6 @@
 
 ## Ինտեգրացիա — ամբողջ շղթան
 [[pre-advance-council]] (QA·որոշում) → գործողություն → [[continuity-qc-supervisor]] (per-frame QC) →
-**Editor Final-Catch (shot-to-shot QC)** → [[auto-verification-loop]] gate → Անցում/հրապարակում։
-Ավտոնոմ ռեժիմում բոլորը վազում են owner-ից անկախ։
+**Editor Final-Catch (shot-to-shot QC)** → [[auto-verification-loop]] gate → առաջարկվող անցում/հրապարակում։
+Ավտոմատ սևագրային ռեժիմում QC-ն կարող է վազել սեփականատիրոջ ներկայությունից անկախ, բայց անցումը/հրապարակումը մնում է
+[[production-protocol]]-ի հաստատման օրենքի տակ։

@@ -1,9 +1,11 @@
 name: zavod-promo
 version: "1.0"
 description: >
-  General promo reel built by animating REAL photos (image-to-video) + brand-font overlay
-  + VO/music — the generalized desert-owl-promo path. Stages mirror zavod-reel but the
-  asset stage is REAL-PHOTO-FIRST: every property/product visual is an image-to-image edit
+  General promo reel built from an owner-approved creative ladder: source-frame selection,
+  visual-style selection, typography selection, character/people policy, technical storyboard,
+  approved Higgsfield prompt pack, then REAL-photo image-to-video + brand-font overlay
+  + VO/music. This is the generalized desert-owl-promo path. Stages mirror zavod-reel but the
+  asset stage is REAL-PHOTO-FIRST: every property/product visual is an image-to-image/video edit
   of a real source photo (never generic text-to-image). Continuity gate is mandatory on
   every generated clip.
 category: generated
@@ -23,6 +25,55 @@ extensions:
   custom_playbooks: true
   custom_skills: true
   custom_tools: true
+
+metadata:
+  owner_decision_gates:
+    visual_preflight:
+      required_before_any_visual_export_or_generation: true
+      sequence:
+        - source_frame_selection
+        - visual_style_selection
+        - typography_selection
+        - character_people_policy
+        - technical_storyboard
+        - owner_approved_prompt_pack
+    video_generation:
+      primary_route: higgsfield
+      requires_owner_approved_prompt: true
+      compose_runtime: ffmpeg          # zero Remotion in the Higgsfield lane (overlay/assembly via ffmpeg)
+      no_silent_provider_swap: true
+    default_character_people_policy:
+      identifiable_faces: no_without_explicit_rights_approval
+      allowed_without_extra_rights: [empty_property, hands, backs, silhouettes, non_identifiable_lifestyle]
+  production_engine:
+    ask_at_start: true              # EP asks Remotion vs Higgsfield before any production
+    locked_in: engine_lock          # carried in artifacts.engine_lock.engine, enforced at the seam
+    no_cross_lane: true             # the two lanes never mix
+    lanes:
+      remotion:                     # programmatic build — motion graphics, kinetic type, overlays
+        generation: none            # NO AI footage
+        compose_runtime: [remotion, hyperframes]
+        forbids: [higgsfield]
+      higgsfield:                   # AI footage — real-photo image-to-video, generative clips
+        generation: higgsfield
+        compose_runtime: [ffmpeg]   # zero Remotion — ffmpeg overlay/assembly
+        forbids: [remotion, hyperframes]
+  production_sequence:
+    owner_approval_after_each_sub_stage: true
+    no_collapse: true
+    map:
+      - idea_development
+      - script_development
+      - creative_language
+      - technical_preparation
+      - preproduction
+      - approved_higgsfield_prompt_pack
+      - asset_generation
+      - postproduction
+      - finishing
+      - presentation
+    if_idea_missing: start_with_writer_room_brainstorm
+    if_script_exists: treat_script_as_locked_input_and_start_from_next_open_phase
 
 required_skills:
   - pipelines/zavod/executive-producer
@@ -46,7 +97,25 @@ stages:
     produces: [brief]
     checkpoint_required: true
     human_approval_default: true
-    review_focus: [One segment + one hook; real source media identified]
+    review_focus:
+      - One segment + one hook; real source media identified
+      - Source-frame options proposed as choices, not rendered as final art
+      - Visual style, typography, and character/people policy choices queued for owner lock
+    sub_stages:
+      - name: intake_or_writer_room
+        produces: [idea_options]
+        description: If no idea exists, the writers' room brainstorms 3-5 promo concepts; if an idea exists, it clarifies offer, audience, hook, and feeling.
+        human_approval_default: true
+        review_focus:
+          - Owner chooses one promo idea before script work
+          - Offer, audience, hook, and desired feeling are explicit
+      - name: concept_lock
+        produces: [concept_brief]
+        description: "Lock the promo brief: one segment, one hook, format, platform, duration, source-media candidates, and success metric."
+        human_approval_default: true
+        review_focus:
+          - One concept only
+          - Real source media candidates are listed as options
     success_criteria: [Schema-valid brief]
   - name: script
     skill: pipelines/zavod/script-director
@@ -57,6 +126,31 @@ stages:
     review_focus:
       - Voice per brand-voice.md
       - "GATE: glyph gate on Armenian text"
+    sub_stages:
+      - name: expanded_story_structure
+        produces: [story_structure]
+        description: "Build the promo arc before shots: hook, promise, proof, sensory turn, and CTA."
+        human_approval_default: true
+        review_focus:
+          - Arc is approved before shot writing
+      - name: scene_outline
+        produces: [scene_outline]
+        description: Turn the arc into beat-by-beat scenes or cards.
+        human_approval_default: true
+        review_focus:
+          - Every beat has a job
+      - name: copy_and_voice_pass
+        produces: [copy_voice]
+        description: Polish overlay copy, VO, and CTA in the selected brand voice.
+        human_approval_default: true
+        review_focus:
+          - Copy is approved before visual-language work
+      - name: script_lock
+        produces: [script_lock]
+        description: Freeze the promo script before creative-language and storyboard work.
+        human_approval_default: true
+        review_focus:
+          - Owner approves the script lock
     success_criteria: [Schema-valid script]
   - name: scene_plan
     skill: pipelines/zavod/scene-director
@@ -67,6 +161,40 @@ stages:
     review_focus:
       - Each shot maps to a REAL source photo; shot_language + staging set
       - in_hand_objects declared (continuity); text_policy=overlay
+      - Storyboard/shot cards include source frame, camera, lens mm, aperture/DoF, movement, lighting, color grade, duration, audio bed, and text overlay plan
+      - Owner has locked source-frame choice, visual style, font pair, and character/people policy before any render
+    sub_stages:
+      - name: creative_language_council
+        produces: [creative_language]
+        description: Director, cinematographer, production designer, sound lead, editor, composer, and colorist decide how the promo looks, sounds, moves, and feels.
+        human_approval_default: true
+        review_focus:
+          - Visual style, typography, people policy, sound direction, edit rhythm, music direction, and color grade are proposed as choices
+          - Owner locks one direction before technical prep
+      - name: source_frame_selection
+        produces: [source_frames]
+        description: Present exact source photos/frames and why each fits the hook.
+        human_approval_default: true
+        review_focus:
+          - No visual export before source frames are approved
+      - name: technical_preparation
+        produces: [technical_plan]
+        description: Choose camera/format language, lens style, lighting approach, sound plan, aspect/fps, and media-storage workflow.
+        human_approval_default: true
+        review_focus:
+          - Camera, optics, lighting, sound, format, and storage are explicit
+      - name: storyboard_shot_cards
+        produces: [shot_cards]
+        description: Build the storyboard / shot cards with source media, camera, lens, aperture, movement, lighting, grade, action, audio bed, duration, and overlay policy.
+        human_approval_default: true
+        review_focus:
+          - Every shot has the full technical card
+      - name: preproduction_plan
+        produces: [preproduction_plan]
+        description: Lock people/character policy, locations, visual references, schedule, costume/decor/props, and technical tests.
+        human_approval_default: true
+        review_focus:
+          - People, location, props, styling, and tests are approved or flagged
     success_criteria: [Schema-valid scene_plan]
   - name: assets
     skill: pipelines/zavod/asset-director
@@ -76,16 +204,57 @@ stages:
     human_approval_default: true
     review_focus:
       - "REAL-PHOTO-ONLY: image-to-image with the real photo attached (medias inside params)"
-      - Engine choice respects moderation (e.g. Kling for tasteful swimwear, not Veo)
+      - "PROMPT-GATE: write image/video prompt pack first; owner approves every prompt before any Higgsfield call"
+      - "VIDEO-GEN ROUTE: Higgsfield generate_video by default for generated motion; Remotion is composition only"
       - QC each output vs source — pool/architecture unchanged
+      - Engine choice respects moderation (e.g. Kling for tasteful swimwear, not Veo)
+    sub_stages:
+      - name: rights_and_source_lock
+        produces: [rights_lock]
+        description: Confirm every source photo, location, likeness, music, and rights-sensitive item before creation.
+        human_approval_default: true
+        review_focus:
+          - No face/location/music/right is assumed
+      - name: prompt_pack_approval
+        produces: [prompt_pack]
+        description: Present exact image/video prompts, negative prompts, Higgsfield model, params, cost estimate, and source-media attachment plan.
+        human_approval_default: true
+        review_focus:
+          - Owner approves every prompt before any Higgsfield call
+      - name: higgsfield_generation
+        produces: [generated_assets]
+        description: Generate only the approved images/clips through Higgsfield with real source media attached, then run first-pass QC.
+        human_approval_default: true
+        review_focus:
+          - Output matches approved prompt and source geometry
+          - Continuity and architecture hold
     success_criteria: [Schema-valid asset_manifest; every visual references a real photo]
   - name: edit
     skill: pipelines/zavod/edit-director
     required_artifacts_in: [scene_plan, asset_manifest]
     produces: [edit_decisions]
     checkpoint_required: true
-    human_approval_default: false
+    human_approval_default: true
     review_focus: [Arc/order; transitions; brand-font overlay plan]
+    sub_stages:
+      - name: story_cut
+        produces: [story_cut]
+        description: Assemble the approved promo arc first; confirm the sequence still sells the intended feeling.
+        human_approval_default: true
+        review_focus:
+          - Hook, proof, sensory turn, and CTA are in the right order
+      - name: rhythm_pass
+        produces: [rhythm]
+        description: Shape pacing, pauses, transitions, and montage grammar.
+        human_approval_default: true
+        review_focus:
+          - Rhythm supports the hook and retention
+      - name: sound_music_color_vfx_plan
+        produces: [post_plan]
+        description: Plan sound cleanup/design, music placement, color direction, and needed VFX before final compose.
+        human_approval_default: true
+        review_focus:
+          - Sound, music, color, and VFX decisions are explicit
     success_criteria: [Schema-valid edit_decisions]
   - name: compose
     skill: pipelines/zavod/compose-director
@@ -93,10 +262,23 @@ stages:
     produces: [render_report, final_review]
     required_tools: [video_compose]
     checkpoint_required: true
-    human_approval_default: false
+    human_approval_default: true
     review_focus:
       - "GATE: continuity_checker passes on EVERY generated clip (object-permanence)"
       - VO/music mix per sound-craft.md; loudness target; ffprobe validates
+    sub_stages:
+      - name: final_mix
+        produces: [final_mix]
+        description: Clean and shape VO, ambience, SFX, and music into a finished mix.
+        human_approval_default: true
+        review_focus:
+          - Loudness, intelligibility, and sync pass
+      - name: color_vfx_master_qc
+        produces: [master_qc]
+        description: Apply color, VFX if needed, captions/subtitles, technical QC, and final versions.
+        human_approval_default: true
+        review_focus:
+          - Picture, sound, captions, grade, and deliverable specs pass
     success_criteria: [render_report valid; output passes ffprobe]
   - name: publish
     skill: pipelines/zavod/publish-director
@@ -105,4 +287,11 @@ stages:
     checkpoint_required: true
     human_approval_default: true
     review_focus: [Caption/hashtags; AI-content label]
+    sub_stages:
+      - name: presentation_route
+        produces: [presentation_route]
+        description: Decide platform route, caption package, schedule, first-hour plan, and communication materials.
+        human_approval_default: true
+        review_focus:
+          - Release route and public communication are approved
     success_criteria: [Schema-valid publish_log]

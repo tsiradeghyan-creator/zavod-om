@@ -70,7 +70,7 @@ Each slide gets two prompt options in the working file:
 ## Deliverables for a finished carousel
 1. `carousel-NN-<slug>.html` — the visual preview / Canva placement guide (slide text baked in).
 2. `carousel-NN-<slug>-prompts.md` — per-slide Background prompts (A + B) + palette block.
-3. `carousel-NN-<slug>-caption-and-sources.md` — caption + first-comment hashtags + posting
+3. `carousel-NN-<slug>-caption-and-sources.md` — caption with 3-5 hashtags + posting
    notes + sources.
 4. Exported slide PNGs in `exports/<slug>/slide-NN.png`.
 
@@ -96,4 +96,4 @@ daily Story series for a new serial from its design code:
 - [ ] Slide 3 has a question/anaphora payoff.
 - [ ] ≥1 save-worthy slide; last slide = specific comment CTA.
 - [ ] All Armenian in proper Unicode; no faces/stills; wordmark + handle present.
-- [ ] Caption follows `style-profile.md` formula; exactly 5 hashtags in first comment.
+- [ ] Caption follows `style-profile.md` formula; 3-5 hashtags are in the caption, not first comment.

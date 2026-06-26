@@ -19,7 +19,7 @@ method: empty-plate + single-instance (բնակեցված-master reframe ԱՐԳ�
 Render-prompt-ը ԳՐՎՈՒՄ Է manifest-ից, ոչ ազատ ձևով։
 
 ### Սյուն 2 — Անկախ, հակառակորդ վերիֆիկատոր (generator ≠ verifier)
-Ռենդերից հետո **առանձin** vision-անցում, որի **խնդիրն է FAIL գտնել**, ոչ հաստատել։
+Ռենդերից հետո **առանձին** vision-անցում, որի **խնդիրն է FAIL գտնել**, ոչ հաստատել։
 Պարտադիր **ստրուկտուրացված թվարկում** (ոչ «լավ տեսք ունի»).
 ```
 Q1 (COUNT): «Թվարկի՛ր ԱՄԵՆ մարդ կադրում — դիրք + հագուստ + մազ։ Քանի՞ գանգուր
@@ -48,4 +48,5 @@ Agent Report-ի պարտադիր տող՝ `QC-Auto: PASS k/N · FAIL m/N (escala
 
 ## Կապ
 Acceptance criteria՝ [[qc-continuity-gate]] · մեթոդ՝ [[no-duplicate-character-empty-plate]] ·
-կանոնը կիրառվում է ԱՄԵՆ frame-ի, ԱՄԵՆ session-ի, ԱՆԿԱԽ owner-ի ներկայությունից։
+կանոնը կիրառվում է ԱՄԵՆ frame-ի, ԱՄԵՆ session-ի։ Սա կարող է վազել սեփականատիրոջ ներկայությունից անկախ,
+բայց չի փոխարինում production-protocol-ի փուլային հաստատմանը։

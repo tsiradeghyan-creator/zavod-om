@@ -9,16 +9,19 @@ Render the final deliverable: stitch clips/slides, apply brand-font overlays, mi
 `vfx-render-supervisor.md`, `compositor.md`.
 
 ## Process
-1. Route by `edit_decisions.render_runtime` — never silently pick an engine:
-   - **`render_runtime="remotion"`** — clip-led reels/promos via the React composition pass.
-   - **`render_runtime="hyperframes"`** — HTML/CSS/GSAP kinetic title cards & carousels; `hyperframes lint`
-     and `hyperframes validate` must both pass before render. See `skills/core/hyperframes.md`.
-   - **`render_runtime="ffmpeg"`** — bare stitch/mux. Portable ffmpeg discovery (system ffmpeg /
-     @ffmpeg-installer) — never depend on a specific OS.
-   `delivery_promise.motion_required=true` makes the locked runtime a commitment: a silent swap (including
-   FFmpeg Ken Burns) is a CRITICAL governance violation. If the locked runtime fails, escalate — don't swap.
+1. Route by the locked lane (`engine_lock`) — never silently pick an engine. The seam rejects a compose
+   checkpoint whose `engine_lock.compose_runtime` does not match the lane:
+   - **Remotion lane** → `compose_runtime` follows the locked `render_runtime`: `remotion` (React
+     composition pass) or `hyperframes` (HTML/CSS/GSAP kinetic cards & carousels; `hyperframes lint` +
+     `hyperframes validate` must pass first). The `render_runtime` choice is locked at the idea stage.
+   - **Higgsfield lane** → `compose_runtime` is **`ffmpeg`** only. **Zero Remotion** — stitch the approved
+     Higgsfield clips and burn Armenian brand-font overlays via ffmpeg. Portable ffmpeg discovery (system
+     ffmpeg / @ffmpeg-installer) — never depend on a specific OS.
+   `delivery_promise.motion_required=true` makes the locked lane a commitment: a silent cross-lane swap
+   (including an FFmpeg Ken Burns standing in for motion) is a CRITICAL governance violation. If the locked
+   runtime fails, escalate — don't swap lanes.
 2. Overlay brand-font text (never AI-baked). Mix VO over ducked ambient/music; target loudness (e.g. -14 LUFS).
-3. Produce `render_report` + `final_review`.
+3. Produce `render_report` + `final_review`, and carry `engine_lock` (with `compose_runtime`) on the checkpoint.
 
 ## Gate (HARD)
 - **`continuity_checker`** runs on EVERY generated clip — sample dense frames, verify each

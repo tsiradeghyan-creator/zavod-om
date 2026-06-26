@@ -29,6 +29,25 @@ from lib.gatechain import (
     run_scene_plan_gates,
     run_script_gates,
 )
+from lib.pipeline_loader import load_pipeline, get_stage_order
+from lib.style_selection import required_roles, validate_selections
+
+
+def _scene_plan_ladder(style_overrides=None):
+    """A fully-walked scene_plan ladder: every owner-gated rung recorded, council
+    carrying a named Style Radar pick per craft role."""
+    styles = {role: f"pick-{role}" for role in required_roles()}
+    if style_overrides is not None:
+        styles = style_overrides
+    return {
+        "sub_stages": [
+            {"name": "creative_language_council", "produces": "creative_language",
+             "owner_approved": True, "style_selections": styles},
+            {"name": "technical_preparation", "produces": "technical_plan", "owner_approved": True},
+            {"name": "storyboard_shot_cards", "produces": "shot_cards", "owner_approved": True},
+            {"name": "preproduction_plan", "produces": "preproduction_plan", "owner_approved": True},
+        ]
+    }
 
 
 # ---------------------------------------------------------------- glyph gate
@@ -131,9 +150,189 @@ def test_zavod_checkpoint_allows_clean_scene_plan(tmp_path):
     good = _scene("Your desert weekend", language="en")
     path = write_checkpoint(
         tmp_path, "proj2", "scene_plan", "completed",
+        {"scene_plan": good, "production_ladder": _scene_plan_ladder()},
+        pipeline_type="zavod-reel",
+    )
+    assert path.exists()
+
+
+# ------------------------------------------------- production ladder (no-collapse)
+def test_completed_scene_plan_without_ladder_is_blocked(tmp_path):
+    # A clean artifact is not enough: a completed stage that skipped its specialist
+    # sub-stages must be rejected — this is the non-collapse guarantee.
+    good = _scene("Your desert weekend", language="en")
+    with pytest.raises(CheckpointValidationError) as exc:
+        write_checkpoint(
+            tmp_path, "proj-collapse", "scene_plan", "completed",
+            {"scene_plan": good}, pipeline_type="zavod-reel",
+        )
+    assert "ladder collapsed" in str(exc.value)
+
+
+def test_completed_scene_plan_missing_one_rung_is_blocked(tmp_path):
+    good = _scene("Your desert weekend", language="en")
+    ladder = _scene_plan_ladder()
+    ladder["sub_stages"] = ladder["sub_stages"][:-1]  # drop preproduction_plan
+    with pytest.raises(CheckpointValidationError) as exc:
+        write_checkpoint(
+            tmp_path, "proj-rung", "scene_plan", "completed",
+            {"scene_plan": good, "production_ladder": ladder},
+            pipeline_type="zavod-reel",
+        )
+    assert "preproduction_plan" in str(exc.value)
+
+
+def test_full_ladder_with_per_role_styles_passes(tmp_path):
+    good = _scene("Your desert weekend", language="en")
+    path = write_checkpoint(
+        tmp_path, "proj-full", "scene_plan", "completed",
+        {"scene_plan": good, "production_ladder": _scene_plan_ladder()},
+        pipeline_type="zavod-reel",
+    )
+    assert path.exists()
+
+
+def test_creative_council_missing_a_style_pick_is_blocked(tmp_path):
+    good = _scene("Your desert weekend", language="en")
+    partial = {r: f"pick-{r}" for r in required_roles() if r != "costume_designer"}
+    ladder = _scene_plan_ladder(style_overrides=partial)
+    with pytest.raises(CheckpointValidationError) as exc:
+        write_checkpoint(
+            tmp_path, "proj-style", "scene_plan", "completed",
+            {"scene_plan": good, "production_ladder": ladder},
+            pipeline_type="zavod-reel",
+        )
+    assert "costume_designer" in str(exc.value)
+
+
+def test_awaiting_human_does_not_require_full_ladder(tmp_path):
+    # Mid-ladder pause: a not-yet-completed scene_plan must be writable without the
+    # whole specialist chain present.
+    good = _scene("Your desert weekend", language="en")
+    path = write_checkpoint(
+        tmp_path, "proj-pause", "scene_plan", "awaiting_human",
         {"scene_plan": good}, pipeline_type="zavod-reel",
     )
     assert path.exists()
+
+
+def test_style_selection_validate_unit():
+    assert validate_selections({})["ok"] is False
+    full = {r: f"x-{r}" for r in required_roles()}
+    assert validate_selections(full)["ok"] is True
+    blank = dict(full, director="   ")
+    v = validate_selections(blank)
+    assert v["ok"] is False and "director" in v["empty"]
+
+
+# ------------------------------------------------- engine lanes (Remotion vs Higgsfield)
+def _ladder(names):
+    subs = []
+    for n in names:
+        e = {"name": n, "produces": n, "owner_approved": True}
+        if n == "creative_language_council":
+            e["style_selections"] = {r: f"pick-{r}" for r in required_roles()}
+        subs.append(e)
+    return {"sub_stages": subs}
+
+
+def _brief():
+    return {"version": "1.0", "title": "T", "hook": "H", "key_points": ["a"],
+            "tone": "warm", "style": "clean", "target_platform": "instagram",
+            "target_duration_seconds": 30}
+
+
+def _asset_manifest(source_tool):
+    return {"version": "1.0", "assets": [
+        {"id": "a1", "type": "video", "path": "a.mp4", "source_tool": source_tool, "scene_id": "s1"}]}
+
+
+def _render_report():
+    return {"version": "1.0", "outputs": [
+        {"path": "o.mp4", "format": "mp4", "resolution": "1080x1920", "duration_seconds": 30}]}
+
+
+_IDEA_SUBS = ["intake_or_writer_room", "concept_lock"]
+_ASSET_SUBS = ["source_media_and_rights_lock", "prompt_pack_or_shoot_pack_approval", "asset_generation_or_shoot"]
+_COMPOSE_SUBS = ["final_mix", "color_vfx_master_qc"]
+
+
+def test_idea_without_engine_lock_is_blocked(tmp_path):
+    # Forces the upfront Remotion-vs-Higgsfield question: a locked lane is mandatory.
+    with pytest.raises(CheckpointValidationError) as exc:
+        write_checkpoint(
+            tmp_path, "p-noeng", "idea", "completed",
+            {"brief": _brief(), "production_ladder": _ladder(_IDEA_SUBS)},
+            pipeline_type="zavod-reel",
+        )
+    assert "Engine lane not locked" in str(exc.value)
+
+
+def test_idea_with_engine_lock_passes(tmp_path):
+    p = write_checkpoint(
+        tmp_path, "p-eng", "idea", "completed",
+        {"brief": _brief(), "production_ladder": _ladder(_IDEA_SUBS),
+         "engine_lock": {"engine": "higgsfield", "compose_runtime": "ffmpeg"}},
+        pipeline_type="zavod-reel",
+    )
+    assert p.exists()
+
+
+def test_remotion_lane_rejects_higgsfield_asset(tmp_path):
+    with pytest.raises(CheckpointValidationError) as exc:
+        write_checkpoint(
+            tmp_path, "p-mix", "assets", "completed",
+            {"asset_manifest": _asset_manifest("higgsfield"),
+             "engine_lock": {"engine": "remotion"},
+             "production_ladder": _ladder(_ASSET_SUBS)},
+            pipeline_type="zavod-reel",
+        )
+    assert "Higgsfield" in str(exc.value)
+
+
+def test_remotion_lane_allows_designed_asset(tmp_path):
+    p = write_checkpoint(
+        tmp_path, "p-clean", "assets", "completed",
+        {"asset_manifest": _asset_manifest("remotion"),
+         "engine_lock": {"engine": "remotion"},
+         "production_ladder": _ladder(_ASSET_SUBS)},
+        pipeline_type="zavod-reel",
+    )
+    assert p.exists()
+
+
+def test_higgsfield_lane_must_compose_via_ffmpeg_not_remotion(tmp_path):
+    with pytest.raises(CheckpointValidationError) as exc:
+        write_checkpoint(
+            tmp_path, "p-cross", "compose", "completed",
+            {"render_report": _render_report(),
+             "engine_lock": {"engine": "higgsfield", "compose_runtime": "remotion"},
+             "production_ladder": _ladder(_COMPOSE_SUBS)},
+            pipeline_type="zavod-reel",
+        )
+    assert "lane" in str(exc.value)
+
+
+def test_higgsfield_compose_via_ffmpeg_passes(tmp_path):
+    p = write_checkpoint(
+        tmp_path, "p-hf", "compose", "completed",
+        {"render_report": _render_report(),
+         "engine_lock": {"engine": "higgsfield", "compose_runtime": "ffmpeg"},
+         "production_ladder": _ladder(_COMPOSE_SUBS)},
+        pipeline_type="zavod-reel",
+    )
+    assert p.exists()
+
+
+def test_remotion_compose_via_remotion_passes(tmp_path):
+    p = write_checkpoint(
+        tmp_path, "p-rem", "compose", "completed",
+        {"render_report": _render_report(),
+         "engine_lock": {"engine": "remotion", "compose_runtime": "remotion"},
+         "production_ladder": _ladder(_COMPOSE_SUBS)},
+        pipeline_type="zavod-reel",
+    )
+    assert p.exists()
 
 
 def test_upstream_pipeline_is_not_gated():
@@ -162,3 +361,47 @@ def test_compose_hard_fail_blocks_even_awaiting(tmp_path):
     awaiting = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "awaiting_human", "artifacts": art}
     with pytest.raises(CheckpointValidationError):
         _enforce_zavod_gates(awaiting)
+
+
+def test_failed_checkpoint_does_not_write_decision_log(tmp_path):
+    bad = _scene("Vanը Հայկական", language="en")
+    decision_log = {
+        "decisions": [
+            {"decision_id": "d1", "stage": "scene_plan", "decision": "bad idea"},
+        ],
+    }
+    with pytest.raises(CheckpointValidationError):
+        write_checkpoint(
+            tmp_path, "proj-log", "scene_plan", "completed",
+            {"scene_plan": bad, "decision_log": decision_log},
+            pipeline_type="zavod-reel",
+        )
+    assert not (tmp_path / "proj-log" / "decision_log.json").exists()
+
+
+def test_reel_and_promo_expose_owner_gated_specialist_ladders():
+    expected = {
+        "zavod-reel": {
+            "idea.intake_or_writer_room",
+            "script.expanded_story_structure",
+            "scene_plan.creative_language_council",
+            "scene_plan.technical_preparation",
+            "scene_plan.preproduction_plan",
+            "assets.prompt_pack_or_shoot_pack_approval",
+            "edit.story_cut",
+            "compose.color_vfx_master_qc",
+        },
+        "zavod-promo": {
+            "idea.intake_or_writer_room",
+            "script.expanded_story_structure",
+            "scene_plan.creative_language_council",
+            "scene_plan.source_frame_selection",
+            "scene_plan.technical_preparation",
+            "assets.prompt_pack_approval",
+            "edit.story_cut",
+            "compose.color_vfx_master_qc",
+        },
+    }
+    for pipeline, required in expected.items():
+        order = set(get_stage_order(load_pipeline(pipeline), include_sub_stages=True))
+        assert required.issubset(order)

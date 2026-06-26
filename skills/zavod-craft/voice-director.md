@@ -5,7 +5,7 @@
 ## Իմ պարտականությունը (հստակ)
 Ես եմ պատասխանատու, որ **ձայնը ճիշտ խաղա ու ճիշտ արտասանի**։
 1. **Ձայն-կասթինգ** — ընտրում եմ պատմողի/հերոսի ձայնը (տարիք, սեռ, տեմբր, բնավորություն)։
-2. **Performance direction** — տեմp, հույզ, շեշտ, դադար, շնչառություն; ամեն տողի համար direction (action-verb ոճով)։
+2. **Performance direction** — տեմպ, հույզ, շեշտ, դադար, շնչառություն; ամեն տողի համար direction (action-verb ոճով)։
 3. **Արտասանություն** — հատկապես հայերեն/բարբառ ճշտություն ([[research-accuracy-consultant]]-ի Canon Sheet-ի անունները ճիշտ); SSML/phoneme ուղղում երբ TTS-ը սխալ է կարդում։
 4. **Take selection** — մի քանի generation-ից լավագույնը; sync to picture (բիթին համընկնում)։
 
@@ -14,5 +14,5 @@
 Սխալ արտասանություն (հատկապես հատուկ անուն) = ավտոմատ FAIL → regenerate։
 
 ## Ինտեգրացիա
-Draft VO → [[animatic-editor]] (տեմp-ստուգում); վերջնական VO → [[final-mixer]]։
+Draft VO → [[animatic-editor]] (տեմպ-ստուգում); վերջնական VO → [[final-mixer]]։
 Բարբառ/արտասանություն՝ [[research-accuracy-consultant]] + dialect ([[production-team]])։

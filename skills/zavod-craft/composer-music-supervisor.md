@@ -6,7 +6,7 @@
 Ես եմ պատասխանատու **երաժշտության հույզի և իրավական մաքրության համար**։
 1. **Թեմա + leitmotif** — հերոսի/աշխարհի կրկնվող երաժշտական մոտիվ; տրամադրության աղեղ ըստ սցենարի։
 2. **Spotting** — որ պահին ո՞ր երաժշտությունը (cue sheet); որտեղ՝ լռություն (Մաղաքյանի զսպվածություն)։
-3. **Source** — generation (MiniMax/Suno) կամ լիցենզավորված; ոճ/տեմp/key բիթին համապատասխան։
+3. **Source** — generation (MiniMax/Suno) կամ լիցենզավորված; ոճ/տեմպ/key բիթին համապատասխան։
 4. **Իրավական մաքրում** — լիցենզ, հեղինակ. իրավունք, հարթակ-անվտանգ (YouTube/IG copyright); [[business-affairs]]-ի հետ։
 
 ## Իմ դարպասը
@@ -14,4 +14,4 @@
 Չմաքրված/copyright-ռիսկ երաժշտություն = ավտոմատ FAIL։
 
 ## Ինտեգրացիա
-Cue-ները → [[final-mixer]]; clearance → [[business-affairs]]; տեմp → [[animatic-editor]] / [[sound-craft]]։
+Cue-ները → [[final-mixer]]; clearance → [[business-affairs]]; տեմպ → [[animatic-editor]] / [[sound-craft]]։

@@ -8,27 +8,40 @@ The Maghakian content zavod, rebuilt on the OpenMontage spine: **brain + enforce
 ./.venv/bin/python lib/healthcheck.py     # 30s GREEN/RED signal (corpus, gates, manifests, render)
 ```
 
+Then ask the owner before any production work:
+
+```text
+Ո՞ր ռեժիմով ենք աշխատում։
+1. Քո հաստատումներով՝ փուլ առ փուլ։ Default. Ամեն փուլ ավարտվում է Agent Report-ով և կանգնում է մինչև «Անցիր առաջ»։
+2. Ավտոմատ լրիվ սևագրային վազք։ Կարող եմ ներսում ստուգել, հետ ուղարկել ու սևագիր հավաքել, բայց չեմ հրապարակում, գումար չեմ ծախսում, իրավունք/դեմք/լոկացիա չեմ փակում և վերջնական չեմ հանձնում առանց քո հաստատման։
+
+Ո՞ր ագենտներով ենք գնում՝ ամբողջ բենչո՞վ, թե միայն տվյալ փուլին պետք եղողներով։
+```
+
+If the owner says the script already exists, do not rewrite it by default: start from the
+next unlocked stage, produce that stage's report, and wait for approval.
+
 ## The three layers
 - **Spine** (OpenMontage, AGPLv3): `pipeline_defs/*.yaml` (gated stage DAGs), `schemas/artifacts/*.json`
   (24 schema-validated artifacts), `lib/` (loader, checkpoint, scoring, reviewer), `meta/reviewer` + `meta/checkpoint-protocol`.
-- **Brain** (the zavod's 50 craft files): `skills/zavod-craft/` + `INDEX.md` wires each craft file to a
-  pipeline stage/role/gate. Voice source = `~/Documents/Maghakian-Scripts/` (style-profile derives from it).
+- **Brain** (the zavod's 50 craft files + `SKILL.md` + `INDEX.md`): `skills/zavod-craft/` wires each craft file
+  to a pipeline stage/role/gate. Voice source = `~/Documents/Maghakian-Scripts/` (style-profile derives from it).
 - **Arsenal**: `skills/providers/higgsfield-capabilities.md` — every agent knows the full Higgsfield toolset.
 
 ## Pipelines (general; projects/styles sit on top)
 `zavod-reel`, `zavod-carousel`, `zavod-promo`. Director bench: `skills/pipelines/zavod/*-director.md`
 (executive-producer + idea→script→scene→asset→edit→compose→publish).
 
-## Hard, code-enforced gates (the 06-18 failure class — proven in lib/gatechain.py)
-| Gate | File | Catches |
-|---|---|---|
-| Armenian glyph | `lib/armenian_glyph_gate.py` | Latin/Cyrillic inside Armenian words |
-| Continuity | `lib/continuity_checker.py` | disappearing in-hand object / identity / architecture |
-| Brand voice | `lib/brand_voice_check.py` | generic-AI tropes / drift |
-| Delivery promise | `lib/delivery_promise.py` | motion-led silently downgraded to slideshow |
-| Variation | `lib/variation_checker.py` | slideshow / generic scene plans |
-| Schema | `schemas/artifacts/*.json` | malformed/vague artifacts (incl. scene_plan.staging/text_policy) |
-| Gate-chain | `lib/gatechain.py` | the reviewer's dispatcher — runs the right gates per stage |
+## Gate coverage
+| Gate | Status | File | Catches |
+|---|---|---|---|
+| Armenian glyph | checkpoint-enforced | `lib/armenian_glyph_gate.py` | Latin/Cyrillic inside Armenian words |
+| Continuity | checkpoint-enforced | `lib/continuity_checker.py` | disappearing in-hand object / identity / architecture |
+| Brand voice | checkpoint-enforced | `lib/brand_voice_check.py` | generic-AI tropes / drift |
+| Variation | checkpoint-enforced | `lib/variation_checker.py` | slideshow / generic scene plans |
+| Schema | checkpoint-enforced | `schemas/artifacts/*.json` | malformed/vague artifacts (incl. scene_plan.staging/text_policy) |
+| Delivery promise | reviewer-invoked, not checkpoint seam yet | `lib/delivery_promise.py` | motion-led silently downgraded to slideshow |
+| Gate-chain | dispatcher | `lib/gatechain.py` | runs the right gates per stage |
 
 ## Self-improvement (Scout) — wake-safe
 `skills/meta/scout.md` + `lib/scout.py` + `library/known_capabilities.json` + `tools/com.zavodom.scout.plist`
@@ -38,7 +51,9 @@ skill-creator drafts a skill / provider. Nothing auto-installs.
 ## Rules
 Rule Zero: every production runs a pipeline (no ad-hoc prompt-and-pray). Armenian = Eastern Unicode only
 (glyph gate). On-image text = overlay (AI-baked only for short display words that pass the glyph gate).
-No stage advances without its gate + the human checkpoint (Անցիր առաջ / Փոխիր / Ինքդ որոշիր).
+Default mode: no stage advances without its gate + the owner's checkpoint (Անցիր առաջ / Փոխիր / Ինքդ որոշիր).
+Autonomous mode may draft, retake, and verify internally, but publish/spend/rights-lock/final delivery still
+require the owner's explicit approval.
 
 ## Run (portable, any OS)
 ```bash

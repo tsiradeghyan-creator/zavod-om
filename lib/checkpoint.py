@@ -184,6 +184,151 @@ def _enforce_zavod_gates(checkpoint: dict[str, Any]) -> None:
     )
 
 
+def _required_ladder_sub_stages(pipeline_type: str, stage: str) -> list[str]:
+    """Owner-gated sub-stages that declare a ``produces`` artifact for this stage.
+
+    These are the non-collapsible rungs: every one must be recorded in
+    ``artifacts.production_ladder`` before the stage may close.
+    """
+    try:
+        from lib.pipeline_loader import load_pipeline
+        manifest = load_pipeline(pipeline_type)
+    except Exception:
+        return []
+    for st in manifest.get("stages", []):
+        if st.get("name") != stage:
+            continue
+        return [
+            ss["name"]
+            for ss in st.get("sub_stages", [])
+            if ss.get("human_approval_default", True) and ss.get("produces")
+        ]
+    return []
+
+
+def _enforce_production_ladder(checkpoint: dict[str, Any]) -> None:
+    """Make the specialist ladder non-collapsible at the checkpoint seam.
+
+    A ``zavod-*`` stage cannot persist a ``completed`` checkpoint unless every
+    owner-gated sub-stage that declares ``produces`` is recorded in
+    ``artifacts.production_ladder.sub_stages``. This is what stops the Executive
+    Producer from silently squeezing five specialists into one answer — the same
+    failure mode that motivated the ladder. The creative-language council carries
+    the extra contract that every craft role has a named Style Radar pick.
+
+    Only fires on ``completed`` (the stage is fully done); ``awaiting_human`` is a
+    legitimate mid-ladder pause and is left alone.
+    """
+    ptype = checkpoint.get("pipeline_type") or ""
+    if not ptype.startswith("zavod"):
+        return
+    if checkpoint.get("status") != "completed":
+        return
+
+    stage = checkpoint.get("stage")
+    required = _required_ladder_sub_stages(ptype, stage)
+    if not required:
+        return
+
+    artifacts = checkpoint.get("artifacts") or {}
+    ladder = artifacts.get("production_ladder") or {}
+    recorded = {
+        entry["name"]: entry
+        for entry in (ladder.get("sub_stages") or [])
+        if isinstance(entry, dict) and entry.get("name")
+    }
+
+    missing = [name for name in required if name not in recorded]
+    if missing:
+        raise CheckpointValidationError(
+            f"Production ladder collapsed at stage {stage!r} ({ptype}): completed without "
+            f"owner-gated sub-stage(s) {missing}. Each specialist sub-stage must run and be "
+            f"recorded in artifacts.production_ladder.sub_stages before the stage can close."
+        )
+
+    # Per-role Style Radar selection is mandatory on the creative-language council.
+    if "creative_language_council" in recorded:
+        from lib.style_selection import validate_selections, required_roles
+        verdict = validate_selections(recorded["creative_language_council"].get("style_selections"))
+        if not verdict["ok"]:
+            raise CheckpointValidationError(
+                f"Creative-language council at stage {stage!r} ({ptype}) left craft roles without "
+                f"a named Style Radar pick — missing {verdict['missing']}, empty {verdict['empty']}. "
+                f"Every role must be chosen: {required_roles()}."
+            )
+
+
+# Two mutually-exclusive production lanes. The EP asks Remotion vs Higgsfield at the
+# idea stage; the lock is carried in artifacts.engine_lock and the lanes never mix.
+VALID_ENGINES = {"remotion", "higgsfield"}
+LANE_COMPOSE_RUNTIMES = {
+    "remotion": {"remotion", "hyperframes"},  # programmatic build, zero AI footage
+    "higgsfield": {"ffmpeg"},                  # AI footage + ffmpeg overlay, zero Remotion
+}
+# Stages where the engine actually drives the toolchain.
+_ENGINE_RELEVANT_STAGES = {"idea", "assets", "compose"}
+
+
+def _asset_uses_higgsfield(asset: dict[str, Any]) -> bool:
+    blob = " ".join(
+        str(asset.get(k, "")) for k in ("source_tool", "provider", "model")
+    ).lower()
+    return "higgsfield" in blob
+
+
+def _enforce_engine_lane(checkpoint: dict[str, Any]) -> None:
+    """Keep the Remotion and Higgsfield lanes from interfering.
+
+    The owner picks ONE engine at the idea stage; `artifacts.engine_lock.engine` carries it.
+    - idea:    the lane must be locked (forces the upfront Remotion-vs-Higgsfield question).
+    - assets:  a Remotion-lane manifest may not contain Higgsfield-generated assets.
+    - compose: the compose runtime must match the lane — Remotion lane renders via
+               remotion/hyperframes, Higgsfield lane composes via ffmpeg (zero Remotion).
+    Only zavod pipelines, only on `completed`.
+    """
+    ptype = checkpoint.get("pipeline_type") or ""
+    if not ptype.startswith("zavod"):
+        return
+    if checkpoint.get("status") != "completed":
+        return
+    stage = checkpoint.get("stage")
+    if stage not in _ENGINE_RELEVANT_STAGES:
+        return
+
+    artifacts = checkpoint.get("artifacts") or {}
+    lock = artifacts.get("engine_lock") or {}
+    engine = lock.get("engine")
+
+    if engine not in VALID_ENGINES:
+        raise CheckpointValidationError(
+            f"Engine lane not locked at stage {stage!r} ({ptype}): artifacts.engine_lock.engine "
+            f"must be one of {sorted(VALID_ENGINES)}. The Executive Producer asks Remotion vs "
+            f"Higgsfield at the idea stage and carries the lock forward. Got {engine!r}."
+        )
+
+    if stage == "assets" and engine == "remotion":
+        bad = [
+            a.get("id")
+            for a in (artifacts.get("asset_manifest") or {}).get("assets", [])
+            if isinstance(a, dict) and _asset_uses_higgsfield(a)
+        ]
+        if bad:
+            raise CheckpointValidationError(
+                f"Remotion lane ({ptype}) forbids Higgsfield-generated assets, but {bad} were "
+                f"produced with Higgsfield. The Remotion and Higgsfield lanes must not mix."
+            )
+
+    if stage == "compose":
+        runtime = lock.get("compose_runtime")
+        allowed = LANE_COMPOSE_RUNTIMES[engine]
+        if runtime not in allowed:
+            raise CheckpointValidationError(
+                f"{engine!r} lane ({ptype}) must compose via {sorted(allowed)} with zero cross-lane "
+                f"tooling, but engine_lock.compose_runtime={runtime!r}. "
+                f"(Remotion lane → remotion/hyperframes; Higgsfield lane → ffmpeg only.)"
+            )
+
+
 def validate_checkpoint(checkpoint: dict[str, Any]) -> None:
     """Validate checkpoint structure and canonical artifact payloads.
 
@@ -219,6 +364,10 @@ def validate_checkpoint(checkpoint: dict[str, Any]) -> None:
 
     # Code-enforced craft gates (zavod pipelines only) — the non-bypassable wiring.
     _enforce_zavod_gates(checkpoint)
+    # The specialist ladder is non-collapsible at the same seam.
+    _enforce_production_ladder(checkpoint)
+    # Remotion and Higgsfield lanes stay separate at the same seam.
+    _enforce_engine_lane(checkpoint)
 
 
 def _checkpoint_path(pipeline_dir: Path, project_id: str, stage: str) -> Path:
@@ -310,11 +459,12 @@ def write_checkpoint(
     if metadata is not None:
         checkpoint["metadata"] = metadata
 
-    # Merge decision_log: if this checkpoint carries new decisions,
-    # append them to the project-level decision log file, then write the
-    # reference back into relevant artifacts so downstream consumers can find it.
-    if "decision_log" in artifacts and isinstance(artifacts["decision_log"], dict):
-        _merge_decision_log(pipeline_dir, project_id, artifacts["decision_log"])
+    # If this checkpoint carries new decisions, prepare the reference before
+    # validation, but do not write the project-level decision log until the
+    # checkpoint itself has passed every schema and gate. This keeps failed
+    # checkpoints from leaving half-accepted audit trails on disk.
+    decision_log = artifacts.get("decision_log")
+    if isinstance(decision_log, dict):
         log_ref = str(_decision_log_path(pipeline_dir, project_id))
 
         # Write decision_log_ref into proposal_packet and render_report
@@ -331,6 +481,9 @@ def write_checkpoint(
                     plan_or_top["decision_log_ref"] = log_ref
 
     validate_checkpoint(checkpoint)
+
+    if isinstance(decision_log, dict):
+        _merge_decision_log(pipeline_dir, project_id, decision_log)
 
     path = _checkpoint_path(pipeline_dir, project_id, stage)
     path.parent.mkdir(parents=True, exist_ok=True)
