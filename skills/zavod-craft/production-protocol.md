@@ -43,9 +43,11 @@ Hard stops:
 - No polished visual mockup/export before steps 1-4 are locked. Text-only option boards and
   source-contact-sheet markups are allowed.
 - No Higgsfield, image, or video generation call before the exact prompt is approved.
-- If motion is generated, the default route is **Higgsfield** (`generate_video` with real source
-  media attached). `Remotion`, `Hyperframes`, and `ffmpeg` are composition/export tools, not a
-  substitute for the approved video-generation route.
+- Route by the locked engine lane (`engine_lock`), and never mix the two:
+  - **Higgsfield lane** — motion is generated via Higgsfield (`generate_video` with real source media
+    attached); composition/overlay/assembly is **ffmpeg only** — **zero Remotion/Hyperframes**.
+  - **Remotion lane** — programmatic build with **no AI footage**; composition is `remotion` or
+    `hyperframes` (the render_runtime sub-choice).
 - If the owner flags device/OS compatibility problems with a composition route, stop and present
   alternatives before rendering.
 

@@ -79,8 +79,9 @@ Load only the craft files for the current stage from `INDEX.md`.
 - Label realistic AI video per platform rules.
 - For promo/generative visual work, never produce polished art or video before the owner locks:
   source frame, visual style, typography, character/people policy, technical storyboard, and prompt.
-- Generated motion for `zavod-promo` defaults to Higgsfield with real source media attached.
-  `Remotion` is only an optional composition/export route, never a silent video-generation substitute.
+- Two mutually-exclusive engine lanes, asked up front and locked in `engine_lock` (never mixed):
+  **Higgsfield** = AI footage (real source media attached) + **ffmpeg** overlay/assembly, **zero Remotion**;
+  **Remotion** = programmatic build, no AI footage, compose via `remotion`/`hyperframes`.
 
 ## Reporting template
 

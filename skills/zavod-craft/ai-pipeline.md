@@ -37,7 +37,8 @@ already does this — enforce it as a gate: a prompt with a banned adjective get
 
 For `zavod-promo`, generated motion defaults to **Higgsfield** when the owner has that account/tooling
 available. The pipeline must not silently substitute Remotion, Ken Burns, or another provider for the
-approved video-generation route.
+approved video-generation route. In the Higgsfield lane composition/overlay is **ffmpeg only** (zero
+Remotion); Remotion is a separate lane, never mixed in.
 
 No image/video generation call is allowed until the owner has approved the exact prompt pack: prompt,
 negative prompt, model, params, source media attachments, and cost estimate.
