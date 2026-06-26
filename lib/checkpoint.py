@@ -422,14 +422,22 @@ def validate_checkpoint(checkpoint: dict[str, Any]) -> None:
     except jsonschema.ValidationError as exc:
         raise CheckpointValidationError(f"Checkpoint failed schema validation: {exc.message}") from exc
 
-    # Code-enforced craft gates (zavod pipelines only) — the non-bypassable wiring.
+    # Content gates (glyph/continuity/brand-voice) run on BOTH read and write — they judge
+    # the artifact itself, so a dirty payload is caught even when re-reading old data.
     _enforce_zavod_gates(checkpoint)
-    # The specialist ladder is non-collapsible at the same seam.
-    _enforce_production_ladder(checkpoint)
-    # Remotion and Higgsfield lanes stay separate at the same seam.
-    _enforce_engine_lane(checkpoint)
-    # Supervised and automatic runs stay separated (same structure, different stops).
-    _enforce_run_mode(checkpoint)
+
+
+def enforce_zavod_write_contracts(checkpoint: dict[str, Any]) -> None:
+    """Structural production contracts enforced only when WRITING a new checkpoint.
+
+    Backward-compat: these contracts (ladder non-collapse, engine lane, run mode) describe
+    how a stage may be *completed*, so they are write-time gates. Re-reading a legacy
+    checkpoint written before these rules existed must NOT be retroactively rejected —
+    `read_checkpoint` runs `validate_checkpoint` (schema + content gates) but not these.
+    """
+    _enforce_production_ladder(checkpoint)   # specialist ladder is non-collapsible
+    _enforce_engine_lane(checkpoint)         # Remotion and Higgsfield lanes stay separate
+    _enforce_run_mode(checkpoint)            # supervised vs automatic stay separated
 
 
 def _checkpoint_path(pipeline_dir: Path, project_id: str, stage: str) -> Path:
@@ -543,6 +551,9 @@ def write_checkpoint(
                     plan_or_top["decision_log_ref"] = log_ref
 
     validate_checkpoint(checkpoint)
+    # Write-time only: a new completed stage must satisfy the structural contracts.
+    # (read_checkpoint deliberately does not, so legacy checkpoints still load.)
+    enforce_zavod_write_contracts(checkpoint)
 
     if isinstance(decision_log, dict):
         _merge_decision_log(pipeline_dir, project_id, decision_log)

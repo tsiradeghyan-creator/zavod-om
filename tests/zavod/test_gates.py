@@ -8,6 +8,7 @@ seam that makes the gates impossible to skip for zavod pipelines while leaving u
 OpenMontage behavior untouched.
 """
 
+import json
 import sys
 from pathlib import Path
 
@@ -23,6 +24,8 @@ from lib.checkpoint import (
     CheckpointValidationError,
     _enforce_zavod_gates,
     write_checkpoint,
+    read_checkpoint,
+    validate_checkpoint,
 )
 from lib.gatechain import (
     run_compose_gates,
@@ -406,6 +409,49 @@ def test_final_delivery_needs_owner_even_in_automatic(tmp_path):
             pipeline_type="zavod-reel",
         )
     assert "Final delivery" in str(exc.value)
+
+
+# ------------------------------------------------- backward-compat (legacy checkpoints)
+def _legacy_checkpoint(scene):
+    # A completed zavod scene_plan as it was written BEFORE the ladder/engine/run_mode rules:
+    # schema-valid, clean payload, but none of the new structural artifacts.
+    return {
+        "version": "1.0", "project_id": "legacy", "pipeline_type": "zavod-reel",
+        "stage": "scene_plan", "status": "completed",
+        "timestamp": "2026-06-01T00:00:00Z",
+        "checkpoint_policy": "guided", "human_approval_required": False,
+        "human_approved": True, "artifacts": {"scene_plan": scene},
+    }
+
+
+def test_legacy_checkpoint_validates_on_read(tmp_path):
+    # Re-reading an old checkpoint must NOT be retroactively rejected for missing the
+    # ladder/engine/run_mode that did not exist when it was written.
+    cp = _legacy_checkpoint(_scene("Your desert weekend", language="en"))
+    validate_checkpoint(cp)  # must not raise
+
+    proj = tmp_path / "legacy"
+    proj.mkdir(parents=True)
+    (proj / "checkpoint_scene_plan.json").write_text(json.dumps(cp))
+    loaded = read_checkpoint(tmp_path, "legacy", "scene_plan")
+    assert loaded is not None and loaded["stage"] == "scene_plan"
+
+
+def test_legacy_dirty_checkpoint_still_blocked_on_read():
+    # Content gates are NOT relaxed by backward-compat: a dirty legacy payload still fails.
+    cp = _legacy_checkpoint(_scene("Vanը Հայկական", language="en"))  # mislabeled, mixed-script
+    with pytest.raises(CheckpointValidationError):
+        validate_checkpoint(cp)
+
+
+def test_write_still_enforces_structure_even_though_read_does_not(tmp_path):
+    # The contracts are write-time: writing the same legacy-shaped checkpoint is rejected.
+    with pytest.raises(CheckpointValidationError):
+        write_checkpoint(
+            tmp_path, "legacy2", "scene_plan", "completed",
+            {"scene_plan": _scene("Your desert weekend", language="en")},
+            pipeline_type="zavod-reel",
+        )
 
 
 def test_upstream_pipeline_is_not_gated():
