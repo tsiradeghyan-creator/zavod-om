@@ -88,17 +88,21 @@ def _schemas():
 def _enforcement():
     # the wiring that makes gates non-bypassable: a dirty zavod checkpoint MUST be blocked.
     from lib.checkpoint import _enforce_zavod_gates, CheckpointValidationError
+    # reports ride the ONE valid route: render_report.continuity_reports (schema field)
+    _bad_rr = {"version": "1.0",
+               "outputs": [{"path": "/tmp/c.mp4", "format": "mp4",
+                            "resolution": "1080x1920", "duration_seconds": 5.0}],
+               "continuity_reports": [{"clip": "c.mp4",
+                  "anchors": [{"name": "glass", "kind": "object", "persists": False}]}]}
     dirty = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "completed",
-             "artifacts": {"continuity_report": {"clip": "c.mp4",
-                "anchors": [{"name": "glass", "kind": "object", "persists": False}]}}}
+             "artifacts": {"render_report": _bad_rr}}
     try:
         _enforce_zavod_gates(dirty)
         return (False, "NOT WIRED — a broken zavod checkpoint was NOT blocked")
     except CheckpointValidationError:
         # and an upstream pipeline must remain ungated
         ok_up = {"pipeline_type": "cinematic", "stage": "compose", "status": "completed",
-                 "artifacts": {"continuity_report": {"clip": "c.mp4",
-                    "anchors": [{"name": "glass", "kind": "object", "persists": False}]}}}
+                 "artifacts": {"render_report": _bad_rr}}
         _enforce_zavod_gates(ok_up)  # must NOT raise
         return (True, "checkpoint seam blocks dirty zavod artifacts; upstream untouched")
 

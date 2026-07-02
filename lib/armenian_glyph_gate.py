@@ -32,6 +32,26 @@ CONFUSABLES = {
     "о", "е", "а", "р", "с", "у", "н",            # cyrillic lookalikes
 }
 
+# High-frequency Armenian words in Latin transliteration ("barev dzez" class).
+# Pure-Latin translit contains no mixed-script token, so the per-token checks are blind
+# to it; this list closes that hole. Curated to be unambiguous against English/French
+# ("apres", "scenar", "inch", "shat" were dropped as collisions) and checked against the
+# Maghakian corpus 2026-07-02 (zero hits — the corpus is proper Armenian Unicode).
+# Requires >=2 DISTINCT matches before flagging, so a stray loanword never fires alone.
+TRANSLIT_TOKENS = [
+    "barev", "dzez", "shnorhakalutyun", "heghinak", "inchpes", "inchu",
+    "vonc", "vonts", "hima", "aysor", "menq", "menk", "duq", "duk", "irenq",
+    "sirum", "uzum", "gitem", "chgitem", "khosum", "xosum", "grum", "asum",
+    "anum", "karogh", "karox", "petq", "petk", "hayeren", "akhper", "akhpers",
+    "axper", "aghjik", "axjik", "tgha", "txa", "kyanq", "kyank", "chka",
+    "tsavum", "cavum", "hishum", "spasum", "lsum", "tesnum", "haskanum",
+    "erevi", "yerevi", "bayc", "vorovhetev", "orovhetev",
+]
+TRANSLIT_RE = re.compile(
+    r"\b(" + "|".join(sorted(TRANSLIT_TOKENS, key=len, reverse=True)) + r")\b",
+    re.IGNORECASE,
+)
+
 
 def check_text(text: str, field: str = "") -> list[dict[str, str]]:
     """Return violations for a single string.
@@ -79,6 +99,20 @@ def check_text(text: str, field: str = "") -> list[dict[str, str]]:
                     f"wrong-script word{hint}. Retype it in proper Eastern Armenian Unicode."
                 ),
             })
+    # 3. Pure-Latin transliterated Armenian ("barev dzez" class): no token mixes scripts,
+    #    so the per-token checks above can't see it. Two or more DISTINCT known translit
+    #    words in one string → the text is Latin-script Armenian, which the language law bans.
+    translit_hits = sorted({m.group(0).lower() for m in TRANSLIT_RE.finditer(text)})
+    if len(translit_hits) >= 2:
+        violations.append({
+            "text": ", ".join(translit_hits),
+            "field": field,
+            "reason": (
+                f"Transliterated Armenian detected — Latin-script Armenian words "
+                f"({', '.join(translit_hits[:6])}). Rewrite the whole passage in proper "
+                f"Eastern Armenian Unicode; transliteration is never allowed."
+            ),
+        })
     return violations
 
 

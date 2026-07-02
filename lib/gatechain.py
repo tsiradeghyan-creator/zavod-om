@@ -59,6 +59,31 @@ def run_scene_plan_gates(scene_plan: dict[str, Any]) -> dict[str, Any]:
     return {"ok": schema_ok and not violations, "schema": schema_ok, "variation": var["verdict"], "violations": violations}
 
 
+def run_edit_gates(edit_decisions: dict[str, Any],
+                   delivery_promise: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Edit-stage gate: delivery-promise preservation.
+
+    The most damaging silent failure after 06-18 is a motion-led promise quietly becoming
+    a slideshow. The locked promise (DeliveryPromise.to_dict()) travels in
+    ``artifacts.delivery_promise``; when present, the cuts must honor it. No promise
+    artifact → no gate (legacy/upstream checkpoints stay valid).
+    """
+    violations: list[str] = []
+    if delivery_promise:
+        from lib.delivery_promise import DeliveryPromise
+        try:
+            promise = DeliveryPromise.from_dict(delivery_promise)
+        except Exception as exc:
+            violations.append(f"delivery_promise: invalid promise artifact ({exc})")
+        else:
+            res = promise.validate_cuts((edit_decisions or {}).get("cuts", []))
+            if not res["valid"]:
+                violations += [f"delivery_promise: {v}" for v in res["violations"]]
+    return {"ok": not violations,
+            "verdict": "pass" if not violations else "fail",
+            "violations": violations}
+
+
 def declared_anchors(scene_plan: dict[str, Any]) -> dict[str, list[str]]:
     """Per-scene in_hand_objects the continuity gate must verify at compose time."""
     return {sc["id"]: (sc.get("staging", {}) or {}).get("in_hand_objects", [])

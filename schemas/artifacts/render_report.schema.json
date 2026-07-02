@@ -53,6 +53,34 @@
       "type": "string",
       "description": "Path to the project's cumulative decision log"
     },
+    "continuity_reports": {
+      "type": "array",
+      "description": "Filled per-clip continuity review reports (lib/continuity_checker.build_review_request shape, judged by the runtime VLM). This is the documented route the checkpoint seam reads (checkpoint._continuity_reports) to run the compose continuity gate — the 06-18 disappearing-glass class.",
+      "items": {
+        "type": "object",
+        "required": ["clip", "anchors"],
+        "properties": {
+          "clip": { "type": "string" },
+          "frames": { "type": "array", "items": { "type": "string" } },
+          "instruction": { "type": "string" },
+          "anchors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "kind", "persists"],
+              "properties": {
+                "name": { "type": "string" },
+                "kind": { "type": "string", "enum": ["object", "identity", "architecture"] },
+                "persists": { "type": ["boolean", "null"], "description": "true=continuous; false=dropped/changed; null=not yet judged" },
+                "note": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
     "final_review_ref": {
       "type": "string",
       "description": "Path or inline reference to the final_review artifact produced by post-render self-review. Provides durable audit linkage between the render output and its quality inspection."

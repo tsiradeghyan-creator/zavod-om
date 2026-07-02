@@ -131,11 +131,16 @@ def _all_strings(obj: Any) -> list[str]:
 
 
 def _continuity_reports(artifacts: dict[str, Any]) -> list[dict[str, Any]]:
-    cr = artifacts.get("continuity_report") or artifacts.get("continuity_reports")
-    if cr is None:
-        rr = artifacts.get("render_report")
-        if isinstance(rr, dict):
-            cr = rr.get("continuity_reports")
+    """The ONE valid route for compose-stage continuity reports:
+    ``render_report.continuity_reports`` — schema-validated as part of the render_report
+    artifact (see render_report.schema.json). The old loose ``artifacts.continuity_report``
+    / ``artifacts.continuity_reports`` keys were closed 2026-07-02: they escaped schema
+    validation entirely (not in ARTIFACT_NAMES), so any garbage could ride in them.
+    """
+    rr = artifacts.get("render_report")
+    if not isinstance(rr, dict):
+        return []
+    cr = rr.get("continuity_reports")
     if cr is None:
         return []
     return cr if isinstance(cr, list) else [cr]
@@ -160,13 +165,22 @@ def _enforce_zavod_gates(checkpoint: dict[str, Any]) -> None:
     artifacts = checkpoint.get("artifacts") or {}
 
     # Lazy import: keeps the spine importable without the gate libs, and avoids any cycle.
-    from lib.gatechain import run_script_gates, run_scene_plan_gates, run_compose_gates
+    from lib.gatechain import (
+        run_script_gates,
+        run_scene_plan_gates,
+        run_edit_gates,
+        run_compose_gates,
+    )
 
     result: dict[str, Any] | None = None
     if stage == "script" and "script" in artifacts:
         result = run_script_gates("\n".join(_all_strings(artifacts["script"])))
     elif stage == "scene_plan" and "scene_plan" in artifacts:
         result = run_scene_plan_gates(artifacts["scene_plan"])
+    elif stage == "edit" and "edit_decisions" in artifacts:
+        # Delivery-promise preservation: a motion-led promise must not silently become
+        # a slideshow. The locked promise travels in artifacts.delivery_promise.
+        result = run_edit_gates(artifacts["edit_decisions"], artifacts.get("delivery_promise"))
     elif stage == "compose":
         reports = _continuity_reports(artifacts)
         if reports:

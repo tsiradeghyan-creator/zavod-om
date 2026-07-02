@@ -464,9 +464,17 @@ def test_upstream_pipeline_is_not_gated():
     _enforce_zavod_gates(cp)  # must not raise
 
 
+def _rr_with_reports(reports):
+    """Reports ride the ONE valid route: render_report.continuity_reports (schema field)."""
+    return {"version": "1.0",
+            "outputs": [{"path": "/tmp/c.mp4", "format": "mp4",
+                         "resolution": "1080x1920", "duration_seconds": 5.0}],
+            "continuity_reports": reports}
+
+
 def test_needs_human_blocks_completed_but_allows_awaiting(tmp_path):
-    art = {"render_report": {}, "continuity_report": {
-        "clip": "c.mp4", "anchors": [{"name": "glass", "kind": "object", "persists": None}]}}
+    art = {"render_report": _rr_with_reports([{
+        "clip": "c.mp4", "anchors": [{"name": "glass", "kind": "object", "persists": None}]}])}
     completed = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "completed", "artifacts": art}
     awaiting = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "awaiting_human", "artifacts": art}
     with pytest.raises(CheckpointValidationError):
@@ -475,11 +483,29 @@ def test_needs_human_blocks_completed_but_allows_awaiting(tmp_path):
 
 
 def test_compose_hard_fail_blocks_even_awaiting(tmp_path):
-    art = {"continuity_report": {
-        "clip": "c.mp4", "anchors": [{"name": "glass", "kind": "object", "persists": False}]}}
+    art = {"render_report": _rr_with_reports([{
+        "clip": "c.mp4", "anchors": [{"name": "glass", "kind": "object", "persists": False}]}])}
     awaiting = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "awaiting_human", "artifacts": art}
     with pytest.raises(CheckpointValidationError):
         _enforce_zavod_gates(awaiting)
+
+
+def test_loose_continuity_keys_are_closed():
+    # 2026-07-02: the loose artifacts.continuity_report(s) keys escaped schema validation
+    # (not in ARTIFACT_NAMES → any garbage rode along). They are no longer read: a FAIL
+    # report carried ONLY on a loose key must not fire the gate (i.e. the seam ignores it),
+    # while the same report inside render_report.continuity_reports must block.
+    fail_report = {"clip": "c.mp4",
+                   "anchors": [{"name": "glass", "kind": "object", "persists": False}]}
+    for loose_key in ("continuity_report", "continuity_reports"):
+        cp = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "completed",
+              "artifacts": {"render_report": _rr_with_reports([]) | {"continuity_reports": []},
+                            loose_key: fail_report}}
+        _enforce_zavod_gates(cp)  # must NOT raise — loose route is dead
+    valid = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "completed",
+             "artifacts": {"render_report": _rr_with_reports([fail_report])}}
+    with pytest.raises(CheckpointValidationError):
+        _enforce_zavod_gates(valid)
 
 
 def test_failed_checkpoint_does_not_write_decision_log(tmp_path):
@@ -524,3 +550,132 @@ def test_reel_and_promo_expose_owner_gated_specialist_ladders():
     for pipeline, required in expected.items():
         order = set(get_stage_order(load_pipeline(pipeline), include_sub_stages=True))
         assert required.issubset(order)
+
+
+# ============================================================================
+# 2026-07-02 stress-test regressions (see tests/stress/STRESS-REPORT-2026-07-02.md)
+# P0: seam↔schema contradiction on render_report.continuity_reports
+# P1: Armenian brand-voice tropes | P1.5: pure-Latin transliterated Armenian
+# Promise seam: delivery-promise gate wired into the edit checkpoint
+# ============================================================================
+
+def _cp(stage, status, artifacts):
+    return {
+        "version": "1.0", "project_id": "stress-regress", "pipeline_type": "zavod-reel",
+        "stage": stage, "status": status, "timestamp": "2026-07-02T00:00:00+00:00",
+        "checkpoint_policy": "guided", "human_approval_required": False,
+        "human_approved": False, "artifacts": artifacts,
+    }
+
+
+def _filled_continuity_report(clip, persists, note=""):
+    """The build_review_request shape after the runtime VLM filled in the anchors."""
+    return {"clip": clip, "frames": [], "anchors": [
+        {"name": "drinking glass in hand", "kind": "object",
+         "persists": persists, "note": note}]}
+
+
+def _render_report_with(reports):
+    return {"version": "1.0",
+            "outputs": [{"path": "/tmp/out.mp4", "format": "mp4",
+                         "resolution": "1080x1920", "duration_seconds": 10.0}],
+            "continuity_reports": reports}
+
+
+# ---------------------------------------------------------------- P0 (BROKEN fix)
+def test_render_report_schema_accepts_continuity_reports():
+    # Before the fix render_report.schema.json (additionalProperties: false) REJECTED the
+    # very field the seam reads (checkpoint._continuity_reports) — the documented route
+    # could never fire. The schema now validates it.
+    from schemas.artifacts import validate_artifact
+    validate_artifact("render_report",
+                      _render_report_with([_filled_continuity_report("c.mp4", True)]))
+
+
+def test_compose_seam_blocks_bad_clip_via_schema_valid_render_report():
+    # The phase-3 negative test, made permanent: the 06-18 disappearing-glass report,
+    # carried on the SCHEMA-VALID route, must reach the compose gate and block.
+    rr = _render_report_with([_filled_continuity_report(
+        "01-A-pooljump.mp4", False,
+        "glass in jumper's hand f00-f04, both hands empty mid-air f06 — vanished")])
+    with pytest.raises(CheckpointValidationError) as exc:
+        validate_checkpoint(_cp("compose", "completed", {"render_report": rr}))
+    msg = str(exc.value)
+    assert "continuity fail" in msg and "drinking glass" in msg
+
+
+def test_compose_seam_passes_clean_reports_via_schema_valid_render_report():
+    rr = _render_report_with([_filled_continuity_report("01-A-pooljump-v2.mp4", True)])
+    validate_checkpoint(_cp("compose", "completed", {"render_report": rr}))  # must not raise
+
+
+# ---------------------------------------------------------------- P1 (hy tropes)
+def test_brand_voice_armenian_tropes_revise():
+    r = brand_voice("Բացահայտեք գաղտնիքները մեր հեղափոխական ծառայության։ "
+                    "Բարձրացրեք ձեր բիզնեսը նոր մակարդակի։")
+    assert r["ok"] is False and r["verdict"] == "revise"
+    assert any("(hy)" in f for f in r["flags"])
+
+
+def test_brand_voice_clean_armenian_passes():
+    # Restrained, image-led Armenian in the house voice must NOT trip the trope list.
+    r = brand_voice("Մի մարդ օվկիանոս անցավ սիրո համար, որը գոյություն չուներ։")
+    assert r["ok"] is True
+
+
+def test_brand_voice_armenian_exclamation_spam_flagged():
+    r = brand_voice("Հրաշալի՜ Զարմանալի՜ Կարևոր՜ Անպայման դիտե՜ք")
+    assert any("exclamation" in f for f in r["flags"])
+
+
+# ---------------------------------------------------------------- P1.5 (translit)
+def test_glyph_transliterated_armenian_fails():
+    r = glyph_gate("barev dzez, es heghinak em u scenar em grum")
+    assert r["ok"] is False
+    assert any("Transliterated" in v["reason"] for v in r["violations"])
+
+
+def test_glyph_single_translit_lookalike_does_not_fire():
+    # One stray match is not enough — protects English copy with loan-like words.
+    assert glyph_gate("The hima plant is native to the Andes.")["ok"] is True
+
+
+def test_glyph_plain_english_still_passes():
+    assert glyph_gate("Two acres of high desert. One private pool. Book your weekend.")["ok"] is True
+
+
+# ------------------------------------------------- delivery-promise seam (gap closed)
+def _slideshow_edit_decisions():
+    return {"version": "1.0", "render_runtime": "remotion",
+            "cuts": [{"id": f"c{i}", "source": f"slide{i}.png",
+                      "in_seconds": 0, "out_seconds": 3} for i in range(6)]}
+
+
+def _motion_led_promise():
+    return {"promise_type": "motion_led", "motion_required": True,
+            "source_required": False, "tone_mode": "cinematic",
+            "quality_floor": "presentable"}
+
+
+def test_edit_seam_blocks_motion_led_slideshow():
+    # The stress test reproduced this exact silent downgrade passing the seam.
+    cp = _cp("edit", "completed", {"edit_decisions": _slideshow_edit_decisions(),
+                                   "delivery_promise": _motion_led_promise()})
+    with pytest.raises(CheckpointValidationError) as exc:
+        validate_checkpoint(cp)
+    assert "delivery_promise" in str(exc.value)
+
+
+def test_edit_seam_passes_when_promise_honored():
+    ed = {"version": "1.0", "render_runtime": "ffmpeg",
+          "cuts": [{"id": f"c{i}", "source": f"clip{i}.mp4",
+                    "in_seconds": 0, "out_seconds": 3} for i in range(4)]}
+    validate_checkpoint(_cp("edit", "completed",
+                            {"edit_decisions": ed,
+                             "delivery_promise": _motion_led_promise()}))  # must not raise
+
+
+def test_edit_seam_without_promise_is_not_gated():
+    # Legacy/upstream checkpoints without a locked promise stay valid (opt-in gate).
+    validate_checkpoint(_cp("edit", "completed",
+                            {"edit_decisions": _slideshow_edit_decisions()}))
