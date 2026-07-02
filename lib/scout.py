@@ -16,6 +16,25 @@ from datetime import date
 from typing import Any
 
 REGISTRY = os.path.join(os.path.dirname(__file__), "..", "library", "known_capabilities.json")
+LIB_DIR = os.path.join(os.path.dirname(__file__), "..", "library")
+DECISIONS = os.path.join(LIB_DIR, "memo_decisions.json")
+
+
+def undecided_memos(lib_dir: str = LIB_DIR, decisions_path: str = DECISIONS) -> list[str]:
+    """Memo files the owner has not decided on yet. A GATED memo with no entry in
+    memo_decisions.json is decision-debt: the next scheduled run must fail LOUDLY instead
+    of silently emitting a duplicate memo (2026-07-02 council ruling — silence is the
+    zavod's recurring failure pattern; make it expensive)."""
+    import glob as _glob
+    decided: set[str] = set()
+    if os.path.exists(decisions_path):
+        try:
+            decided = set(json.load(open(decisions_path)).get("decisions", {}))
+        except Exception:
+            pass  # unreadable ledger = nothing is decided; stay loud
+    memos = _glob.glob(os.path.join(lib_dir, "scout_memo_*.md")) + \
+        _glob.glob(os.path.join(lib_dir, "style_memo_*.md"))
+    return sorted(os.path.basename(m) for m in memos if os.path.basename(m) not in decided)
 
 
 def load_registry(path: str = REGISTRY) -> dict[str, Any]:

@@ -1,0 +1,43 @@
+{
+ "note": "Owner decisions on GATED memos. A memo file with no entry here = undecided -> next Scout/Radar run fails loudly instead of duplicating the memo.",
+ "decisions": {
+  "scout_memo_2026-06-25.md": {
+   "decided": "2026-07-02",
+   "by": "owner",
+   "items": {
+    "happyhorse_1_0": "approve-pilot",
+    "luma_ray_3_14": "approve",
+    "imagen_4_ultra": "approve-pilot",
+    "firefly_image_3": "approve"
+   }
+  },
+  "scout_memo_2026-06-29.md": {
+   "decided": "2026-07-02",
+   "by": "owner",
+   "items": {
+    "happyhorse_1_0": "duplicate of 06-25",
+    "luma_ray_3_14": "duplicate of 06-25",
+    "imagen_4_ultra": "duplicate of 06-25",
+    "firefly_image_3": "duplicate of 06-25"
+   }
+  },
+  "style_memo_2026-06-25.md": {
+   "decided": "2026-07-02",
+   "by": "owner",
+   "items": {
+    "technical_mono": "approve",
+    "reality_warp": "approve (dream/memory register only)",
+    "future_medieval": "approve (niche: thriller key-art only)"
+   }
+  },
+  "style_memo_2026-07-02.md": {
+   "decided": "2026-07-02",
+   "by": "owner",
+   "items": {
+    "technical_mono": "duplicate of 06-25",
+    "reality_warp": "duplicate of 06-25",
+    "future_medieval": "duplicate of 06-25"
+   }
+  }
+ }
+}

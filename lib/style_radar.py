@@ -140,6 +140,12 @@ def _load_inbox() -> list[dict]:
 def main() -> int:
     if not _healthcheck_green():
         return 1
+    from lib.scout import undecided_memos
+    pending = undecided_memos()
+    if pending:
+        _log(f"UNDECIDED MEMO(S) — OWNER REVIEW REQUIRED: {', '.join(pending)}. "
+             f"Refusing to emit a duplicate memo; decide in library/memo_decisions.json first. (exit 2)")
+        return 2
     findings = _load_inbox()
     if not findings:
         _log("health GREEN; no queued style findings (agent-driven scan pending) — heartbeat only.")

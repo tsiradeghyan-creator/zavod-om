@@ -128,6 +128,18 @@ def _style_radar():
     return (n > 0, f"{n} styles across {len(axes)} axes, {cards} matured cards (Style Radar ready)")
 
 
+def _memo_inbox():
+    # Decision-debt visibility (2026-07-02 council): an undecided GATED memo must be LOUD at
+    # every session start, but must not block production (it is taste/capability debt, not a
+    # broken tree) — so this check stays green with a shouting detail line. The hard failure
+    # lives in the scan drivers themselves (scout_run / style_radar exit 2 on undecided memos).
+    from lib.scout import undecided_memos
+    pending = undecided_memos()
+    if pending:
+        return (True, f"⚠️  {len(pending)} UNDECIDED memo(s) — owner review required: {', '.join(pending)}")
+    return (True, "0 undecided memos (decision ledger clean)")
+
+
 def _production_sequence():
     from lib.pipeline_loader import load_pipeline, get_stage_order
 
@@ -202,6 +214,7 @@ _ALL_CHECKS = [
     ("schemas", _schemas),
     ("scout registry", _scout),
     ("style radar", _style_radar),
+    ("memo inbox", _memo_inbox),
     ("production sequence", _production_sequence),
     ("engine lanes", _engine_lanes),
 ]
