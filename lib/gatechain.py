@@ -27,6 +27,13 @@ def _schema(name: str) -> dict:
     return json.load(open(os.path.join(ROOT, "schemas/artifacts", f"{name}.schema.json")))
 
 
+def run_bench_gates(stage: str, bench_report: dict[str, Any]) -> dict[str, Any]:
+    """Full-bench gate (owner standing order 2026-07-03): no zavod stage closes until every
+    required specialist for that stage has left a substantive ruling. See lib/bench_gate.py."""
+    from lib.bench_gate import run_bench_gates as _rb
+    return _rb(stage, bench_report)
+
+
 def run_story_gates(story_bible: dict[str, Any]) -> dict[str, Any]:
     """Dramaturgy gate (2026-07-03): a serial/film production cannot pass the script stage
     without a complete story bible — full secret chronology, a defensible counter-idea
