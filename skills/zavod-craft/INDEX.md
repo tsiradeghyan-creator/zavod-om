@@ -32,7 +32,7 @@ checkpoint whose artifacts fail their gate. Upstream pipelines are untouched. Co
 2. `continuity_checker.py` — `staging.in_hand_objects` must persist across each generated clip (object-permanence); `fail` blocks, `needs_human` pauses at the human checkpoint (kept distinct). ✅ live & enforced (compose seam)
 3. `variation_checker.py` — slideshow/generic-phrasing taste check. ✅ live & enforced (scene_plan seam)
 4. `brand_voice_check.py` — generic-AI-trope / drift vs `style-profile.md`/`brand-voice.md`. ✅ live & enforced (script seam)
-5. `delivery_promise.py` — motion-led can't silently become slideshow. Present (upstream-native); reviewer-invoked, not yet in the checkpoint seam. ⏳
+5. `delivery_promise.py` — motion-led can't silently become slideshow. ✅ live & enforced (edit seam, 2026-07-02 fix pass)
 
 ## Rule (Rule Zero + voice law)
 - Every production starts by asking the owner for mode: **քո հաստատումներով՝ փուլ առ փուլ** (default)
