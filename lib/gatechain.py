@@ -27,6 +27,26 @@ def _schema(name: str) -> dict:
     return json.load(open(os.path.join(ROOT, "schemas/artifacts", f"{name}.schema.json")))
 
 
+def run_story_gates(story_bible: dict[str, Any]) -> dict[str, Any]:
+    """Dramaturgy gate (2026-07-03): a serial/film production cannot pass the script stage
+    without a complete story bible — full secret chronology, a defensible counter-idea
+    carrier, a personal cost per character, and an era decision absorbed upstream."""
+    try:
+        jsonschema.validate(story_bible, _schema("story_bible"))
+        return {"ok": True, "verdict": "pass", "violations": []}
+    except jsonschema.ValidationError as e:
+        path = ".".join(str(p) for p in e.absolute_path) or "(root)"
+        return {"ok": False, "verdict": "fail", "violations": [f"story_bible.{path}: {e.message}"]}
+
+
+def run_canon_guard(project_dir: str, stage: str) -> dict[str, Any]:
+    """Mid-pipeline canon-change check (see lib/canon_guard.py)."""
+    from lib.canon_guard import check as canon_check
+    r = canon_check(project_dir, stage)
+    return {"ok": r["ok"], "verdict": "pass" if r["ok"] else "fail",
+            "violations": [] if r["ok"] else [r["action"]]}
+
+
 def run_script_gates(script_text: str) -> dict[str, Any]:
     g = glyph_gate(script_text)
     v = brand_voice(script_text)

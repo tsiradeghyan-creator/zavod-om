@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "story_bible",
+  "title": "Story Bible — dramaturgy gate artifact (born 2026-07-03, «Մոռացողը» review)",
+  "description": "A serial/film production cannot advance past the script stage without this artifact. Enforces the lesson: the secret must be fully written for the AUTHOR before it is fragmented into episodes; the controlling idea must have a real carrier on BOTH sides; every POV character must pay a price. Prose rules do not execute — this schema does.",
+  "type": "object",
+  "required": ["premise", "controlling_idea", "secret_chronology", "characters", "era"],
+  "properties": {
+    "premise": {
+      "type": "string",
+      "minLength": 40,
+      "description": "One-breath premise with built-in irony."
+    },
+    "controlling_idea": {
+      "type": "object",
+      "required": ["side_a", "side_b", "side_b_carrier", "side_b_tragic_reason"],
+      "properties": {
+        "side_a": {"type": "string", "minLength": 10},
+        "side_b": {"type": "string", "minLength": 10},
+        "side_b_carrier": {"type": "string", "minLength": 2, "description": "The CHARACTER who embodies the counter-argument."},
+        "side_b_tragic_reason": {"type": "string", "minLength": 40, "description": "Why the carrier is RIGHT to believe it — a declared counter-idea without a defensible reason is a strawman, and the gate rejects it."}
+      }
+    },
+    "secret_chronology": {
+      "type": "object",
+      "required": ["file", "what_happened", "why_silent", "why_now", "who_knows_what_complete"],
+      "properties": {
+        "file": {"type": "string", "description": "Path to the full author-level chronology document (e.g. canon-secret.md)."},
+        "what_happened": {"type": "string", "minLength": 80, "description": "The originating event, written plainly, no gaps."},
+        "why_silent": {"type": "string", "minLength": 40, "description": "Why the truth stayed buried all these years."},
+        "why_now": {"type": "string", "minLength": 40, "description": "Why the story detonates NOW and not any other year."},
+        "who_knows_what_complete": {"type": "boolean", "const": true, "description": "Author confirms every named character has an explicit knows / wrongly-believes entry."}
+      }
+    },
+    "characters": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["name", "knows", "wrongly_believes", "cost"],
+        "properties": {
+          "name": {"type": "string"},
+          "knows": {"type": "string", "minLength": 5},
+          "wrongly_believes": {"type": "string", "minLength": 5, "description": "Every character carries at least one wrong belief — a character with perfect information is a plot device."},
+          "cost": {"type": "string", "minLength": 20, "description": "What pursuing/keeping the secret costs THIS character personally. 'nothing' does not validate."}
+        }
+      }
+    },
+    "era": {
+      "type": "object",
+      "required": ["setting", "absorbed"],
+      "properties": {
+        "setting": {"type": "string", "description": "Explicit era/world claim (or 'timeless')."},
+        "absorbed": {"type": "boolean", "const": true, "description": "Author confirms the era decision has been pushed UPSTREAM through premise, dialogue idiom, character logic and backstory — not just the look bible."}
+      }
+    }
+  }
+}
