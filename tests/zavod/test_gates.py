@@ -18,6 +18,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from lib.armenian_glyph_gate import gate as glyph_gate
+from lib.bench_gate import RULING_MIN, required_bench
 from lib.brand_voice_check import check as brand_voice
 from lib.continuity_checker import verdict as continuity_verdict
 from lib.checkpoint import (
@@ -34,6 +35,22 @@ from lib.gatechain import (
 )
 from lib.pipeline_loader import load_pipeline, get_stage_order
 from lib.style_selection import required_roles, validate_selections
+
+
+def _bench_stage(stage: str) -> str:
+    return {"scene_plan": "scene", "assets": "asset"}.get(stage, stage)
+
+
+def _full_bench_report(stage: str) -> dict:
+    bench_stage = _bench_stage(stage)
+    return {
+        "stage": bench_stage,
+        "bench": {role: {"ruling": "x" * (RULING_MIN + 5)} for role in required_bench(bench_stage)},
+    }
+
+
+def _with_bench(stage: str, artifacts: dict) -> dict:
+    return artifacts | {"bench_report": _full_bench_report(stage)}
 
 
 def _scene_plan_ladder(style_overrides=None, approved=True):
@@ -146,7 +163,7 @@ def test_zavod_checkpoint_blocks_dirty_scene_plan(tmp_path):
     with pytest.raises(CheckpointValidationError):
         write_checkpoint(
             tmp_path, "proj1", "scene_plan", "completed",
-            {"scene_plan": bad}, pipeline_type="zavod-reel",
+            _with_bench("scene_plan", {"scene_plan": bad}), pipeline_type="zavod-reel",
         )
 
 
@@ -154,7 +171,7 @@ def test_zavod_checkpoint_allows_clean_scene_plan(tmp_path):
     good = _scene("Your desert weekend", language="en")
     path = write_checkpoint(
         tmp_path, "proj2", "scene_plan", "completed",
-        {"scene_plan": good, "production_ladder": _scene_plan_ladder()},
+        _with_bench("scene_plan", {"scene_plan": good, "production_ladder": _scene_plan_ladder()}),
         pipeline_type="zavod-reel",
     )
     assert path.exists()
@@ -168,7 +185,7 @@ def test_completed_scene_plan_without_ladder_is_blocked(tmp_path):
     with pytest.raises(CheckpointValidationError) as exc:
         write_checkpoint(
             tmp_path, "proj-collapse", "scene_plan", "completed",
-            {"scene_plan": good}, pipeline_type="zavod-reel",
+            _with_bench("scene_plan", {"scene_plan": good}), pipeline_type="zavod-reel",
         )
     assert "ladder collapsed" in str(exc.value)
 
@@ -180,7 +197,7 @@ def test_completed_scene_plan_missing_one_rung_is_blocked(tmp_path):
     with pytest.raises(CheckpointValidationError) as exc:
         write_checkpoint(
             tmp_path, "proj-rung", "scene_plan", "completed",
-            {"scene_plan": good, "production_ladder": ladder},
+            _with_bench("scene_plan", {"scene_plan": good, "production_ladder": ladder}),
             pipeline_type="zavod-reel",
         )
     assert "preproduction_plan" in str(exc.value)
@@ -190,7 +207,7 @@ def test_full_ladder_with_per_role_styles_passes(tmp_path):
     good = _scene("Your desert weekend", language="en")
     path = write_checkpoint(
         tmp_path, "proj-full", "scene_plan", "completed",
-        {"scene_plan": good, "production_ladder": _scene_plan_ladder()},
+        _with_bench("scene_plan", {"scene_plan": good, "production_ladder": _scene_plan_ladder()}),
         pipeline_type="zavod-reel",
     )
     assert path.exists()
@@ -203,7 +220,7 @@ def test_creative_council_missing_a_style_pick_is_blocked(tmp_path):
     with pytest.raises(CheckpointValidationError) as exc:
         write_checkpoint(
             tmp_path, "proj-style", "scene_plan", "completed",
-            {"scene_plan": good, "production_ladder": ladder},
+            _with_bench("scene_plan", {"scene_plan": good, "production_ladder": ladder}),
             pipeline_type="zavod-reel",
         )
     assert "costume_designer" in str(exc.value)
@@ -215,7 +232,7 @@ def test_awaiting_human_does_not_require_full_ladder(tmp_path):
     good = _scene("Your desert weekend", language="en")
     path = write_checkpoint(
         tmp_path, "proj-pause", "scene_plan", "awaiting_human",
-        {"scene_plan": good}, pipeline_type="zavod-reel",
+        _with_bench("scene_plan", {"scene_plan": good}), pipeline_type="zavod-reel",
     )
     assert path.exists()
 
@@ -266,7 +283,7 @@ def test_idea_without_engine_lock_is_blocked(tmp_path):
     with pytest.raises(CheckpointValidationError) as exc:
         write_checkpoint(
             tmp_path, "p-noeng", "idea", "completed",
-            {"brief": _brief(), "production_ladder": _ladder(_IDEA_SUBS)},
+            _with_bench("idea", {"brief": _brief(), "production_ladder": _ladder(_IDEA_SUBS)}),
             pipeline_type="zavod-reel",
         )
     assert "Engine lane not locked" in str(exc.value)
@@ -275,9 +292,9 @@ def test_idea_without_engine_lock_is_blocked(tmp_path):
 def test_idea_with_engine_lock_passes(tmp_path):
     p = write_checkpoint(
         tmp_path, "p-eng", "idea", "completed",
-        {"brief": _brief(), "production_ladder": _ladder(_IDEA_SUBS),
+        _with_bench("idea", {"brief": _brief(), "production_ladder": _ladder(_IDEA_SUBS),
          "engine_lock": {"engine": "higgsfield", "compose_runtime": "ffmpeg"},
-         "run_mode": "automatic"},
+         "run_mode": "automatic"}),
         pipeline_type="zavod-reel",
     )
     assert p.exists()
@@ -287,9 +304,9 @@ def test_remotion_lane_rejects_higgsfield_asset(tmp_path):
     with pytest.raises(CheckpointValidationError) as exc:
         write_checkpoint(
             tmp_path, "p-mix", "assets", "completed",
-            {"asset_manifest": _asset_manifest("higgsfield"),
+            _with_bench("assets", {"asset_manifest": _asset_manifest("higgsfield"),
              "engine_lock": {"engine": "remotion"},
-             "production_ladder": _ladder(_ASSET_SUBS)},
+             "production_ladder": _ladder(_ASSET_SUBS)}),
             pipeline_type="zavod-reel",
         )
     assert "Higgsfield" in str(exc.value)
@@ -298,9 +315,9 @@ def test_remotion_lane_rejects_higgsfield_asset(tmp_path):
 def test_remotion_lane_allows_designed_asset(tmp_path):
     p = write_checkpoint(
         tmp_path, "p-clean", "assets", "completed",
-        {"asset_manifest": _asset_manifest("remotion"),
+        _with_bench("assets", {"asset_manifest": _asset_manifest("remotion"),
          "engine_lock": {"engine": "remotion"},
-         "production_ladder": _ladder(_ASSET_SUBS)},
+         "production_ladder": _ladder(_ASSET_SUBS)}),
         pipeline_type="zavod-reel",
     )
     assert p.exists()
@@ -310,9 +327,9 @@ def test_higgsfield_lane_must_compose_via_ffmpeg_not_remotion(tmp_path):
     with pytest.raises(CheckpointValidationError) as exc:
         write_checkpoint(
             tmp_path, "p-cross", "compose", "completed",
-            {"render_report": _render_report(),
+            _with_bench("compose", {"render_report": _render_report(),
              "engine_lock": {"engine": "higgsfield", "compose_runtime": "remotion"},
-             "production_ladder": _ladder(_COMPOSE_SUBS)},
+             "production_ladder": _ladder(_COMPOSE_SUBS)}),
             pipeline_type="zavod-reel",
         )
     assert "lane" in str(exc.value)
@@ -321,9 +338,9 @@ def test_higgsfield_lane_must_compose_via_ffmpeg_not_remotion(tmp_path):
 def test_higgsfield_compose_via_ffmpeg_passes(tmp_path):
     p = write_checkpoint(
         tmp_path, "p-hf", "compose", "completed",
-        {"render_report": _render_report(),
+        _with_bench("compose", {"render_report": _render_report(),
          "engine_lock": {"engine": "higgsfield", "compose_runtime": "ffmpeg"},
-         "production_ladder": _ladder(_COMPOSE_SUBS)},
+         "production_ladder": _ladder(_COMPOSE_SUBS)}),
         pipeline_type="zavod-reel",
     )
     assert p.exists()
@@ -332,9 +349,9 @@ def test_higgsfield_compose_via_ffmpeg_passes(tmp_path):
 def test_remotion_compose_via_remotion_passes(tmp_path):
     p = write_checkpoint(
         tmp_path, "p-rem", "compose", "completed",
-        {"render_report": _render_report(),
+        _with_bench("compose", {"render_report": _render_report(),
          "engine_lock": {"engine": "remotion", "compose_runtime": "remotion"},
-         "production_ladder": _ladder(_COMPOSE_SUBS)},
+         "production_ladder": _ladder(_COMPOSE_SUBS)}),
         pipeline_type="zavod-reel",
     )
     assert p.exists()
@@ -355,8 +372,8 @@ def test_idea_requires_run_mode_lock(tmp_path):
     with pytest.raises(CheckpointValidationError) as exc:
         write_checkpoint(
             tmp_path, "p-nomode", "idea", "completed",
-            {"brief": _brief(), "production_ladder": _ladder(_IDEA_SUBS),
-             "engine_lock": {"engine": "remotion", "compose_runtime": "remotion"}},
+            _with_bench("idea", {"brief": _brief(), "production_ladder": _ladder(_IDEA_SUBS),
+             "engine_lock": {"engine": "remotion", "compose_runtime": "remotion"}}),
             pipeline_type="zavod-reel",
         )
     assert "Run mode not locked" in str(exc.value)
@@ -367,9 +384,9 @@ def test_automatic_run_completes_without_per_rung_approval(tmp_path):
     # ladder and completes without any owner freeze. Proves automatic was not damaged.
     p = write_checkpoint(
         tmp_path, "p-auto", "scene_plan", "completed",
-        {"scene_plan": _scene_plan(),
+        _with_bench("scene_plan", {"scene_plan": _scene_plan(),
          "production_ladder": _scene_plan_ladder(approved=False),
-         "run_mode": "automatic"},
+         "run_mode": "automatic"}),
         pipeline_type="zavod-reel",
     )
     assert p.exists()
@@ -379,9 +396,9 @@ def test_supervised_run_requires_rung_approval(tmp_path):
     with pytest.raises(CheckpointValidationError) as exc:
         write_checkpoint(
             tmp_path, "p-sup-bad", "scene_plan", "completed",
-            {"scene_plan": _scene_plan(),
+            _with_bench("scene_plan", {"scene_plan": _scene_plan(),
              "production_ladder": _scene_plan_ladder(approved=False),
-             "run_mode": "supervised"},
+             "run_mode": "supervised"}),
             pipeline_type="zavod-reel",
         )
     assert "owner approval" in str(exc.value)
@@ -390,9 +407,9 @@ def test_supervised_run_requires_rung_approval(tmp_path):
 def test_supervised_run_with_approval_passes(tmp_path):
     p = write_checkpoint(
         tmp_path, "p-sup-ok", "scene_plan", "completed",
-        {"scene_plan": _scene_plan(),
+        _with_bench("scene_plan", {"scene_plan": _scene_plan(),
          "production_ladder": _scene_plan_ladder(approved=True),
-         "run_mode": "supervised"},
+         "run_mode": "supervised"}),
         pipeline_type="zavod-reel",
     )
     assert p.exists()
@@ -405,7 +422,7 @@ def test_final_delivery_needs_owner_even_in_automatic(tmp_path):
     with pytest.raises(CheckpointValidationError) as exc:
         write_checkpoint(
             tmp_path, "p-pub", "publish", "completed",
-            {"publish_log": _publish_log(), "production_ladder": ladder, "run_mode": "automatic"},
+            _with_bench("publish", {"publish_log": _publish_log(), "production_ladder": ladder, "run_mode": "automatic"}),
             pipeline_type="zavod-reel",
         )
     assert "Final delivery" in str(exc.value)
@@ -420,7 +437,7 @@ def _legacy_checkpoint(scene):
         "stage": "scene_plan", "status": "completed",
         "timestamp": "2026-06-01T00:00:00Z",
         "checkpoint_policy": "guided", "human_approval_required": False,
-        "human_approved": True, "artifacts": {"scene_plan": scene},
+        "human_approved": True, "artifacts": _with_bench("scene_plan", {"scene_plan": scene}),
     }
 
 
@@ -449,7 +466,7 @@ def test_write_still_enforces_structure_even_though_read_does_not(tmp_path):
     with pytest.raises(CheckpointValidationError):
         write_checkpoint(
             tmp_path, "legacy2", "scene_plan", "completed",
-            {"scene_plan": _scene("Your desert weekend", language="en")},
+            _with_bench("scene_plan", {"scene_plan": _scene("Your desert weekend", language="en")}),
             pipeline_type="zavod-reel",
         )
 
@@ -473,8 +490,8 @@ def _rr_with_reports(reports):
 
 
 def test_needs_human_blocks_completed_but_allows_awaiting(tmp_path):
-    art = {"render_report": _rr_with_reports([{
-        "clip": "c.mp4", "anchors": [{"name": "glass", "kind": "object", "persists": None}]}])}
+    art = _with_bench("compose", {"render_report": _rr_with_reports([{
+        "clip": "c.mp4", "anchors": [{"name": "glass", "kind": "object", "persists": None}]}])})
     completed = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "completed", "artifacts": art}
     awaiting = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "awaiting_human", "artifacts": art}
     with pytest.raises(CheckpointValidationError):
@@ -483,8 +500,8 @@ def test_needs_human_blocks_completed_but_allows_awaiting(tmp_path):
 
 
 def test_compose_hard_fail_blocks_even_awaiting(tmp_path):
-    art = {"render_report": _rr_with_reports([{
-        "clip": "c.mp4", "anchors": [{"name": "glass", "kind": "object", "persists": False}]}])}
+    art = _with_bench("compose", {"render_report": _rr_with_reports([{
+        "clip": "c.mp4", "anchors": [{"name": "glass", "kind": "object", "persists": False}]}])})
     awaiting = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "awaiting_human", "artifacts": art}
     with pytest.raises(CheckpointValidationError):
         _enforce_zavod_gates(awaiting)
@@ -499,11 +516,11 @@ def test_loose_continuity_keys_are_closed():
                    "anchors": [{"name": "glass", "kind": "object", "persists": False}]}
     for loose_key in ("continuity_report", "continuity_reports"):
         cp = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "completed",
-              "artifacts": {"render_report": _rr_with_reports([]) | {"continuity_reports": []},
-                            loose_key: fail_report}}
+              "artifacts": _with_bench("compose", {"render_report": _rr_with_reports([]) | {"continuity_reports": []},
+                            loose_key: fail_report})}
         _enforce_zavod_gates(cp)  # must NOT raise — loose route is dead
     valid = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "completed",
-             "artifacts": {"render_report": _rr_with_reports([fail_report])}}
+             "artifacts": _with_bench("compose", {"render_report": _rr_with_reports([fail_report])})}
     with pytest.raises(CheckpointValidationError):
         _enforce_zavod_gates(valid)
 
@@ -518,7 +535,7 @@ def test_failed_checkpoint_does_not_write_decision_log(tmp_path):
     with pytest.raises(CheckpointValidationError):
         write_checkpoint(
             tmp_path, "proj-log", "scene_plan", "completed",
-            {"scene_plan": bad, "decision_log": decision_log},
+            _with_bench("scene_plan", {"scene_plan": bad, "decision_log": decision_log}),
             pipeline_type="zavod-reel",
         )
     assert not (tmp_path / "proj-log" / "decision_log.json").exists()
@@ -564,7 +581,7 @@ def _cp(stage, status, artifacts):
         "version": "1.0", "project_id": "stress-regress", "pipeline_type": "zavod-reel",
         "stage": stage, "status": status, "timestamp": "2026-07-02T00:00:00+00:00",
         "checkpoint_policy": "guided", "human_approval_required": False,
-        "human_approved": False, "artifacts": artifacts,
+        "human_approved": False, "artifacts": _with_bench(stage, artifacts),
     }
 
 
