@@ -4,7 +4,12 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, ROOT)
 from lib.bench_gate import run_bench_gates, required_bench, RULING_MIN  # noqa: E402
 
-FULL = lambda roles: {"bench": {r: {"ruling": "x" * (RULING_MIN + 5)} for r in roles}}
+# Substantive, role-distinct rulings: long, >=8 distinct tokens, unique per role so the
+# 2026-07-04 hardening (filler + independence checks) is satisfied for genuine pass cases.
+FULL = lambda roles: {"bench": {
+    r: {"ruling": f"The {r} reviewed this stage in depth and confirms the craft bar is met "
+                  f"across staging, continuity, palette, and delivery quality."}
+    for r in roles}}
 
 def test_full_bench_passes():
     assert run_bench_gates("scene", FULL(required_bench("scene")))["ok"]
