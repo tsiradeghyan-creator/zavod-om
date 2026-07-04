@@ -74,7 +74,7 @@ def _full_bench_report(stage: str) -> dict:
     bench_stage = _bench_stage(stage)
     return {
         "stage": bench_stage,
-        "bench": {role: {"ruling": "x" * (RULING_MIN + 5)} for role in required_bench(bench_stage)},
+        "bench": {role: {"ruling": f"The {role} reviewed this stage in depth and confirms craft quality across staging continuity and delivery."} for role in required_bench(bench_stage)},
     }
 
 
