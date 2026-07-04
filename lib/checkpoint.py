@@ -472,7 +472,42 @@ def validate_checkpoint(checkpoint: dict[str, Any]) -> None:
     _enforce_zavod_gates(checkpoint)
 
 
-def enforce_zavod_write_contracts(checkpoint: dict[str, Any]) -> None:
+def _enforce_canon_guard(checkpoint: dict[str, Any], project_dir: Path | str | None) -> None:
+    """Wire lib/canon_guard.py into the write seam.
+
+    The script stage freezes the current canon snapshot. After that, any changed
+    bible/look/canon-secret file blocks stage closure until canon-revalidation.md
+    is newer than the drift. This is write-time only because it depends on the
+    project directory and should not retroactively reject legacy reads.
+    """
+    ptype = checkpoint.get("pipeline_type") or ""
+    if not ptype.startswith("zavod") or project_dir is None:
+        return
+    if checkpoint.get("status") != "completed":
+        return
+
+    stage = checkpoint.get("stage")
+    from lib.canon_guard import FREE_STAGES, check as canon_check, lock as canon_lock
+
+    project_dir_s = str(project_dir)
+    if stage in FREE_STAGES:
+        canon_lock(project_dir_s)
+        return
+
+    result = canon_check(project_dir_s, stage)
+    if not result.get("ok"):
+        raise CheckpointValidationError(
+            f"Canon guard block at stage {stage!r} ({ptype}): {result.get('action') or result}"
+        )
+    # After a clean post-script closure, refresh the lock to the validated canon state.
+    canon_lock(project_dir_s)
+
+
+def enforce_zavod_write_contracts(
+    checkpoint: dict[str, Any],
+    *,
+    project_dir: Path | str | None = None,
+) -> None:
     """Structural production contracts enforced only when WRITING a new checkpoint.
 
     Backward-compat: these contracts (ladder non-collapse, engine lane, run mode) describe
@@ -483,6 +518,7 @@ def enforce_zavod_write_contracts(checkpoint: dict[str, Any]) -> None:
     _enforce_production_ladder(checkpoint)   # specialist ladder is non-collapsible
     _enforce_engine_lane(checkpoint)         # Remotion and Higgsfield lanes stay separate
     _enforce_run_mode(checkpoint)            # supervised vs automatic stay separated
+    _enforce_canon_guard(checkpoint, project_dir)  # mid-pipeline canon drift requires revalidation
 
 
 def _checkpoint_path(pipeline_dir: Path, project_id: str, stage: str) -> Path:
@@ -598,7 +634,7 @@ def write_checkpoint(
     validate_checkpoint(checkpoint)
     # Write-time only: a new completed stage must satisfy the structural contracts.
     # (read_checkpoint deliberately does not, so legacy checkpoints still load.)
-    enforce_zavod_write_contracts(checkpoint)
+    enforce_zavod_write_contracts(checkpoint, project_dir=pipeline_dir / project_id)
 
     if isinstance(decision_log, dict):
         _merge_decision_log(pipeline_dir, project_id, decision_log)
