@@ -12,6 +12,30 @@ from lib.bench_gate import RULING_MIN, required_bench  # noqa: E402
 from lib.checkpoint import CheckpointValidationError, _enforce_zavod_gates  # noqa: E402
 
 
+def _story_bible() -> dict:
+    return {
+        "premise": "A village doctor must expose the buried lie that saved one family and ruined another.",
+        "controlling_idea": {
+            "side_a": "Truth heals only when it is spoken before power rewrites it.",
+            "side_b": "Silence can be mercy when truth would destroy the innocent.",
+            "side_b_carrier": "Nare",
+            "side_b_tragic_reason": "She watched a public confession turn into punishment once before, so concealment feels like the only protection left.",
+        },
+        "secret_chronology": {
+            "file": "canon-secret.md",
+            "what_happened": "Twenty five years earlier the wrong witness was protected after the fire, because the real witness was a child and every adult chose reputation over repair.",
+            "why_silent": "The families survived by trading public peace for private shame.",
+            "why_now": "A returned letter names the child witness and forces every old alibi into the present.",
+            "who_knows_what_complete": True,
+        },
+        "characters": [
+            {"name": "Ani", "knows": "the letter is real", "wrongly_believes": "her mother hid it from cowardice", "cost": "she risks losing the only family tie she still trusts"},
+            {"name": "Nare", "knows": "who moved the witness", "wrongly_believes": "silence is still saving the child", "cost": "she must choose between protection and becoming the lie's author"},
+        ],
+        "era": {"setting": "1920s border town", "absorbed": True},
+    }
+
+
 def _bench_report(stage: str, *, omit: str | None = None, thin: str | None = None) -> dict:
     bench = {}
     for role in required_bench(stage):
@@ -50,3 +74,15 @@ def test_zavod_stage_with_thin_specialist_ruling_is_blocked_even_while_awaiting_
 def test_zavod_stage_with_full_bench_report_passes_checkpoint_seam():
     artifacts = {"bench_report": _bench_report("scene")}
     _enforce_zavod_gates(_checkpoint("scene_plan", "completed", artifacts))
+
+
+def test_script_stage_without_story_bible_is_blocked_at_checkpoint_seam():
+    artifacts = {"bench_report": _bench_report("script")}
+    with pytest.raises(CheckpointValidationError) as exc:
+        _enforce_zavod_gates(_checkpoint("script", "completed", artifacts))
+    assert "story_bible" in str(exc.value)
+
+
+def test_script_stage_with_valid_story_bible_passes_checkpoint_seam():
+    artifacts = {"bench_report": _bench_report("script"), "story_bible": _story_bible()}
+    _enforce_zavod_gates(_checkpoint("script", "completed", artifacts))

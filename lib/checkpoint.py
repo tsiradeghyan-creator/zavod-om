@@ -167,6 +167,7 @@ def _enforce_zavod_gates(checkpoint: dict[str, Any]) -> None:
     # Lazy import: keeps the spine importable without the gate libs, and avoids any cycle.
     from lib.gatechain import (
         run_bench_gates,
+        run_story_gates,
         run_script_gates,
         run_scene_plan_gates,
         run_edit_gates,
@@ -192,8 +193,19 @@ def _enforce_zavod_gates(checkpoint: dict[str, Any]) -> None:
         )
 
     result: dict[str, Any] | None = None
-    if stage == "script" and "script" in artifacts:
-        result = run_script_gates("\n".join(_all_strings(artifacts["script"])))
+    if stage == "script":
+        story_bible = artifacts.get("story_bible")
+        if checkpoint.get("status") == "completed" and not isinstance(story_bible, dict):
+            raise CheckpointValidationError(
+                f"Gate block at stage {stage!r} ({ptype}): missing artifacts.story_bible — "
+                "a Zavod script stage cannot close without the dramaturgy story bible."
+            )
+        if isinstance(story_bible, dict):
+            result = run_story_gates(story_bible)
+        if result is not None and not result.get("ok"):
+            pass
+        elif "script" in artifacts:
+            result = run_script_gates("\n".join(_all_strings(artifacts["script"])))
     elif stage == "scene_plan" and "scene_plan" in artifacts:
         result = run_scene_plan_gates(artifacts["scene_plan"])
     elif stage == "edit" and "edit_decisions" in artifacts:
