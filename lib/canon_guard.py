@@ -48,6 +48,7 @@ def _hash(path: str) -> str:
 
 def lock(project_dir: str) -> dict[str, str]:
     """Snapshot canon hashes. Call when a stage completes cleanly."""
+    os.makedirs(project_dir, exist_ok=True)
     snap = {os.path.basename(p): _hash(p) for p in _canon_paths(project_dir)}
     with open(os.path.join(project_dir, LOCK), "w") as f:
         json.dump(snap, f, indent=1, ensure_ascii=False)
