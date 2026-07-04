@@ -43,9 +43,17 @@ def _bench_stage(stage: str) -> str:
 
 def _full_bench_report(stage: str) -> dict:
     bench_stage = _bench_stage(stage)
+    # Each role gets a substantive, role-distinct ruling: long enough, with well over the
+    # minimum distinct tokens, and unique per role so the independence check is satisfied.
     return {
         "stage": bench_stage,
-        "bench": {role: {"ruling": "x" * (RULING_MIN + 5)} for role in required_bench(bench_stage)},
+        "bench": {
+            role: {"ruling": (
+                f"The {role} reviewed this {bench_stage} stage in depth and confirms the "
+                f"craft bar is met across staging, continuity, and delivery for role {i}."
+            )}
+            for i, role in enumerate(required_bench(bench_stage))
+        },
     }
 
 

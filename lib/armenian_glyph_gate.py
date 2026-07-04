@@ -70,22 +70,30 @@ def check_text(text: str, field: str = "") -> list[dict[str, str]]:
     if not text:
         return violations
 
-    # 0. Invisible format/zero-width characters. 2026-07-04 red-team: a zero-width joiner
-    #    (U+200D) spliced inside an Armenian word passed as "clean" — invisible to the eye
-    #    and to the per-token script checks, but it breaks shaping and defeats text filters.
-    #    Ban the whole Unicode "format" (Cf) category plus the soft hyphen in on-screen text.
-    invisibles = sorted({
-        ch for ch in text
-        if unicodedata.category(ch) == "Cf" or ch == "­"
-    })
-    if invisibles:
-        names = ", ".join(f"U+{ord(ch):04X}" for ch in invisibles)
+    # 0. Invisible format/zero-width characters spliced INTO WORDS. 2026-07-04 red-team: a
+    #    zero-width joiner (U+200D) inside an Armenian word passed as "clean" — invisible to
+    #    the eye and to the per-token script checks, but it breaks shaping and defeats text
+    #    filters. Flag a Cf/soft-hyphen char only when it sits next to a LETTER (the splice
+    #    attack); the same joiners between emoji (👨‍👩‍👧, 🏳️‍🌈) are legitimate caption
+    #    sequences (2026-07-04 probe) and must not be flagged.
+    def _is_letter(ch: str) -> bool:
+        return unicodedata.category(ch).startswith("L")
+
+    spliced = set()
+    for i, ch in enumerate(text):
+        if unicodedata.category(ch) == "Cf" or ch == "­":
+            prev_ch = text[i - 1] if i > 0 else ""
+            next_ch = text[i + 1] if i + 1 < len(text) else ""
+            if _is_letter(prev_ch) or _is_letter(next_ch):
+                spliced.add(ch)
+    if spliced:
+        names = ", ".join(f"U+{ord(ch):04X}" for ch in sorted(spliced))
         violations.append({
             "text": text[:40],
             "field": field,
             "reason": (
-                f"Invisible format/zero-width character(s) [{names}] in on-screen text — "
-                "strip them; only visible Eastern Armenian Unicode is allowed."
+                f"Invisible format/zero-width character(s) [{names}] spliced into text — "
+                "strip them; only visible Eastern Armenian Unicode is allowed inside words."
             ),
         })
 

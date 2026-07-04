@@ -568,12 +568,17 @@ def _enforce_artifact_path_existence(
             "artifact path — a stage cannot close 'completed' with zero produced files."
         )
 
+    try:
+        project_root = project_dir_p.resolve()
+    except OSError:
+        project_root = project_dir_p
+
     missing: list[str] = []
     degenerate: list[str] = []
     for entry in real_entries:
         raw = entry["path"]
         resolved = _resolve_artifact_path(project_dir_p, raw)
-        # Follow symlinks and require a real, non-empty regular file — not just .exists().
+        # Require a real, non-empty regular file — not just .exists().
         # 2026-07-04 red-team: a 0-byte file, a symlink to /dev/null, or a directory all
         # passed the bare exists() check.
         if not resolved.exists():
@@ -582,6 +587,12 @@ def _enforce_artifact_path_existence(
             degenerate.append(f"{raw} (not a regular file)")
         elif resolved.stat().st_size == 0:
             degenerate.append(f"{raw} (0 bytes)")
+        else:
+            # Provenance: a symlink whose real target escapes the project directory is not a
+            # pipeline-produced asset (2026-07-04 probe: a link to /etc/hosts was accepted).
+            real = resolved.resolve()
+            if resolved.is_symlink() and project_root not in (real, *real.parents):
+                degenerate.append(f"{raw} (symlink escapes project dir → {real})")
 
     problems = missing + degenerate
     if problems:
