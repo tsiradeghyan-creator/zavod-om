@@ -36,6 +36,7 @@ ARTIFACT_NAMES = [
     "voice_profile",
     "glyph_gate_report",
     "continuity_report",
+    "story_bible",
 ]
 
 

@@ -36,6 +36,36 @@ _STAGE_RUNGS = {
 _ORDER = ["idea", "script", "scene_plan", "assets", "edit", "compose", "publish"]
 
 
+def _story_bible() -> dict:
+    return {
+        "premise": "A desert host discovers that the weekend escape is really a test of what home costs.",
+        "controlling_idea": {
+            "side_a": "A place becomes meaningful only when it asks for responsibility.",
+            "side_b": "Freedom means leaving before responsibility turns into a trap.",
+            "side_b_carrier": "Mara",
+            "side_b_tragic_reason": "She has watched caretaking consume every adult around her, so refusal feels like survival rather than selfishness.",
+        },
+        "secret_chronology": {
+            "file": "canon-secret.md",
+            "what_happened": "Years before the shoot, the family kept the property by hiding the debt that forced their neighbor out of the valley.",
+            "why_silent": "Naming the debt would expose the bargain that made the present comfort possible.",
+            "why_now": "A guest recognizes the house and turns the old bargain into an immediate choice.",
+            "who_knows_what_complete": True,
+        },
+        "characters": [
+            {"name": "Host", "knows": "the house has a debt", "wrongly_believes": "beauty can cancel what happened", "cost": "keeping the house may cost the honest relationship she wants"},
+            {"name": "Mara", "knows": "who paid for the silence", "wrongly_believes": "leaving is the only clean answer", "cost": "she risks turning grief into permanent exile"},
+        ],
+        "era": {"setting": "timeless desert present", "absorbed": True},
+    }
+
+
+def _delivery_promise() -> dict:
+    return {"promise_type": "source_led", "motion_required": False,
+            "source_required": False, "tone_mode": "cinematic",
+            "quality_floor": "presentable"}
+
+
 def _bench_stage(stage: str) -> str:
     return {"scene_plan": "scene", "assets": "asset"}.get(stage, stage)
 
@@ -102,6 +132,13 @@ def test_full_reel_run_is_accepted_end_to_end(tmp_path, engine, mode):
     engine_lock = {"engine": engine, "compose_runtime": compose_runtime}
 
     for stage in _ORDER:
+        project_dir = tmp_path / "ideal"
+        if stage == "assets":
+            project_dir.mkdir(exist_ok=True)
+            (project_dir / "a.mp4").write_bytes(b"asset")
+        if stage == "compose":
+            project_dir.mkdir(exist_ok=True)
+            (project_dir / "o.mp4").write_bytes(b"render")
         key, art = _artifact(stage, src_tool, compose_runtime)
         artifacts = {
             key: art,
@@ -110,6 +147,10 @@ def test_full_reel_run_is_accepted_end_to_end(tmp_path, engine, mode):
             "run_mode": mode,
             "bench_report": _full_bench_report(stage),
         }
+        if stage == "script":
+            artifacts["story_bible"] = _story_bible()
+        if stage == "edit":
+            artifacts["delivery_promise"] = _delivery_promise()
         path = write_checkpoint(
             tmp_path, "ideal", stage, "completed", artifacts, pipeline_type="zavod-reel",
         )

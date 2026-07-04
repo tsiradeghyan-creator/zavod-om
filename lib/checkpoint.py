@@ -167,6 +167,7 @@ def _enforce_zavod_gates(checkpoint: dict[str, Any]) -> None:
     # Lazy import: keeps the spine importable without the gate libs, and avoids any cycle.
     from lib.gatechain import (
         run_bench_gates,
+        run_story_gates,
         run_script_gates,
         run_scene_plan_gates,
         run_edit_gates,
@@ -192,13 +193,30 @@ def _enforce_zavod_gates(checkpoint: dict[str, Any]) -> None:
         )
 
     result: dict[str, Any] | None = None
-    if stage == "script" and "script" in artifacts:
-        result = run_script_gates("\n".join(_all_strings(artifacts["script"])))
+    if stage == "script":
+        story_bible = artifacts.get("story_bible")
+        if checkpoint.get("status") == "completed" and not isinstance(story_bible, dict):
+            raise CheckpointValidationError(
+                f"Gate block at stage {stage!r} ({ptype}): missing artifacts.story_bible — "
+                "a Zavod script stage cannot close without the dramaturgy story bible."
+            )
+        if isinstance(story_bible, dict):
+            result = run_story_gates(story_bible)
+        if result is not None and not result.get("ok"):
+            pass
+        elif "script" in artifacts:
+            result = run_script_gates("\n".join(_all_strings(artifacts["script"])))
     elif stage == "scene_plan" and "scene_plan" in artifacts:
         result = run_scene_plan_gates(artifacts["scene_plan"])
     elif stage == "edit" and "edit_decisions" in artifacts:
         # Delivery-promise preservation: a motion-led promise must not silently become
-        # a slideshow. The locked promise travels in artifacts.delivery_promise.
+        # a slideshow. The locked promise travels in artifacts.delivery_promise and is
+        # mandatory for Zavod edit-stage closure; omission must not become a bypass.
+        if not isinstance(artifacts.get("delivery_promise"), dict):
+            raise CheckpointValidationError(
+                f"Gate block at stage {stage!r} ({ptype}): missing artifacts.delivery_promise — "
+                "Zavod edit checkpoints must carry the locked delivery promise."
+            )
         result = run_edit_gates(artifacts["edit_decisions"], artifacts.get("delivery_promise"))
     elif stage == "compose":
         reports = _continuity_reports(artifacts)
@@ -460,7 +478,93 @@ def validate_checkpoint(checkpoint: dict[str, Any]) -> None:
     _enforce_zavod_gates(checkpoint)
 
 
-def enforce_zavod_write_contracts(checkpoint: dict[str, Any]) -> None:
+def _enforce_canon_guard(checkpoint: dict[str, Any], project_dir: Path | str | None) -> None:
+    """Wire lib/canon_guard.py into the write seam.
+
+    The script stage freezes the current canon snapshot. After that, any changed
+    bible/look/canon-secret file blocks stage closure until canon-revalidation.md
+    is newer than the drift. This is write-time only because it depends on the
+    project directory and should not retroactively reject legacy reads.
+    """
+    ptype = checkpoint.get("pipeline_type") or ""
+    if not ptype.startswith("zavod") or project_dir is None:
+        return
+    if checkpoint.get("status") != "completed":
+        return
+
+    stage = checkpoint.get("stage")
+    from lib.canon_guard import FREE_STAGES, check as canon_check, lock as canon_lock
+
+    project_dir_s = str(project_dir)
+    if stage in FREE_STAGES:
+        canon_lock(project_dir_s)
+        return
+
+    result = canon_check(project_dir_s, stage)
+    if not result.get("ok"):
+        raise CheckpointValidationError(
+            f"Canon guard block at stage {stage!r} ({ptype}): {result.get('action') or result}"
+        )
+    # After a clean post-script closure, refresh the lock to the validated canon state.
+    canon_lock(project_dir_s)
+
+
+def _resolve_artifact_path(project_dir: Path, raw_path: str) -> Path:
+    path = Path(raw_path).expanduser()
+    return path if path.is_absolute() else project_dir / path
+
+
+def _enforce_artifact_path_existence(
+    checkpoint: dict[str, Any],
+    project_dir: Path | str | None,
+) -> None:
+    """Reject completed asset/render checkpoints that point at phantom files.
+
+    This deliberately lives in the checkpoint seam rather than the JSON schemas:
+    schemas can require a path field, but only the write seam knows the project
+    directory where relative paths must physically exist.
+    """
+    ptype = checkpoint.get("pipeline_type") or ""
+    if not ptype.startswith("zavod") or project_dir is None:
+        return
+    if checkpoint.get("status") != "completed":
+        return
+
+    stage = checkpoint.get("stage")
+    artifacts = checkpoint.get("artifacts") or {}
+    project_dir_p = Path(project_dir)
+
+    if stage == "assets":
+        manifest = artifacts.get("asset_manifest") or {}
+        entries = manifest.get("assets") or []
+        label = "asset_manifest.assets"
+    elif stage == "compose":
+        report = artifacts.get("render_report") or {}
+        entries = report.get("outputs") or []
+        label = "render_report.outputs"
+    else:
+        return
+
+    missing: list[str] = []
+    for entry in entries:
+        if not isinstance(entry, dict) or not isinstance(entry.get("path"), str):
+            continue
+        raw = entry["path"]
+        resolved = _resolve_artifact_path(project_dir_p, raw)
+        if not resolved.exists():
+            missing.append(raw)
+
+    if missing:
+        raise CheckpointValidationError(
+            f"Artifact existence gate at stage {stage!r} ({ptype}): {label} path(s) do not exist: {missing}"
+        )
+
+
+def enforce_zavod_write_contracts(
+    checkpoint: dict[str, Any],
+    *,
+    project_dir: Path | str | None = None,
+) -> None:
     """Structural production contracts enforced only when WRITING a new checkpoint.
 
     Backward-compat: these contracts (ladder non-collapse, engine lane, run mode) describe
@@ -471,6 +575,8 @@ def enforce_zavod_write_contracts(checkpoint: dict[str, Any]) -> None:
     _enforce_production_ladder(checkpoint)   # specialist ladder is non-collapsible
     _enforce_engine_lane(checkpoint)         # Remotion and Higgsfield lanes stay separate
     _enforce_run_mode(checkpoint)            # supervised vs automatic stay separated
+    _enforce_canon_guard(checkpoint, project_dir)  # mid-pipeline canon drift requires revalidation
+    _enforce_artifact_path_existence(checkpoint, project_dir)  # manifests must point at real files
 
 
 def _checkpoint_path(pipeline_dir: Path, project_id: str, stage: str) -> Path:
@@ -586,7 +692,7 @@ def write_checkpoint(
     validate_checkpoint(checkpoint)
     # Write-time only: a new completed stage must satisfy the structural contracts.
     # (read_checkpoint deliberately does not, so legacy checkpoints still load.)
-    enforce_zavod_write_contracts(checkpoint)
+    enforce_zavod_write_contracts(checkpoint, project_dir=pipeline_dir / project_id)
 
     if isinstance(decision_log, dict):
         _merge_decision_log(pipeline_dir, project_id, decision_log)

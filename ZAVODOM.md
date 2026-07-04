@@ -40,7 +40,7 @@ next unlocked stage, produce that stage's report, and wait for approval.
 | Brand voice | checkpoint-enforced | `lib/brand_voice_check.py` | generic-AI tropes / drift |
 | Variation | checkpoint-enforced | `lib/variation_checker.py` | slideshow / generic scene plans |
 | Schema | checkpoint-enforced | `schemas/artifacts/*.json` | malformed/vague artifacts (incl. scene_plan.staging/text_policy) |
-| Delivery promise | reviewer-invoked, not checkpoint seam yet | `lib/delivery_promise.py` | motion-led silently downgraded to slideshow |
+| Delivery promise | checkpoint-enforced, required at edit seam | `lib/delivery_promise.py` | motion-led silently downgraded to slideshow or bypassed by missing promise |
 | Gate-chain | dispatcher | `lib/gatechain.py` | runs the right gates per stage |
 
 ## Self-improvement (Scout) — wake-safe

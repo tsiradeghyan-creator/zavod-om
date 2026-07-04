@@ -313,6 +313,9 @@ def test_remotion_lane_rejects_higgsfield_asset(tmp_path):
 
 
 def test_remotion_lane_allows_designed_asset(tmp_path):
+    project_dir = tmp_path / "p-clean"
+    project_dir.mkdir()
+    (project_dir / "a.mp4").write_bytes(b"asset")
     p = write_checkpoint(
         tmp_path, "p-clean", "assets", "completed",
         _with_bench("assets", {"asset_manifest": _asset_manifest("remotion"),
@@ -336,6 +339,9 @@ def test_higgsfield_lane_must_compose_via_ffmpeg_not_remotion(tmp_path):
 
 
 def test_higgsfield_compose_via_ffmpeg_passes(tmp_path):
+    project_dir = tmp_path / "p-hf"
+    project_dir.mkdir()
+    (project_dir / "o.mp4").write_bytes(b"render")
     p = write_checkpoint(
         tmp_path, "p-hf", "compose", "completed",
         _with_bench("compose", {"render_report": _render_report(),
@@ -347,6 +353,9 @@ def test_higgsfield_compose_via_ffmpeg_passes(tmp_path):
 
 
 def test_remotion_compose_via_remotion_passes(tmp_path):
+    project_dir = tmp_path / "p-rem"
+    project_dir.mkdir()
+    (project_dir / "o.mp4").write_bytes(b"render")
     p = write_checkpoint(
         tmp_path, "p-rem", "compose", "completed",
         _with_bench("compose", {"render_report": _render_report(),
@@ -692,7 +701,10 @@ def test_edit_seam_passes_when_promise_honored():
                              "delivery_promise": _motion_led_promise()}))  # must not raise
 
 
-def test_edit_seam_without_promise_is_not_gated():
-    # Legacy/upstream checkpoints without a locked promise stay valid (opt-in gate).
-    validate_checkpoint(_cp("edit", "completed",
-                            {"edit_decisions": _slideshow_edit_decisions()}))
+def test_edit_seam_without_promise_is_blocked():
+    # Zavod edit checkpoints must carry the locked delivery promise; otherwise
+    # motion-led work can silently downgrade to slideshow by omitting the artifact.
+    with pytest.raises(CheckpointValidationError) as exc:
+        validate_checkpoint(_cp("edit", "completed",
+                                {"edit_decisions": _slideshow_edit_decisions()}))
+    assert "delivery_promise" in str(exc.value)
