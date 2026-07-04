@@ -15,6 +15,7 @@ import pytest
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from lib.bench_gate import RULING_MIN, required_bench
 from lib.checkpoint import write_checkpoint, get_completed_stages
 from lib.style_selection import required_roles
 
@@ -33,6 +34,18 @@ _STAGE_RUNGS = {
     "publish": ["presentation_route"],
 }
 _ORDER = ["idea", "script", "scene_plan", "assets", "edit", "compose", "publish"]
+
+
+def _bench_stage(stage: str) -> str:
+    return {"scene_plan": "scene", "assets": "asset"}.get(stage, stage)
+
+
+def _full_bench_report(stage: str) -> dict:
+    bench_stage = _bench_stage(stage)
+    return {
+        "stage": bench_stage,
+        "bench": {role: {"ruling": "x" * (RULING_MIN + 5)} for role in required_bench(bench_stage)},
+    }
 
 
 def _ladder(names, mode):
@@ -95,6 +108,7 @@ def test_full_reel_run_is_accepted_end_to_end(tmp_path, engine, mode):
             "production_ladder": _ladder(_STAGE_RUNGS[stage], mode),
             "engine_lock": engine_lock,   # carried on every stage
             "run_mode": mode,
+            "bench_report": _full_bench_report(stage),
         }
         path = write_checkpoint(
             tmp_path, "ideal", stage, "completed", artifacts, pipeline_type="zavod-reel",

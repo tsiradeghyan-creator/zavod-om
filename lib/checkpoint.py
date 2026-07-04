@@ -166,11 +166,30 @@ def _enforce_zavod_gates(checkpoint: dict[str, Any]) -> None:
 
     # Lazy import: keeps the spine importable without the gate libs, and avoids any cycle.
     from lib.gatechain import (
+        run_bench_gates,
         run_script_gates,
         run_scene_plan_gates,
         run_edit_gates,
         run_compose_gates,
     )
+
+    # Owner standing order (2026-07-03): every Zavod stage closes only after
+    # its full specialist bench has left substantive rulings. Missing the
+    # report is itself a hard gate failure; otherwise an agent could simply
+    # omit the artifact and bypass lib/bench_gate.py.
+    bench_stage = {"scene_plan": "scene", "assets": "asset"}.get(stage, stage)
+    bench_report = artifacts.get("bench_report")
+    if not isinstance(bench_report, dict):
+        raise CheckpointValidationError(
+            f"Gate block at stage {stage!r} ({ptype}): missing artifacts.bench_report — "
+            "every zavod stage requires a full bench_report before it can close."
+        )
+    bench_result = run_bench_gates(bench_stage, bench_report)
+    if not bench_result.get("ok"):
+        detail = bench_result.get("violations") or bench_result
+        raise CheckpointValidationError(
+            f"Gate block at stage {stage!r} ({ptype}): {detail}"
+        )
 
     result: dict[str, Any] | None = None
     if stage == "script" and "script" in artifacts:
