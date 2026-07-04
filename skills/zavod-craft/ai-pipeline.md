@@ -60,6 +60,36 @@ data than CJK/Arabic, so never trust it blind:
 - Optional **FLUX LoRA fine-tune** on fal for the editorial look when a series needs it.
 - **No faces, ever** — hands/backs/objects/reflections-without-identity (brand rule).
 
+## Seedance @tag & sealed-prompt discipline (absorbed from Higgsfield `seedance-clean`, 2026-07-04)
+
+Engine-layer rules for reference-tagged generation (Seedance @Image/@Video/@Audio; same logic
+for Kling Elements / Veo Ingredients). The DoP's block-prompt structure lives in
+`cinematography.md`; these are the failure-mode laws the engine layer enforces:
+
+- **Context isolation — every prompt is a sealed single-shot document.** The engine has no
+  memory of previous shots. Never carry in: scene numbers, script headings, "as above /
+  continues" phrasing, summaries of prior scenes, or unused tags/characters. Continuity is
+  re-stated explicitly (or via start/end-frame chaining above), never implied.
+- **@tag hygiene:** reference sets appearance, text sets action. Keep character text MINIMAL
+  next to a reference — long appearance prose fights the image and degrades it. Format:
+  `@TAG: age + role/build + current state + unique visible features + action-critical
+  details (+ voice only if it has a line). 100% matches the reference.`
+- **Restate critical smalls in words** even when they're on the reference — small text,
+  logos, exact colors get dropped by the model unless written out.
+- **Never place an @tag in a shot where that object is absent** — the model will force it
+  into frame.
+- **Failure-mode protocols (tested fixes):**
+  - Whip-pan needs ≥0.8s for the blur phase (0.3s settle → 0.8s WHIP → settle) or it renders
+    as a plain hard cut.
+  - Mixed speeds: ONE speed per shot start-to-finish; hard cuts only between speed modes.
+  - Cracks/breaks without an impact point: "crowd PRESSES, not strikes · fracture originates
+    from edge stress · pressure-based crack, edge-to-center" — kills the fake radial-impact look.
+  - Extreme-FOV multishot (8°/107°): all 4 mechanisms or it breaks after 2–3 beats —
+    sequence-wide identity lock · LENS LOCK opener per beat · LENS CHECK closer per beat ·
+    color via material+light (never a list).
+  - Observation/hidden-camera pattern = all 3 at once: out-of-focus foreground occlusion
+    (20–30% of frame) + atmospheric haze + 8–12° tele vantage anchored at distance.
+
 ## Seed, prompt & cost registry
 
 - Log **model / seed / prompt-version per asset** in the working `-prompts.md` file —
