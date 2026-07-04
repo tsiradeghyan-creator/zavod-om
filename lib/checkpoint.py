@@ -210,7 +210,13 @@ def _enforce_zavod_gates(checkpoint: dict[str, Any]) -> None:
         result = run_scene_plan_gates(artifacts["scene_plan"])
     elif stage == "edit" and "edit_decisions" in artifacts:
         # Delivery-promise preservation: a motion-led promise must not silently become
-        # a slideshow. The locked promise travels in artifacts.delivery_promise.
+        # a slideshow. The locked promise travels in artifacts.delivery_promise and is
+        # mandatory for Zavod edit-stage closure; omission must not become a bypass.
+        if not isinstance(artifacts.get("delivery_promise"), dict):
+            raise CheckpointValidationError(
+                f"Gate block at stage {stage!r} ({ptype}): missing artifacts.delivery_promise — "
+                "Zavod edit checkpoints must carry the locked delivery promise."
+            )
         result = run_edit_gates(artifacts["edit_decisions"], artifacts.get("delivery_promise"))
     elif stage == "compose":
         reports = _continuity_reports(artifacts)

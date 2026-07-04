@@ -92,8 +92,8 @@ def run_edit_gates(edit_decisions: dict[str, Any],
 
     The most damaging silent failure after 06-18 is a motion-led promise quietly becoming
     a slideshow. The locked promise (DeliveryPromise.to_dict()) travels in
-    ``artifacts.delivery_promise``; when present, the cuts must honor it. No promise
-    artifact → no gate (legacy/upstream checkpoints stay valid).
+    ``artifacts.delivery_promise``; Zavod edit-stage checkpoints must carry that
+    artifact, and the cuts must honor it.
     """
     violations: list[str] = []
     if delivery_promise:

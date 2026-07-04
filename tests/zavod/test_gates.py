@@ -692,7 +692,10 @@ def test_edit_seam_passes_when_promise_honored():
                              "delivery_promise": _motion_led_promise()}))  # must not raise
 
 
-def test_edit_seam_without_promise_is_not_gated():
-    # Legacy/upstream checkpoints without a locked promise stay valid (opt-in gate).
-    validate_checkpoint(_cp("edit", "completed",
-                            {"edit_decisions": _slideshow_edit_decisions()}))
+def test_edit_seam_without_promise_is_blocked():
+    # Zavod edit checkpoints must carry the locked delivery promise; otherwise
+    # motion-led work can silently downgrade to slideshow by omitting the artifact.
+    with pytest.raises(CheckpointValidationError) as exc:
+        validate_checkpoint(_cp("edit", "completed",
+                                {"edit_decisions": _slideshow_edit_decisions()}))
+    assert "delivery_promise" in str(exc.value)
