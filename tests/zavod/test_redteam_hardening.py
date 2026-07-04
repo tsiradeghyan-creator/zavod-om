@@ -30,9 +30,19 @@ def test_bench_blocks_identical_rulings_across_roles():
     same = "The specialist reviewed this stage in depth and confirms the craft bar is met fully."
     assert not run_bench_gates("asset", _bench("asset", lambda r: same))["ok"]
 
-def test_bench_blocks_ruling_that_voices_rejection():
-    rej = "REJECT this stage is broken and must not ship anywhere until it is completely redone."
-    assert not run_bench_gates("asset", _bench("asset", lambda r: rej))["ok"]
+def test_bench_does_not_crash_on_malformed_entry():
+    # 2026-07-04 probe: a non-dict bench entry (string/list) used to raise AttributeError.
+    rep = _bench("asset", lambda r: f"The {r} independently assessed craft quality across the stage.")
+    rep["bench"]["reviewer"] = "just a string, not an object"
+    r = run_bench_gates("asset", rep)
+    assert not r["ok"] and any("malformed" in v for v in r["violations"])
+
+def test_bench_allows_ruling_that_mentions_reject_in_prose():
+    # 2026-07-04 probe: legit approvals ("nothing is blocked", "avoided a reject") must not
+    # be false-flagged. Substring reject-detection was removed for this reason.
+    rep = _bench("asset", lambda r: f"The {r} confirms nothing is blocked and no rejection "
+                                    f"risk remains for role-specific {r} craft; approved cleanly.")
+    assert run_bench_gates("asset", rep)["ok"]
 
 def test_bench_allows_genuine_distinct_rulings():
     ok = run_bench_gates("asset", _bench(
@@ -95,3 +105,23 @@ def test_glyph_blocks_zero_width_space():
 
 def test_glyph_allows_clean_armenian():
     assert run_script_gates("Բարև ձեզ սիրելի ընկերներ")["ok"]
+
+def test_glyph_allows_zwj_emoji_sequences_in_captions():
+    # 2026-07-04 probe: ZWJ-joined emoji (family, rainbow flag) are legit caption content;
+    # only zero-width chars spliced next to LETTERS are the attack.
+    assert run_script_gates("Մեր ընտանիքը 👨‍👩‍👧 այս ամառ")["ok"]
+    assert run_script_gates("Հպարտություն 🏳️‍🌈 բոլորին")["ok"]
+
+
+# ── Angle 3 (cont.): symlink provenance ────────────────────────────────────
+def test_existence_blocks_symlink_escaping_project():
+    def make(d):
+        (d / "link.mp4").symlink_to("/etc/hosts")
+    with pytest.raises(CheckpointValidationError):
+        _run_existence(_assets_cp("link.mp4"), make)
+
+def test_existence_allows_internal_symlink():
+    def make(d):
+        (d / "real.mp4").write_bytes(b"12345")
+        (d / "link.mp4").symlink_to(d / "real.mp4")
+    _run_existence(_assets_cp("link.mp4"), make)
