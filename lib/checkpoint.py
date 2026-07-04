@@ -82,6 +82,20 @@ CHECKPOINT_SCHEMA_PATH = (
 )
 
 
+def _is_zavod_pipeline(pipeline_type: str | None) -> bool:
+    """Canonical test for whether zavod gates apply to a pipeline_type.
+
+    The 2026-07-04 red-team showed the bare ``ptype.startswith("zavod")`` guard was
+    case-sensitive and whitespace-sensitive: ``"Zavod-reel"``, ``"ZAVOD-reel"`` or
+    ``" zavod-reel"`` silently disabled EVERY gate. Canonicalize (strip + casefold)
+    before the prefix test so those variants of a real zavod pipeline are still gated.
+    Non-zavod pipelines (animation, cinematic, …) correctly remain ungated.
+    """
+    if not pipeline_type:
+        return False
+    return pipeline_type.strip().casefold().startswith("zavod")
+
+
 class CheckpointValidationError(ValueError):
     """Raised when a checkpoint or its canonical artifacts are invalid."""
 
@@ -156,7 +170,7 @@ def _enforce_zavod_gates(checkpoint: dict[str, Any]) -> None:
     while ``awaiting_human`` (it must never reach ``completed`` unjudged).
     """
     ptype = checkpoint.get("pipeline_type") or ""
-    if not ptype.startswith("zavod"):
+    if not _is_zavod_pipeline(ptype):
         return
     if checkpoint.get("status") not in {"completed", "awaiting_human"}:
         return
@@ -271,7 +285,7 @@ def _enforce_production_ladder(checkpoint: dict[str, Any]) -> None:
     legitimate mid-ladder pause and is left alone.
     """
     ptype = checkpoint.get("pipeline_type") or ""
-    if not ptype.startswith("zavod"):
+    if not _is_zavod_pipeline(ptype):
         return
     if checkpoint.get("status") != "completed":
         return
@@ -343,7 +357,7 @@ def _enforce_engine_lane(checkpoint: dict[str, Any]) -> None:
     Only zavod pipelines, only on `completed`.
     """
     ptype = checkpoint.get("pipeline_type") or ""
-    if not ptype.startswith("zavod"):
+    if not _is_zavod_pipeline(ptype):
         return
     if checkpoint.get("status") != "completed":
         return
@@ -399,7 +413,7 @@ def _enforce_run_mode(checkpoint: dict[str, Any]) -> None:
     Only zavod pipelines, only on `completed`.
     """
     ptype = checkpoint.get("pipeline_type") or ""
-    if not ptype.startswith("zavod"):
+    if not _is_zavod_pipeline(ptype):
         return
     if checkpoint.get("status") != "completed":
         return
@@ -487,7 +501,7 @@ def _enforce_canon_guard(checkpoint: dict[str, Any], project_dir: Path | str | N
     project directory and should not retroactively reject legacy reads.
     """
     ptype = checkpoint.get("pipeline_type") or ""
-    if not ptype.startswith("zavod") or project_dir is None:
+    if not _is_zavod_pipeline(ptype) or project_dir is None:
         return
     if checkpoint.get("status") != "completed":
         return
@@ -525,7 +539,7 @@ def _enforce_artifact_path_existence(
     directory where relative paths must physically exist.
     """
     ptype = checkpoint.get("pipeline_type") or ""
-    if not ptype.startswith("zavod") or project_dir is None:
+    if not _is_zavod_pipeline(ptype) or project_dir is None:
         return
     if checkpoint.get("status") != "completed":
         return
@@ -545,18 +559,35 @@ def _enforce_artifact_path_existence(
     else:
         return
 
+    # An empty entry list means the stage closed without a single real artifact — that is
+    # itself a phantom completion, not a pass. (2026-07-04 red-team: empty asset list slid by.)
+    real_entries = [e for e in entries if isinstance(e, dict) and isinstance(e.get("path"), str)]
+    if not real_entries:
+        raise CheckpointValidationError(
+            f"Artifact existence gate at stage {stage!r} ({ptype}): {label} declares no real "
+            "artifact path — a stage cannot close 'completed' with zero produced files."
+        )
+
     missing: list[str] = []
-    for entry in entries:
-        if not isinstance(entry, dict) or not isinstance(entry.get("path"), str):
-            continue
+    degenerate: list[str] = []
+    for entry in real_entries:
         raw = entry["path"]
         resolved = _resolve_artifact_path(project_dir_p, raw)
+        # Follow symlinks and require a real, non-empty regular file — not just .exists().
+        # 2026-07-04 red-team: a 0-byte file, a symlink to /dev/null, or a directory all
+        # passed the bare exists() check.
         if not resolved.exists():
             missing.append(raw)
+        elif not resolved.is_file():
+            degenerate.append(f"{raw} (not a regular file)")
+        elif resolved.stat().st_size == 0:
+            degenerate.append(f"{raw} (0 bytes)")
 
-    if missing:
+    problems = missing + degenerate
+    if problems:
         raise CheckpointValidationError(
-            f"Artifact existence gate at stage {stage!r} ({ptype}): {label} path(s) do not exist: {missing}"
+            f"Artifact existence gate at stage {stage!r} ({ptype}): {label} path(s) not real "
+            f"non-empty files: {problems}"
         )
 
 
@@ -706,15 +737,25 @@ def write_checkpoint(
 
 
 def read_checkpoint(
-    pipeline_dir: Path, project_id: str, stage: str
+    pipeline_dir: Path, project_id: str, stage: str,
+    *, verify_artifacts: bool = False,
 ) -> Optional[dict[str, Any]]:
-    """Read a checkpoint file. Returns None if not found."""
+    """Read a checkpoint file. Returns None if not found.
+
+    ``verify_artifacts=True`` additionally re-checks that a completed asset/compose
+    checkpoint's declared files still physically exist — used on the resume path so a
+    checkpoint written when a file existed (then deleted), or a hand-edited checkpoint
+    file, cannot silently resume with phantom artifacts (2026-07-04 red-team, angle 2).
+    Plain reads (inspection, get_completed_stages) stay lenient so legacy checkpoints load.
+    """
     path = _checkpoint_path(pipeline_dir, project_id, stage)
     if not path.exists():
         return None
     with open(path) as f:
         checkpoint = json.load(f)
     validate_checkpoint(checkpoint)
+    if verify_artifacts:
+        _enforce_artifact_path_existence(checkpoint, pipeline_dir / project_id)
     return checkpoint
 
 
@@ -737,6 +778,9 @@ def get_latest_checkpoint(
     with open(checkpoints[0]) as f:
         checkpoint = json.load(f)
     validate_checkpoint(checkpoint)
+    # Resume entry point: re-verify a completed asset/compose checkpoint's files still
+    # exist before handing it back as the state to resume from (2026-07-04 red-team).
+    _enforce_artifact_path_existence(checkpoint, project_dir)
     return checkpoint
 
 
