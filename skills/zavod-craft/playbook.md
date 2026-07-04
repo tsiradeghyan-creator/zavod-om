@@ -16,6 +16,18 @@ Re-check long-term-memory periodically; algorithms shift.
 - **6–10 slides** optimum; long form (13–15, max 20) only for true serial breakdowns.
 - ≥1 save-worthy slide. High-swipe carousels get re-served 24–48h later.
 
+## Hook gate (absorbed from МЕТАФЛОРА Claudebook, 2026-07-04)
+Before a hook ships (Reel opener, carousel slide 1, caption first line), run 10 candidates
+through a 4-check gate — a table, not a vibe:
+
+| Check | Pass condition |
+|---|---|
+| **Read speed** | հասկացվում է ≤2 վրկ (slide-1 = 0.25s window, `carousel-template.md`) |
+| **Concrete promise** | խոստումը կոնկրետ է, ոչ ընդհանուր («ինչպես» + որոշակի արդյունք) |
+| **No clickbait lie** | վերնագիրը չի խաբում — բովանդակությունը կատարում է խոստումը |
+| **Named pain** | թիրախ-ցավը անվանված է (comment-mining-ից, `idea-lab.md`) |
+Output: top-3 hooks, one sentence each on WHY. Ties into Trial-Reels A/B engine below.
+
 ## Reel rules
 - **Hook in first 3 seconds** (50–60% drop-off there). Strongest visual on frame 1.
 - **Jump-cut every 3–5 seconds** (~32% higher engagement than continuous shot).

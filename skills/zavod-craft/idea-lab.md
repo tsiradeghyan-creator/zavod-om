@@ -19,6 +19,11 @@ Voice/themes come from `style-profile.md` + `brand-voice.md` — ideas must pass
    (carousel-template's CTA loop). Audience pain → premise. **Bridge step:** translate
    the raw pain INTO the universe (memory, dignity, «ապրել vs շնչել») BEFORE the brand
    test below — otherwise audience-led gold gets silently killed for being "off-brand".
+5. **Transcript → premise** (feeds the [[agent-reach]] YouTube/Reddit ingest lane). Given a
+   pulled transcript, generate a short-video script BY MOTIF, never verbatim:
+   `hook (≤2s read) → 3 beats (one thought each) → final turn`, ≤40s, **zero verbatim
+   phrases from the source**, then run the same brand + ethics gates below. Source is a
+   seed crystal, not a script to copy.
 
 ## High-concept test (kill weak ideas early)
 

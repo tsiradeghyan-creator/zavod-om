@@ -120,6 +120,47 @@ recipe] + [movement] + [palette/grade] + [texture] + [audio bed]**. House templa
 - **Armenian text NEVER inside AI video** — Background rule applies to motion too;
   burn text in post (`post-production.md`).
 
+## Seedance 2.0 LONG-PROMPT PROTOCOL (absorbed from Higgsfield `seedance-clean`, 2026-07-04)
+
+The one-sentence house template above stays the default for SHORT prompts (≤1 shot, ≤10s).
+For a long Seedance 2.0 multi-shot document, write a **block-structured prompt** instead —
+blocks in this order, use only what the shot needs, drop the rest:
+
+```
+SCENE CONTEXT → ACTIVE REFERENCES (@tags) → LOCATION MAP (FG/MG/BG + camera + light + paths)
+→ FIRST FRAME / BLOCKING → FORMAT MODE → OPTICS → CAMERA → ACTION → PERFORMANCE
+→ PHYSICS → LIGHTING → [COLOR GRADE] → [WARDROBE] → AUDIO → STYLE + OUTPUT SETTINGS
+(suffix) → POSITIVE LOCKS (last)
+```
+
+- **Style is distributed, never a prefix:** light→LIGHTING, color→COLOR GRADE or folded into
+  LOCATION/LIGHTING, skin/acting→PERFORMANCE, format/grain→STYLE+OUTPUT suffix. The prompt
+  opens on SCENE CONTEXT, never on a style block. (House palette/grade lines still come from
+  the look bible — reuse verbatim across the scene as before.)
+- **POSITIVE LOCKS block closes every long prompt:** short hard fixers in positive form
+  ("headlights stay glowing in every shot"), continuity lives here. Positive phrasing only —
+  state the target, never the prohibition ("stays upright, feet planted", not "does not fall").
+- **FORMAT MODE picks cut precision:** oner ("one continuous shot, the camera does not cut on
+  its own") · sequential CUT 1/CUT 2 (no timecodes) · timed multishot (HARD CUTs at stated
+  seconds) · freestyle b-roll. When cuts are specified, always add the lock: *"cuts only at
+  the specified points, the camera does not cut on its own."* Cut types: HARD / SMASH /
+  MATCH / INSERT / REVERSE / WHIP.
+- **Quantification laws:** speeds in km/h ("camera pans at 5 km/h", not "slow") · atmosphere
+  in % and meters ("fog density 40%, haze visible at 15 m") · atmosphere builds in steps
+  across shots (20% → 40% → 60%) · giant scale via human stacking ("as tall as four humans
+  stacked"), never raw meters · WB in Kelvin fixed per scene (3200/4000/5600/8500K — already
+  house law) · left/right always from the camera.
+- **FOV° anchor table (Seedance dialect):** 180° fisheye · 107° ultra-wide · 84° wide ·
+  63° observational · 47° neutral · 29° portrait-compress · 18° close-portrait · 12°
+  tele-detail · 8° extreme-tele. Discrete steps only (no "23°"); multishot = FOV per segment
+  + "no drift mid-segment"; CAMERA block sits 3rd in the core layer order (subject → action
+  → camera → style → constraints) — at the end FOV gets ignored, at the front it fights identity.
+- **⚠️ UNRESOLVED A/B (do not blindly rewrite the house template):** seedance-clean bans
+  gear/mm names in prompt text (FOV° + "look, not gear"); our table above + Mx-Shell's
+  camera-emulation trick NAME real gear and 2026 engines parse "85mm / dolly / rack focus"
+  fine on Veo/Kling. Treat FOV°/no-gear as the **Seedance 2.0 dialect only** until an A/B on
+  Seedance settles it; Veo/Kling keep mm/gear language. Log the A/B result here.
+
 ## Real-set quick kits (when shooting, not rendering)
 
 - **Phone kit ($0–20):** window key + white card fill + lamp in BG; lock exposure/WB;
