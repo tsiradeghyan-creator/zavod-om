@@ -503,6 +503,57 @@ def _enforce_canon_guard(checkpoint: dict[str, Any], project_dir: Path | str | N
     canon_lock(project_dir_s)
 
 
+def _resolve_artifact_path(project_dir: Path, raw_path: str) -> Path:
+    path = Path(raw_path).expanduser()
+    return path if path.is_absolute() else project_dir / path
+
+
+def _enforce_artifact_path_existence(
+    checkpoint: dict[str, Any],
+    project_dir: Path | str | None,
+) -> None:
+    """Reject completed asset/render checkpoints that point at phantom files.
+
+    This deliberately lives in the checkpoint seam rather than the JSON schemas:
+    schemas can require a path field, but only the write seam knows the project
+    directory where relative paths must physically exist.
+    """
+    ptype = checkpoint.get("pipeline_type") or ""
+    if not ptype.startswith("zavod") or project_dir is None:
+        return
+    if checkpoint.get("status") != "completed":
+        return
+
+    stage = checkpoint.get("stage")
+    artifacts = checkpoint.get("artifacts") or {}
+    project_dir_p = Path(project_dir)
+
+    if stage == "assets":
+        manifest = artifacts.get("asset_manifest") or {}
+        entries = manifest.get("assets") or []
+        label = "asset_manifest.assets"
+    elif stage == "compose":
+        report = artifacts.get("render_report") or {}
+        entries = report.get("outputs") or []
+        label = "render_report.outputs"
+    else:
+        return
+
+    missing: list[str] = []
+    for entry in entries:
+        if not isinstance(entry, dict) or not isinstance(entry.get("path"), str):
+            continue
+        raw = entry["path"]
+        resolved = _resolve_artifact_path(project_dir_p, raw)
+        if not resolved.exists():
+            missing.append(raw)
+
+    if missing:
+        raise CheckpointValidationError(
+            f"Artifact existence gate at stage {stage!r} ({ptype}): {label} path(s) do not exist: {missing}"
+        )
+
+
 def enforce_zavod_write_contracts(
     checkpoint: dict[str, Any],
     *,
@@ -519,6 +570,7 @@ def enforce_zavod_write_contracts(
     _enforce_engine_lane(checkpoint)         # Remotion and Higgsfield lanes stay separate
     _enforce_run_mode(checkpoint)            # supervised vs automatic stay separated
     _enforce_canon_guard(checkpoint, project_dir)  # mid-pipeline canon drift requires revalidation
+    _enforce_artifact_path_existence(checkpoint, project_dir)  # manifests must point at real files
 
 
 def _checkpoint_path(pipeline_dir: Path, project_id: str, stage: str) -> Path:
