@@ -136,3 +136,29 @@ Each gate = a freeze point with its own report.
 - **One gate per report.** Don't bundle two stages' decisions into one freeze.
 - **Co-Producer delegation** does not override the hard gates, the owner's prior vetoes, or
   the final approval rule.
+
+## Station-brief law — 6-slot frame (absorbed from МЕТАФЛОРА Claudebook, 2026-07-04)
+
+Every brief handed to a station/agent (EP → station, station → sub-agent, crew kanban task)
+closes SIX slots — a weak brief offloads decisions onto the model and gets averaged mush back:
+
+```
+[դեր]      ով է պատասխանում, ում ձայնով, ինչն է արգելված (craft file reference counts)
+[խնդիր]    ՄԵԿ բայ, ՄԵԿ արդյունք — առանց «և նաև»
+[կոնտեքստ] ինչ է հայտնի՝ փաստեր, սահմանափակումներ, ինչ արդեն փորձվել է
+[ֆորմատ]   արդյունքի կմախքը (schema/template/չափ)
+[օրինակ]   մեկ էտալոն input→output (few-shot > նկարագրություն)
+[չափանիշ]  3–5 ՍՏՈՒԳԵԼԻ ընդունման պայման — «լավը» չափվում է, ոչ թե զգացվում
+```
+
+**Repair diagnostics — երբ արդյունքը վատն է, նորոգիր ՄԵԿ սլոտ, ոչ ամբողջ բրիֆը:**
+
+| Ախտանիշ | Կաղացող սլոտ | Ինչ ավելացնել |
+|---|---|---|
+| Տոնը «բոլորինն է» | դեր | ում ձայնով, ինչ է արգելված (brand-voice ref) |
+| Հարևան խնդիրն է լուծել | խնդիր | մեկ բայ, մեկ արդյունք |
+| Հորինել է ելակետեր | կոնտեքստ | փաստերը գրավոր, ինչ արդեն փորձված է |
+| Ֆորմատը ամեն անգամ նոր է | ֆորմատ + օրինակ | կմախք + մեկ էտալոն |
+| «Պատրաստ է», բայց ստուգելու բան չկա | չափանիշ | 3–5 ստուգելի պայման |
+
+One slot per iteration — so it's visible WHAT fixed it. Versions + date live in the brief.
