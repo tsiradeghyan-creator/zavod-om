@@ -16,6 +16,7 @@ Verdict contract (matches the other QC libs):
 from __future__ import annotations
 
 import re
+import unicodedata
 from typing import Any
 
 # Armenian letters: main block U+0531–U+0556 (caps), U+0561–U+0586 (lower),
@@ -68,6 +69,26 @@ def check_text(text: str, field: str = "") -> list[dict[str, str]]:
     violations: list[dict[str, str]] = []
     if not text:
         return violations
+
+    # 0. Invisible format/zero-width characters. 2026-07-04 red-team: a zero-width joiner
+    #    (U+200D) spliced inside an Armenian word passed as "clean" — invisible to the eye
+    #    and to the per-token script checks, but it breaks shaping and defeats text filters.
+    #    Ban the whole Unicode "format" (Cf) category plus the soft hyphen in on-screen text.
+    invisibles = sorted({
+        ch for ch in text
+        if unicodedata.category(ch) == "Cf" or ch == "­"
+    })
+    if invisibles:
+        names = ", ".join(f"U+{ord(ch):04X}" for ch in invisibles)
+        violations.append({
+            "text": text[:40],
+            "field": field,
+            "reason": (
+                f"Invisible format/zero-width character(s) [{names}] in on-screen text — "
+                "strip them; only visible Eastern Armenian Unicode is allowed."
+            ),
+        })
+
     tokens = [m.group(0) for m in TOKEN.finditer(text)]
     armenian_context = any(ARMENIAN.search(t) for t in tokens)
     for tok in tokens:
