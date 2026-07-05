@@ -69,12 +69,20 @@ def get_pipeline_stages(pipeline_type: str | None) -> list[str]:
         )
         return list(STAGES)
 
+    # Fail-closed: a zavod-prefixed but unknown/malformed pipeline_type (casing, whitespace,
+    # zero-width, homoglyph) must BLOCK here, not silently fall back to the generic stage
+    # list — that fallback is the side door that bypasses the pipeline allowlist through
+    # stage navigation (#1). For a valid zavod type we also look it up by its canonical form
+    # so stray casing/whitespace still resolves to the real manifest, not the fallback.
+    is_zavod = _is_zavod_pipeline(pipeline_type)  # raises CheckpointValidationError on unknown zavod-*
+    lookup = pipeline_type.strip().casefold() if is_zavod else pipeline_type
+
     try:
         from lib.pipeline_loader import load_pipeline, get_stage_order
-        manifest = load_pipeline(pipeline_type)
+        manifest = load_pipeline(lookup)
         return get_stage_order(manifest)
-    except (FileNotFoundError, Exception):
-        # Graceful fallback: return all known stages in canonical order
+    except Exception:
+        # Graceful fallback only for a genuinely non-zavod pipeline whose manifest is absent.
         return list(STAGES)
 
 CHECKPOINT_SCHEMA_PATH = (

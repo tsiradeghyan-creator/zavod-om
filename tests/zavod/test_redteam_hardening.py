@@ -125,6 +125,43 @@ def test_zavod_pipeline_allowlist_matches_manifest_source_of_truth():
     assert ZAVOD_PIPELINE_TYPES == manifests
 
 
+# ── Phase 2 (2026-07-05 council #1): allowlist enforced at stage-navigation too ──
+# _is_zavod_pipeline() blocked unknown zavod-* at the gate, but get_pipeline_stages()
+# swallowed every exception and fell back to the generic stage list — so an unknown or
+# homoglyph/zero-width zavod-* pipeline bypassed the allowlist through get_next_stage()
+# / get_completed_stages(), which both route through get_pipeline_stages().
+from lib.checkpoint import (  # noqa: E402
+    get_pipeline_stages, get_next_stage, get_completed_stages, STAGES,
+)
+
+
+@pytest.mark.parametrize("bad", ["zavodx", "zavod-fake", "zavod-reel​", "zavodх"])
+def test_get_pipeline_stages_fails_closed_on_unknown_zavod(bad):
+    with pytest.raises(CheckpointValidationError):
+        get_pipeline_stages(bad)
+
+
+@pytest.mark.parametrize("bad", ["zavodx", "zavod-reel​", "zavodх"])
+def test_stage_navigation_inherits_fail_closed(tmp_path, bad):
+    with pytest.raises(CheckpointValidationError):
+        get_next_stage(tmp_path, "p", bad)
+    with pytest.raises(CheckpointValidationError):
+        get_completed_stages(tmp_path, "p", bad)
+
+
+@pytest.mark.parametrize("ptype", ["zavod-reel", "  Zavod-Reel  ", " zavod-reel"])
+def test_valid_zavod_resolves_real_stages_despite_casing_whitespace(ptype):
+    # A real zavod pipeline with stray casing/whitespace must resolve to its actual
+    # manifest stages — never the generic fallback that masked the bypass.
+    assert get_pipeline_stages(ptype) == get_pipeline_stages("zavod-reel")
+
+
+def test_non_zavod_unknown_still_falls_back_gracefully():
+    # The fail-closed rule is scoped to zavod-* only; a genuinely non-zavod pipeline whose
+    # manifest is absent keeps the graceful canonical fallback (no false block).
+    assert get_pipeline_stages("totally-unknown-pipeline") == list(STAGES)
+
+
 # ── Angle 3: existence gate content-awareness ──────────────────────────────
 def _assets_cp(path_or_none, atype="video"):
     assets = [] if path_or_none is None else [
