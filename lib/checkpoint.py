@@ -257,6 +257,19 @@ def _enforce_zavod_gates(checkpoint: dict[str, Any]) -> None:
             )
         result = run_edit_gates(artifacts["edit_decisions"], artifacts.get("delivery_promise"))
     elif stage == "compose":
+        # Continuity proof is mandatory to CLOSE a Zavod compose stage. A silently-absent
+        # render_report.continuity_reports must not become a bypass (mirrors the edit-stage
+        # delivery_promise rule): the field must be present as a list. An explicitly-empty
+        # list is a positive "nothing to track" declaration and is allowed; a non-empty one
+        # is run through the continuity gate. awaiting_human may still be mid-flight, so only
+        # completion is gated.
+        rr = artifacts.get("render_report")
+        has_reports_field = isinstance(rr, dict) and isinstance(rr.get("continuity_reports"), list)
+        if checkpoint.get("status") == "completed" and not has_reports_field:
+            raise CheckpointValidationError(
+                f"Gate block at stage {stage!r} ({ptype}): missing render_report.continuity_reports — "
+                "a Zavod compose stage cannot close without a continuity report list."
+            )
         reports = _continuity_reports(artifacts)
         if reports:
             result = run_compose_gates(reports)

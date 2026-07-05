@@ -278,8 +278,12 @@ def _asset_manifest(source_tool):
 
 
 def _render_report():
+    # A completed compose must carry the continuity_reports field (presence is enforced
+    # at closure). One clean, persisting anchor keeps these engine-lane fixtures realistic.
     return {"version": "1.0", "outputs": [
-        {"path": "o.mp4", "format": "mp4", "resolution": "1080x1920", "duration_seconds": 30}]}
+        {"path": "o.mp4", "format": "mp4", "resolution": "1080x1920", "duration_seconds": 30}],
+        "continuity_reports": [
+            {"clip": "o.mp4", "anchors": [{"name": "hero", "kind": "object", "persists": True}]}]}
 
 
 _IDEA_SUBS = ["intake_or_writer_room", "concept_lock"]

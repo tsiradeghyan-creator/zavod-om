@@ -116,7 +116,9 @@ def _artifact(stage, src_tool, compose_runtime):
                                             "in_seconds": 0, "out_seconds": 5}]}
     if stage == "compose":
         return "render_report", {"version": "1.0", "outputs": [
-            {"path": "o.mp4", "format": "mp4", "resolution": "1080x1920", "duration_seconds": 30}]}
+            {"path": "o.mp4", "format": "mp4", "resolution": "1080x1920", "duration_seconds": 30}],
+            "continuity_reports": [
+                {"clip": "o.mp4", "anchors": [{"name": "hero", "kind": "object", "persists": True}]}]}
     if stage == "publish":
         return "publish_log", {"version": "1.0", "entries": [
             {"platform": "instagram", "status": "draft", "timestamp": "2026-06-26T00:00:00Z"}]}

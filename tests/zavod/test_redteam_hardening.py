@@ -162,6 +162,42 @@ def test_non_zavod_unknown_still_falls_back_gracefully():
     assert get_pipeline_stages("totally-unknown-pipeline") == list(STAGES)
 
 
+# ── Phase 3a (2026-07-05 council #5-seam): compose continuity is mandatory ──
+# The compose branch ran the continuity gate only "if reports:", so a completed compose
+# with the render_report.continuity_reports field silently absent skipped the gate entirely
+# — a missing report was a bypass. Closure now requires the field to be present as a list.
+from lib.checkpoint import _enforce_zavod_gates  # noqa: E402
+
+_RR_BASE = {"version": "1.0", "outputs": [
+    {"path": "o.mp4", "format": "mp4", "resolution": "1080x1920", "duration_seconds": 5}]}
+
+
+def _compose_cp(status, render_report):
+    return {"pipeline_type": "zavod-reel", "stage": "compose", "status": status,
+            "artifacts": {"bench_report": _good("compose"), "render_report": render_report}}
+
+
+def test_completed_compose_without_continuity_field_is_blocked():
+    with pytest.raises(CheckpointValidationError, match="continuity_reports"):
+        _enforce_zavod_gates(_compose_cp("completed", dict(_RR_BASE)))
+
+
+def test_completed_compose_with_explicit_empty_continuity_is_allowed():
+    _enforce_zavod_gates(_compose_cp("completed", {**_RR_BASE, "continuity_reports": []}))
+
+
+def test_awaiting_human_compose_without_continuity_is_allowed():
+    # A mid-flight pause before continuity is judged is legitimate — only closure is gated.
+    _enforce_zavod_gates(_compose_cp("awaiting_human", dict(_RR_BASE)))
+
+
+def test_completed_compose_with_failing_continuity_still_blocks():
+    rr = {**_RR_BASE, "continuity_reports": [
+        {"clip": "o.mp4", "anchors": [{"name": "glass", "kind": "object", "persists": False}]}]}
+    with pytest.raises(CheckpointValidationError):
+        _enforce_zavod_gates(_compose_cp("completed", rr))
+
+
 # ── Angle 3: existence gate content-awareness ──────────────────────────────
 def _assets_cp(path_or_none, atype="video"):
     assets = [] if path_or_none is None else [
