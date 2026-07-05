@@ -202,6 +202,23 @@ def _enforce_zavod_gates(checkpoint: dict[str, Any]) -> None:
     stage = checkpoint.get("stage")
     artifacts = checkpoint.get("artifacts") or {}
 
+    # Glyph gate on EVERY text surface of EVERY artifact, not just the stage-specific fields
+    # (#8, 2026-07-05). An invisible/zero-width or homoglyph character hiding in a
+    # metadata.caption, an asset filename, a prompt, or a subtitle must be caught wherever it
+    # appears — the per-field checks (scene_plan text_policy.text, script strings) left the
+    # other surfaces open. The gate is a no-op on pure-ASCII/single-script strings (paths,
+    # ids, enums), so sweeping every string leaf is safe and closes the gap.
+    from lib.armenian_glyph_gate import gate as _glyph_gate
+    for _name, _art in artifacts.items():
+        for _s in _all_strings(_art):
+            _gg = _glyph_gate(_s)
+            if not _gg["ok"]:
+                _detail = "; ".join(x["reason"] for x in _gg["violations"])
+                raise CheckpointValidationError(
+                    f"Gate block at stage {stage!r} ({ptype}): glyph violation in "
+                    f"artifacts.{_name}: {_detail}"
+                )
+
     # Lazy import: keeps the spine importable without the gate libs, and avoids any cycle.
     from lib.gatechain import (
         run_bench_gates,

@@ -237,6 +237,42 @@ def test_referential_integrity_skips_when_no_scene_plan(tmp_path):
     _enforce_referential_integrity(_assets_checkpoint("GHOST"), tmp_path)
 
 
+# ── Phase 3c (2026-07-05 council #8): glyph gate sweeps every text surface ──
+# The seam only glyph-checked scene_plan text_policy.text and the script strings, so an
+# invisible/zero-width char hiding in metadata.caption, an asset field, or any other artifact
+# surface slipped through. The seam now sweeps every string leaf of every artifact.
+_ZWSP = "​"
+
+
+def test_glyph_caught_in_render_report_caption():
+    # metadata.caption is NOT a stage-specific glyph field — it was previously unchecked.
+    rr = {"version": "1.0",
+          "outputs": [{"path": "o.mp4", "format": "mp4", "resolution": "1080x1920", "duration_seconds": 5}],
+          "continuity_reports": [], "metadata": {"caption": f"Ձմ{_ZWSP}եռ"}}
+    cp = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "completed",
+          "artifacts": {"render_report": rr}}
+    with pytest.raises(CheckpointValidationError, match="glyph"):
+        _enforce_zavod_gates(cp)
+
+
+def test_glyph_caught_in_asset_manifest_surface():
+    cp = {"pipeline_type": "zavod-reel", "stage": "assets", "status": "completed",
+          "artifacts": {"asset_manifest": {"assets": [
+              {"id": "a1", "type": "video", "path": "o.mp4", "source_tool": "x",
+               "scene_id": "s1", "caption": f"Վան{_ZWSP}ը"}]}}}
+    with pytest.raises(CheckpointValidationError, match="glyph"):
+        _enforce_zavod_gates(cp)
+
+
+def test_glyph_sweep_allows_clean_multilingual_caption():
+    rr = {"version": "1.0",
+          "outputs": [{"path": "o.mp4", "format": "mp4", "resolution": "1080x1920", "duration_seconds": 5}],
+          "continuity_reports": [], "metadata": {"caption": "Ձմեռային արձակուրդ 🏔️ weekend"}}
+    cp = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "completed",
+          "artifacts": {"bench_report": _good("compose"), "render_report": rr}}
+    _enforce_zavod_gates(cp)  # clean text on any surface must still pass
+
+
 # ── Angle 3: existence gate content-awareness ──────────────────────────────
 def _assets_cp(path_or_none, atype="video"):
     assets = [] if path_or_none is None else [
