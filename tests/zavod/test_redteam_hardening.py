@@ -13,7 +13,8 @@ sys.path.insert(0, str(ROOT))
 
 from lib.bench_gate import run_bench_gates, required_bench  # noqa: E402
 from lib.checkpoint import (  # noqa: E402
-    _is_zavod_pipeline, _enforce_artifact_path_existence, CheckpointValidationError,
+    ZAVOD_PIPELINE_TYPES, _is_zavod_pipeline, _enforce_artifact_path_existence,
+    CheckpointValidationError,
 )
 from lib.gatechain import run_script_gates  # noqa: E402
 
@@ -66,6 +67,13 @@ def test_non_zavod_pipelines_stay_ungated(ptype):
 def test_zavod_prefixed_unknown_pipeline_fails_closed():
     with pytest.raises(CheckpointValidationError, match="unknown Zavod pipeline"):
         _is_zavod_pipeline("zavodx")
+
+
+def test_zavod_pipeline_allowlist_matches_manifest_source_of_truth():
+    manifests = {
+        path.stem for path in (ROOT / "pipeline_defs").glob("zavod-*.yaml")
+    }
+    assert ZAVOD_PIPELINE_TYPES == manifests
 
 
 # ── Angle 3: existence gate content-awareness ──────────────────────────────
