@@ -20,7 +20,7 @@ from lib.canon_guard import LOCK, lock  # noqa: E402
 def _bench_report(stage: str) -> dict:
     return {
         "stage": stage,
-        "bench": {role: {"ruling": f"The {role} reviewed this stage in depth and confirms craft quality across staging continuity and delivery."} for role in required_bench(stage)},
+        "bench": {role: {"ruling": f"The {role} reviewed this stage in depth and confirms craft quality across staging continuity and delivery.", "verdict": "approve"} for role in required_bench(stage)},
     }
 
 

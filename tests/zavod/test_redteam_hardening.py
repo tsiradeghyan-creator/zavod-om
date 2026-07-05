@@ -22,7 +22,8 @@ from tests.zavod.media_helpers import tiny_mp4, tiny_wav, tiny_png  # noqa: E402
 
 # ── Angle 1: bench rubber-stamp ────────────────────────────────────────────
 def _bench(stage, ruling_for):
-    return {"stage": stage, "bench": {r: {"ruling": ruling_for(r)} for r in required_bench(stage)}}
+    return {"stage": stage, "bench": {r: {"ruling": ruling_for(r), "verdict": "approve"}
+                                      for r in required_bench(stage)}}
 
 def test_bench_blocks_repeated_word_filler():
     filler = "նույն բառը " * 6  # >60 chars, 2 distinct tokens
@@ -53,6 +54,53 @@ def test_bench_allows_genuine_distinct_rulings():
                   f"conclusion about staging, palette, and continuity for this asset stage.",
     ))
     assert ok["ok"], ok["violations"]
+
+
+# ── Angle 1b: #1 structured verdict contract ──────────────────────────────
+def _good(stage):
+    return _bench(stage, lambda r: f"The {r} examined its own {r} domain thoroughly and reached a "
+                                   f"specific, well-supported conclusion on staging and continuity.")
+
+def test_bench_blocks_missing_verdict():
+    rep = _good("asset")
+    del rep["bench"]["reviewer"]["verdict"]
+    r = run_bench_gates("asset", rep)
+    assert not r["ok"] and any("verdict" in v for v in r["violations"])
+
+def test_bench_blocks_invalid_verdict():
+    rep = _good("asset")
+    rep["bench"]["reviewer"]["verdict"] = "lgtm"
+    assert not run_bench_gates("asset", rep)["ok"]
+
+def test_bench_blocks_reject_verdict_stage_cannot_close():
+    rep = _good("asset")
+    rep["bench"]["identity-guard"]["verdict"] = "reject"
+    rep["bench"]["identity-guard"]["blocking_issues"] = ["face identity drifts between shots 2 and 5"]
+    r = run_bench_gates("asset", rep)
+    assert not r["ok"] and any("reject" in v for v in r["violations"])
+
+def test_bench_blocks_revise_without_blocking_issues():
+    rep = _good("asset")
+    rep["bench"]["identity-guard"]["verdict"] = "revise"  # no blocking_issues named
+    r = run_bench_gates("asset", rep)
+    assert not r["ok"] and any("blocking_issues" in v for v in r["violations"])
+
+def test_bench_near_similar_rulings_warn_not_block():
+    # Shared template, one distinct token per role → near-identical (>=0.92) but not exact.
+    shared = ("The specialist carefully reviewed staging blocking palette continuity lighting "
+              "pacing sound and delivery across every shot of this stage and concluded the craft "
+              "bar is comfortably met with no outstanding blocking concerns remaining anywhere")
+    rep = {"stage": "publish", "bench": {
+        r: {"ruling": shared + f" note {i}", "verdict": "approve"}
+        for i, r in enumerate(required_bench("publish"))}}
+    out = run_bench_gates("publish", rep)
+    assert out["ok"], out["violations"]            # near-similarity does NOT hard-block
+    assert out["warnings"]                          # …it is surfaced as a warning
+
+def test_bench_exact_duplicate_rulings_still_block():
+    same = "The specialist reviewed staging palette continuity and delivery and confirms the bar is met."
+    rep = _bench("asset", lambda r: same)           # identical across roles (verdict approve)
+    assert not run_bench_gates("asset", rep)["ok"]
 
 
 # ── Angle 6: pipeline_type canonicalization ────────────────────────────────

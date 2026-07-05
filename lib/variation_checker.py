@@ -161,6 +161,23 @@ def check_scene_variation(scenes: list[dict[str, Any]]) -> dict[str, Any]:
     else:
         verdict = "fail"
 
+    # #9 single-scene semantic-poverty blind spot: most variation checks only fire at 4+
+    # scenes, so a 1-3 scene plan that leans on generic phrasing still scored 'strong' and
+    # closed silently. A short generic plan is not 'strong' — it needs an owner decision —
+    # UNLESS the maker marked it an intentional beat (shot_intent/hero_moment). This is a
+    # human-decision escalation, not a hard block: a deliberate single-shot concept passes.
+    if len(scenes) <= 3 and verdict == "strong":
+        generic_fired = any("generic language" in v for v in violations)
+        intentional = any(
+            s.get("hero_moment") or (s.get("shot_intent") or "").strip() for s in scenes
+        )
+        if generic_fired and not intentional:
+            verdict = "needs_human"
+            suggestions.append(
+                "Short plan leans on generic phrasing. Confirm this minimalism is intentional "
+                "(state a shot_intent or mark a hero_moment), or add specific, non-generic detail."
+            )
+
     return {
         "score": round(score, 1),
         "verdict": verdict,

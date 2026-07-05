@@ -44,9 +44,9 @@ def _bench_report(stage: str, *, omit: str | None = None, thin: str | None = Non
         bench[role] = {"ruling": (
             f"The {role} reviewed this stage in depth and confirms the craft bar is met "
             f"across staging, continuity, palette, and delivery quality."
-        )}
+        ), "verdict": "approve"}
     if thin:
-        bench[thin] = {"ruling": "ok"}
+        bench[thin] = {"ruling": "ok", "verdict": "approve"}
     return {"stage": stage, "bench": bench}
 
 

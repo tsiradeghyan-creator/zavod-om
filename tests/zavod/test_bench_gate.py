@@ -8,7 +8,8 @@ from lib.bench_gate import run_bench_gates, required_bench, RULING_MIN  # noqa: 
 # 2026-07-04 hardening (filler + independence checks) is satisfied for genuine pass cases.
 FULL = lambda roles: {"bench": {
     r: {"ruling": f"The {r} reviewed this stage in depth and confirms the craft bar is met "
-                  f"across staging, continuity, palette, and delivery quality."}
+                  f"across staging, continuity, palette, and delivery quality.",
+        "verdict": "approve"}
     for r in roles}}
 
 def test_full_bench_passes():

@@ -83,6 +83,11 @@ def run_scene_plan_gates(scene_plan: dict[str, Any]) -> dict[str, Any]:
     var = check_scene_variation(scene_plan.get("scenes", []))
     if var["verdict"] in ("revise", "fail"):
         violations += [f"variation: {x}" for x in var.get("violations", [])]
+    elif var["verdict"] == "needs_human":
+        # #9: a short/generic plan must not auto-close 'strong' — surface it for an owner
+        # decision (not a silent pass, not a permanent hard reject).
+        violations += ["variation: short/generic plan needs an owner decision — "
+                       + "; ".join(var.get("suggestions", [])[-1:])]
     return {"ok": schema_ok and not violations, "schema": schema_ok, "variation": var["verdict"], "violations": violations}
 
 

@@ -52,7 +52,7 @@ def _full_bench_report(stage: str) -> dict:
             role: {"ruling": (
                 f"The {role} reviewed this {bench_stage} stage in depth and confirms the "
                 f"craft bar is met across staging, continuity, and delivery for role {i}."
-            )}
+            ), "verdict": "approve"}
             for i, role in enumerate(required_bench(bench_stage))
         },
     }

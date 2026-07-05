@@ -28,9 +28,14 @@ RULING_MIN = 60
 # A ruling must carry at least this many DISTINCT word-tokens; "նույն բառը" x6 is 60 chars
 # but only 2 unique tokens — a rubber-stamp, not analysis.
 RULING_MIN_UNIQUE_TOKENS = 8
-# Two rulings whose normalized token sets are this similar are treated as the same
-# rubber-stamp pasted across roles (independence failure).
+# Two rulings this similar are near-duplicates. This is a WARNING, not a hard block:
+# specialists filling a shared template legitimately share boilerplate, so a fuzzy score is
+# too soft to fail on (2026-07-05). Only an EXACT normalized match is a hard rubber-stamp.
 DUPLICATE_SIMILARITY = 0.92
+
+# A specialist's structured verdict. The bench is well-formed only if every role declares one;
+# a completed stage cannot stand over a revise/reject (that is the whole point of the bench).
+VALID_VERDICTS = {"approve", "revise", "reject"}
 
 
 def _norm_tokens(text: str) -> list[str]:
@@ -97,23 +102,49 @@ def run_bench_gates(stage: str, report: dict[str, Any]) -> dict[str, Any]:
                 f"{RULING_MIN_UNIQUE_TOKENS}) — repeated words are not analysis")
             continue
 
-        # NOTE: a specialist voicing a *reject verdict* is intentionally NOT detected by
-        # prose substring matching here — "nothing is blocked" / "avoided a reject" are
-        # legitimate approvals that such a heuristic false-flags (2026-07-04 probe). A real
-        # reject signal belongs in a structured verdict field, not sniffed from the ruling text.
+        # Structured verdict (2026-07-05, #1). The reject signal belongs in a field, not sniffed
+        # from prose ("nothing is blocked" is a legit approval). Every role must declare one, and
+        # a completed stage cannot stand over a revise/reject — that is what the bench is for.
+        verdict = str(entry.get("verdict") or "").strip().lower()
+        if verdict not in VALID_VERDICTS:
+            violations.append(
+                f"bench.{role}: missing/invalid verdict {entry.get('verdict')!r} — must be one of "
+                f"{sorted(VALID_VERDICTS)}. A ruling without a structured verdict is not a decision.")
+            continue
+        if verdict in {"revise", "reject"}:
+            issues = entry.get("blocking_issues")
+            if not (isinstance(issues, list) and any(str(x).strip() for x in issues)):
+                violations.append(
+                    f"bench.{role}: verdict {verdict!r} with no non-empty blocking_issues — a "
+                    "revise/reject must name what blocks it.")
+            else:
+                violations.append(
+                    f"bench.{role}: specialist verdict {verdict!r} ({issues}) — the stage cannot "
+                    "close 'completed' over an unresolved specialist objection.")
+            continue
+
         present[role] = ruling
 
-    # Independence: no two required specialists may submit (near-)identical rulings.
+    # Independence: an EXACT rubber-stamp (same normalized text across roles) is a hard block;
+    # a merely near-identical pair is a warning (shared template ≠ failure to think).
+    warnings: list[str] = []
     checked = list(present.items())
     for i in range(len(checked)):
         for j in range(i + 1, len(checked)):
-            if _similarity(checked[i][1], checked[j][1]) >= DUPLICATE_SIMILARITY:
+            a_norm = " ".join(_norm_tokens(checked[i][1]))
+            b_norm = " ".join(_norm_tokens(checked[j][1]))
+            if a_norm == b_norm:
                 violations.append(
                     f"bench.{checked[i][0]} and bench.{checked[j][0]}: identical ruling "
                     "rubber-stamped across roles — each specialist must rule independently")
+            elif _similarity(checked[i][1], checked[j][1]) >= DUPLICATE_SIMILARITY:
+                warnings.append(
+                    f"bench.{checked[i][0]} and bench.{checked[j][0]}: near-identical rulings "
+                    "({:.0%}) — verify these are independent judgments, not a shared template."
+                    .format(_similarity(checked[i][1], checked[j][1])))
 
     return {"ok": not violations, "verdict": "pass" if not violations else "fail",
-            "violations": violations}
+            "violations": violations, "warnings": warnings}
 
 
 if __name__ == "__main__":

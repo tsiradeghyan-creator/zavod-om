@@ -21,7 +21,7 @@ def _bench_report(stage: str) -> dict:
     bench_stage = {"assets": "asset"}.get(stage, stage)
     return {
         "stage": bench_stage,
-        "bench": {role: {"ruling": f"The {role} reviewed this stage in depth and confirms craft quality across staging continuity and delivery."} for role in required_bench(bench_stage)},
+        "bench": {role: {"ruling": f"The {role} reviewed this stage in depth and confirms craft quality across staging continuity and delivery.", "verdict": "approve"} for role in required_bench(bench_stage)},
     }
 
 
