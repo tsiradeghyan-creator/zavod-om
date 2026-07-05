@@ -228,3 +228,70 @@ def test_existence_allows_internal_symlink():
         tiny_mp4(d / "real.mp4")
         (d / "link.mp4").symlink_to(d / "real.mp4")
     _run_existence(_assets_cp("link.mp4"), make)
+
+
+# ── Phase 1 (2026-07-05 council #9): atomic, crash-safe checkpoint persistence ──
+# Before this fix write_checkpoint used open(path, "w") (truncates in place) and merged
+# the decision log BEFORE writing the checkpoint. A crash mid-write destroyed the prior
+# valid checkpoint; a crash between the two writes left a decision with no carrying
+# checkpoint (split-brain). The exact class of failure — API error mid-write — is what
+# forced the 2026-07-05 recovery session.
+import json as _json
+import lib.checkpoint as _cp
+from lib.checkpoint import (
+    _atomic_write_json, write_checkpoint, _checkpoint_path,
+)
+
+
+def _valid_decision_log(pid="projX"):
+    return {"version": "1.0", "project_id": pid, "decisions": []}
+
+
+def test_atomic_write_preserves_prior_file_on_replace_crash(tmp_path, monkeypatch):
+    target = tmp_path / "checkpoint_idea.json"
+    _atomic_write_json(target, {"state": "valid-v1"})
+
+    def boom(*a, **k):
+        raise OSError("simulated crash during atomic rename")
+    monkeypatch.setattr(_cp.os, "replace", boom)
+
+    with pytest.raises(OSError):
+        _atomic_write_json(target, {"state": "would-be-v2"})
+    # prior valid file survives fully intact — never truncated to empty/corrupt
+    assert _json.loads(target.read_text()) == {"state": "valid-v1"}
+    # and no orphan temp file is left behind
+    assert list(tmp_path.glob(".*tmp*")) == []
+
+
+def test_atomic_write_never_truncates_on_serialize_crash(tmp_path, monkeypatch):
+    target = tmp_path / "checkpoint_idea.json"
+    _atomic_write_json(target, {"state": "valid-v1"})
+
+    def boom(*a, **k):
+        raise ValueError("simulated crash mid-serialization")
+    monkeypatch.setattr(_cp.json, "dump", boom)
+
+    with pytest.raises(ValueError):
+        _atomic_write_json(target, {"state": "would-be-v2"})
+    assert _json.loads(target.read_text()) == {"state": "valid-v1"}
+    assert list(tmp_path.glob(".*tmp*")) == []
+
+
+def test_checkpoint_persisted_before_decision_log_merge(tmp_path, monkeypatch):
+    # Split-brain guard: the carrying checkpoint must reach disk BEFORE the derived
+    # decision-log projection, so a crash during the merge can never leave a decision
+    # recorded with no checkpoint behind it.
+    seen = {}
+
+    def spy(pipeline_dir, project_id, new_log):
+        seen["cp_on_disk"] = _checkpoint_path(pipeline_dir, project_id, "idea").exists()
+        raise RuntimeError("simulated crash during decision-log merge")
+    monkeypatch.setattr(_cp, "_merge_decision_log", spy)
+
+    with pytest.raises(RuntimeError):
+        write_checkpoint(
+            tmp_path, "projX", "idea", "in_progress",
+            {"decision_log": _valid_decision_log()}, pipeline_type=None,
+        )
+    assert seen["cp_on_disk"] is True
+    assert _checkpoint_path(tmp_path, "projX", "idea").exists()

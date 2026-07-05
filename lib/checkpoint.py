@@ -7,6 +7,7 @@ checkpoints to resume pipelines and to present state at human checkpoints.
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 from functools import lru_cache
@@ -784,6 +785,27 @@ def _decision_log_path(pipeline_dir: Path, project_id: str) -> Path:
     return pipeline_dir / project_id / "decision_log.json"
 
 
+def _atomic_write_json(path: Path, data: Any) -> None:
+    """Persist ``data`` as JSON atomically.
+
+    Serialize to a temp file in the same directory, fsync it, then ``os.replace()``
+    onto the destination. Because the destination is only ever swapped by an atomic
+    rename — never opened with ``"w"`` (which truncates in place) — a crash mid-write
+    leaves the previous valid file fully intact instead of a truncated/corrupt one.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.parent / f".{path.name}.tmp.{os.getpid()}"
+    try:
+        with open(tmp, "w") as f:
+            json.dump(data, f, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)  # atomic on the same filesystem
+    finally:
+        if tmp.exists():
+            tmp.unlink()
+
+
 def _merge_decision_log(
     pipeline_dir: Path, project_id: str, new_log: dict[str, Any]
 ) -> None:
@@ -809,9 +831,7 @@ def _merge_decision_log(
         if decision.get("decision_id") not in existing_ids:
             existing["decisions"].append(decision)
 
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w") as f:
-        json.dump(existing, f, indent=2)
+    _atomic_write_json(path, existing)
 
 
 def write_checkpoint(
@@ -891,13 +911,17 @@ def write_checkpoint(
     # (read_checkpoint deliberately does not, so legacy checkpoints still load.)
     enforce_zavod_write_contracts(checkpoint, project_dir=pipeline_dir / project_id)
 
+    # Persist the carrying checkpoint FIRST, and atomically. The stage's decision is
+    # already embedded in checkpoint["artifacts"]["decision_log"], so the project-level
+    # decision_log.json is a derived aggregate. Writing the checkpoint first means a crash
+    # between the two writes can at worst drop an audit-log projection (rebuildable from the
+    # checkpoint) — never leave a decision recorded with no carrying checkpoint (the
+    # split-brain failure mode). Both writes are atomic, so neither can be left truncated.
+    path = _checkpoint_path(pipeline_dir, project_id, stage)
+    _atomic_write_json(path, checkpoint)
+
     if isinstance(decision_log, dict):
         _merge_decision_log(pipeline_dir, project_id, decision_log)
-
-    path = _checkpoint_path(pipeline_dir, project_id, stage)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w") as f:
-        json.dump(checkpoint, f, indent=2)
 
     return path
 
