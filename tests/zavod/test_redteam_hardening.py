@@ -198,6 +198,45 @@ def test_completed_compose_with_failing_continuity_still_blocks():
         _enforce_zavod_gates(_compose_cp("completed", rr))
 
 
+# ── Phase 3b (2026-07-05 council #7): cross-artifact referential integrity ──
+# Each artifact passed its own schema, but nothing checked the links between them: an
+# asset_manifest could name a scene_id ("GHOST") absent from the scene_plan and still pass.
+import json as _json7  # noqa: E402
+from lib.checkpoint import _enforce_referential_integrity  # noqa: E402
+
+
+def _project_with_scene_plan(tmp_path, scene_ids=("s1", "s2")):
+    (tmp_path / "checkpoint_scene_plan.json").write_text(_json7.dumps(
+        {"artifacts": {"scene_plan": {"scenes": [{"id": s} for s in scene_ids]}}}))
+    return tmp_path
+
+
+def _assets_checkpoint(scene_id, ptype="zavod-reel"):
+    return {"pipeline_type": ptype, "stage": "assets",
+            "artifacts": {"asset_manifest": {"assets": [{"id": "a1", "scene_id": scene_id}]}}}
+
+
+def test_asset_referencing_ghost_scene_id_is_blocked(tmp_path):
+    pd = _project_with_scene_plan(tmp_path)
+    with pytest.raises(CheckpointValidationError, match="Referential integrity"):
+        _enforce_referential_integrity(_assets_checkpoint("GHOST"), pd)
+
+
+def test_asset_referencing_real_scene_id_passes(tmp_path):
+    pd = _project_with_scene_plan(tmp_path)
+    _enforce_referential_integrity(_assets_checkpoint("s1"), pd)
+
+
+def test_referential_integrity_scoped_to_zavod(tmp_path):
+    pd = _project_with_scene_plan(tmp_path)
+    _enforce_referential_integrity(_assets_checkpoint("GHOST", ptype="animation"), pd)  # non-zavod → skip
+
+
+def test_referential_integrity_skips_when_no_scene_plan(tmp_path):
+    # Partial run / isolated stage write: nothing to check against, so do not fabricate a block.
+    _enforce_referential_integrity(_assets_checkpoint("GHOST"), tmp_path)
+
+
 # ── Angle 3: existence gate content-awareness ──────────────────────────────
 def _assets_cp(path_or_none, atype="video"):
     assets = [] if path_or_none is None else [

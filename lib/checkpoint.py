@@ -763,6 +763,57 @@ def _enforce_artifact_path_existence(
         )
 
 
+def _known_scene_ids(project_dir: Path) -> set[str] | None:
+    """Scene ids declared by the project's completed scene_plan checkpoint.
+
+    Returns None when there is no scene_plan to check against — a partial run or an
+    isolated stage write — so referential integrity is only enforced where it is
+    actually verifiable, never fabricated.
+    """
+    sp_path = project_dir / "checkpoint_scene_plan.json"
+    if not sp_path.exists():
+        return None
+    try:
+        with open(sp_path) as f:
+            sp = json.load(f)
+    except Exception:
+        return None
+    scene_plan = (sp.get("artifacts") or {}).get("scene_plan")
+    if not isinstance(scene_plan, dict):
+        return None
+    return {s.get("id") for s in scene_plan.get("scenes", []) if isinstance(s, dict)}
+
+
+def _enforce_referential_integrity(checkpoint: dict[str, Any], project_dir: Path | str | None) -> None:
+    """Cross-artifact referential integrity (write-time, zavod only).
+
+    A schema-valid artifact can still reference entities that do not exist: an asset_manifest
+    asset naming a scene_id absent from the scene_plan (#7, 2026-07-05). JSON Schema validates
+    each artifact in isolation; this checks the links between them. Scoped to what persisted
+    state can prove: when a completed scene_plan checkpoint exists, every asset_manifest
+    scene_id must resolve to one of its scene ids.
+    """
+    if project_dir is None or not _is_zavod_pipeline(checkpoint.get("pipeline_type") or ""):
+        return
+    if checkpoint.get("stage") != "assets":
+        return
+    manifest = (checkpoint.get("artifacts") or {}).get("asset_manifest")
+    if not isinstance(manifest, dict):
+        return
+    scene_ids = _known_scene_ids(Path(project_dir))
+    if scene_ids is None:
+        return
+    for asset in manifest.get("assets", []):
+        if not isinstance(asset, dict):
+            continue
+        sid = asset.get("scene_id")
+        if sid not in scene_ids:
+            raise CheckpointValidationError(
+                f"Referential integrity: asset {asset.get('id')!r} references scene_id {sid!r} "
+                f"which is not in the scene_plan (known: {sorted(x for x in scene_ids if x)})."
+            )
+
+
 def enforce_zavod_write_contracts(
     checkpoint: dict[str, Any],
     *,
@@ -780,6 +831,7 @@ def enforce_zavod_write_contracts(
     _enforce_run_mode(checkpoint)            # supervised vs automatic stay separated
     _enforce_canon_guard(checkpoint, project_dir)  # mid-pipeline canon drift requires revalidation
     _enforce_artifact_path_existence(checkpoint, project_dir)  # manifests must point at real files
+    _enforce_referential_integrity(checkpoint, project_dir)  # cross-artifact links must resolve (#7)
 
 
 def _enforce_resume_contracts(checkpoint: dict[str, Any], project_dir: Path | str | None) -> None:
