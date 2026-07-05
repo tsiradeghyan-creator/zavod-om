@@ -63,6 +63,11 @@ def test_non_zavod_pipelines_stay_ungated(ptype):
     assert _is_zavod_pipeline(ptype) is False
 
 
+def test_zavod_prefixed_unknown_pipeline_fails_closed():
+    with pytest.raises(CheckpointValidationError, match="unknown Zavod pipeline"):
+        _is_zavod_pipeline("zavodx")
+
+
 # ── Angle 3: existence gate content-awareness ──────────────────────────────
 def _assets_cp(path_or_none):
     assets = [] if path_or_none is None else [
