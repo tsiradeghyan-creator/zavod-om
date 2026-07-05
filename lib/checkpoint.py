@@ -538,6 +538,30 @@ def _enforce_canon_guard(checkpoint: dict[str, Any], project_dir: Path | str | N
     canon_lock(project_dir_s)
 
 
+def _check_canon_guard_readonly(checkpoint: dict[str, Any], project_dir: Path | str | None) -> None:
+    """Read-only canon drift check for the RESUME path.
+
+    Same block condition as _enforce_canon_guard, but it must never call canon_lock():
+    resuming/inspecting a checkpoint must not mutate the canon snapshot. Turning a read into
+    a lock write would let a resume silently 'bless' drifted canon (the #6 side-effect trap).
+    """
+    ptype = checkpoint.get("pipeline_type") or ""
+    if not _is_zavod_pipeline(ptype) or project_dir is None:
+        return
+    if checkpoint.get("status") != "completed":
+        return
+    stage = checkpoint.get("stage")
+    from lib.canon_guard import FREE_STAGES, check as canon_check
+
+    if stage in FREE_STAGES:
+        return
+    result = canon_check(str(project_dir), stage)
+    if not result.get("ok"):
+        raise CheckpointValidationError(
+            f"Canon guard block on resume at stage {stage!r} ({ptype}): {result.get('action') or result}"
+        )
+
+
 def _resolve_artifact_path(project_dir: Path, raw_path: str) -> Path:
     path = Path(raw_path).expanduser()
     return path if path.is_absolute() else project_dir / path
@@ -736,6 +760,22 @@ def enforce_zavod_write_contracts(
     _enforce_artifact_path_existence(checkpoint, project_dir)  # manifests must point at real files
 
 
+def _enforce_resume_contracts(checkpoint: dict[str, Any], project_dir: Path | str | None) -> None:
+    """Fail-closed re-validation for RESUME (not plain read).
+
+    A completed checkpoint being resumed from must still satisfy the same structural contracts
+    it satisfied at write time — otherwise a hand-edited, downgraded, or drifted checkpoint (or
+    one whose artifacts were deleted after the fact) could silently continue a run. Unlike the
+    write contracts, this path is side-effect free: the canon check is read-only (no lock write),
+    so resuming/inspecting never mutates project state.
+    """
+    _enforce_production_ladder(checkpoint)          # specialist ladder still non-collapsed
+    _enforce_engine_lane(checkpoint)                # engine lane still consistent
+    _enforce_run_mode(checkpoint)                   # run mode still consistent
+    _check_canon_guard_readonly(checkpoint, project_dir)      # canon drift — read-only
+    _enforce_artifact_path_existence(checkpoint, project_dir)  # files real + valid media (#5)
+
+
 def _checkpoint_path(pipeline_dir: Path, project_id: str, stage: str) -> Path:
     return pipeline_dir / project_id / f"checkpoint_{stage}.json"
 
@@ -886,9 +926,14 @@ def read_checkpoint(
 
 
 def get_latest_checkpoint(
-    pipeline_dir: Path, project_id: str
+    pipeline_dir: Path, project_id: str, *, strict_resume: bool = False
 ) -> Optional[dict[str, Any]]:
-    """Find the most recent checkpoint for a project (by file mtime)."""
+    """Find the most recent checkpoint for a project (by file mtime).
+
+    ``strict_resume=True`` runs the full fail-closed resume re-validation (structural
+    contracts + read-only canon drift + artifact existence/media) instead of the artifact
+    check alone. See resume_checkpoint() for the recommended resume entry point.
+    """
     project_dir = pipeline_dir / project_id
     if not project_dir.exists():
         return None
@@ -904,10 +949,39 @@ def get_latest_checkpoint(
     with open(checkpoints[0]) as f:
         checkpoint = json.load(f)
     validate_checkpoint(checkpoint)
-    # Resume entry point: re-verify a completed asset/compose checkpoint's files still
-    # exist before handing it back as the state to resume from (2026-07-04 red-team).
-    _enforce_artifact_path_existence(checkpoint, project_dir)
+    # Resume entry point: re-verify the state before handing it back as the point to resume
+    # from (2026-07-04 red-team). strict_resume adds structural + read-only canon re-checks (#6).
+    if strict_resume:
+        _enforce_resume_contracts(checkpoint, project_dir)
+    else:
+        _enforce_artifact_path_existence(checkpoint, project_dir)
     return checkpoint
+
+
+def resume_checkpoint(
+    pipeline_dir: Path, project_id: str, stage: str | None = None
+) -> Optional[dict[str, Any]]:
+    """Load a checkpoint to RESUME from, fully re-validated and fail-closed.
+
+    This is the entry point a runtime should use to continue a run: it re-runs the structural
+    contracts (ladder, engine lane, run mode), a read-only canon drift check, and the artifact
+    existence/media checks against the persisted state. A hand-edited, downgraded, canon-drifted,
+    or artifact-missing checkpoint is refused rather than silently resumed. Side-effect free —
+    unlike write contracts, it never writes a canon lock.
+
+    stage=None resumes from the most recent checkpoint; passing a stage resumes that specific one.
+    """
+    project_dir = pipeline_dir / project_id
+    if stage is not None:
+        path = _checkpoint_path(pipeline_dir, project_id, stage)
+        if not path.exists():
+            return None
+        with open(path) as f:
+            checkpoint = json.load(f)
+        validate_checkpoint(checkpoint)
+        _enforce_resume_contracts(checkpoint, project_dir)
+        return checkpoint
+    return get_latest_checkpoint(pipeline_dir, project_id, strict_resume=True)
 
 
 def get_completed_stages(
