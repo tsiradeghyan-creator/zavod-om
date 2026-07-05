@@ -14,6 +14,7 @@ from lib.checkpoint import (  # noqa: E402
     _required_ladder_sub_stages,
     enforce_zavod_write_contracts,
 )
+from tests.zavod.media_helpers import tiny_mp4  # noqa: E402
 
 
 def _bench_report(stage: str) -> dict:
@@ -65,7 +66,7 @@ def test_assets_completed_checkpoint_blocks_phantom_manifest_path(tmp_path):
 def test_assets_completed_checkpoint_passes_existing_manifest_path(tmp_path):
     path = tmp_path / "assets" / "real.mp4"
     path.parent.mkdir()
-    path.write_bytes(b"not-empty")
+    tiny_mp4(path)
     cp = _checkpoint("assets", {"asset_manifest": _asset_manifest("assets/real.mp4")})
     enforce_zavod_write_contracts(cp, project_dir=tmp_path)
 
@@ -80,6 +81,6 @@ def test_compose_completed_checkpoint_blocks_phantom_output_path(tmp_path):
 def test_compose_completed_checkpoint_passes_existing_output_path(tmp_path):
     path = tmp_path / "renders" / "real.mp4"
     path.parent.mkdir()
-    path.write_bytes(b"not-empty")
+    tiny_mp4(path)
     cp = _checkpoint("compose", {"render_report": _render_report("renders/real.mp4")})
     enforce_zavod_write_contracts(cp, project_dir=tmp_path)

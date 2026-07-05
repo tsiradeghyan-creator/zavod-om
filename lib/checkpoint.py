@@ -7,6 +7,8 @@ checkpoints to resume pipelines and to present state at human checkpoints.
 from __future__ import annotations
 
 import json
+import shutil
+import subprocess
 from functools import lru_cache
 from datetime import datetime, timezone
 from pathlib import Path
@@ -541,6 +543,76 @@ def _resolve_artifact_path(project_dir: Path, raw_path: str) -> Path:
     return path if path.is_absolute() else project_dir / path
 
 
+# #5 content validation: an existing, non-empty file is not proof of real media. A .mp4 full
+# of garbage bytes, a text file renamed .mp4, or a truncated render must not close a stage.
+# We probe the actual content with ffprobe, keyed on the asset's declared type.
+_PROBE_VIDEO = frozenset({"video", "animation"})
+_PROBE_AUDIO = frozenset({"audio", "narration", "music", "sfx"})
+_PROBE_IMAGE = frozenset({"image", "diagram"})
+_PROBE_KINDS = _PROBE_VIDEO | _PROBE_AUDIO | _PROBE_IMAGE
+# subtitle / code_snippet / font / lut are data files — the non-empty regular-file check is the
+# right bar for them; they carry no decodable A/V stream to probe.
+
+
+def _safe_float(value: Any) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _media_defect(path: Path, kind: str) -> str | None:
+    """Return a problem description if `path` is not valid media of `kind`, else None.
+
+    Uses ffprobe to inspect real streams. Callers must confirm ffprobe is available first.
+    """
+    try:
+        proc = subprocess.run(
+            ["ffprobe", "-v", "quiet", "-print_format", "json",
+             "-show_streams", "-show_format", str(path)],
+            capture_output=True, text=True, timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        return f"ffprobe failed to run: {exc}"
+    if proc.returncode != 0:
+        return "not decodable by ffprobe (corrupt or not real media)"
+    try:
+        data = json.loads(proc.stdout or "{}")
+    except json.JSONDecodeError:
+        return "ffprobe returned unreadable output"
+
+    streams = data.get("streams") or []
+    fmt = data.get("format") or {}
+    video = [s for s in streams if s.get("codec_type") == "video"]
+    audio = [s for s in streams if s.get("codec_type") == "audio"]
+
+    if kind in _PROBE_VIDEO:
+        if not video:
+            return "declared video but ffprobe found no video stream"
+        s0 = video[0]
+        if not (int(s0.get("width") or 0) > 0 and int(s0.get("height") or 0) > 0):
+            return "video stream has no dimensions"
+        if _safe_float(fmt.get("duration")) <= 0 and _safe_float(s0.get("duration")) <= 0:
+            return "video has zero/unknown duration"
+        return None
+    if kind in _PROBE_AUDIO:
+        if not audio:
+            return "declared audio but ffprobe found no audio stream"
+        if _safe_float(fmt.get("duration")) <= 0 and _safe_float(audio[0].get("duration")) <= 0:
+            return "audio has zero/unknown duration"
+        return None
+    if kind in _PROBE_IMAGE:
+        # A still decodes as a single-frame video stream (png/mjpeg/webp); require dimensions,
+        # not duration.
+        if not video:
+            return "declared image but ffprobe could not decode it"
+        s0 = video[0]
+        if not (int(s0.get("width") or 0) > 0 and int(s0.get("height") or 0) > 0):
+            return "image has no dimensions"
+        return None
+    return None
+
+
 def _enforce_artifact_path_existence(
     checkpoint: dict[str, Any],
     project_dir: Path | str | None,
@@ -612,6 +684,36 @@ def _enforce_artifact_path_existence(
         raise CheckpointValidationError(
             f"Artifact existence gate at stage {stage!r} ({ptype}): {label} path(s) not real "
             f"non-empty files: {problems}"
+        )
+
+    # #5: content validation. Every real file above still has to BE what it claims — a decodable
+    # video/audio/image of its declared type. Data types (subtitle/font/lut/code) carry no stream
+    # and are covered by the non-empty check above.
+    probe_targets = []
+    for entry in real_entries:
+        kind = (entry.get("type") if stage == "assets" else "video") or "video"
+        if kind in _PROBE_KINDS:
+            probe_targets.append((entry["path"], _resolve_artifact_path(project_dir_p, entry["path"]), kind))
+
+    if probe_targets and shutil.which("ffprobe") is None:
+        # A final render must never be accepted unverified. Upstream asset stages degrade to the
+        # existence checks so a probe-less box can still draft — the compose gate is the backstop.
+        if stage == "compose":
+            raise CheckpointValidationError(
+                f"Media validation gate at stage 'compose' ({ptype}): ffprobe not found — a final "
+                "render cannot be accepted without content verification. Install ffmpeg/ffprobe."
+            )
+        return
+
+    invalid = []
+    for raw, resolved, kind in probe_targets:
+        defect = _media_defect(resolved, kind)
+        if defect:
+            invalid.append(f"{raw} ({kind}: {defect})")
+    if invalid:
+        raise CheckpointValidationError(
+            f"Media validation gate at stage {stage!r} ({ptype}): declared media is not valid "
+            f"content of its type: {invalid}"
         )
 
 

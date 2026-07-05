@@ -18,6 +18,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from lib.bench_gate import RULING_MIN, required_bench
 from lib.checkpoint import write_checkpoint, get_completed_stages
 from lib.style_selection import required_roles
+from tests.zavod.media_helpers import tiny_mp4
 
 
 # Owner-gated, produces-backed sub-stages per zavod-reel stage (the rungs the seam requires).
@@ -135,10 +136,10 @@ def test_full_reel_run_is_accepted_end_to_end(tmp_path, engine, mode):
         project_dir = tmp_path / "ideal"
         if stage == "assets":
             project_dir.mkdir(exist_ok=True)
-            (project_dir / "a.mp4").write_bytes(b"asset")
+            tiny_mp4(project_dir / "a.mp4")
         if stage == "compose":
             project_dir.mkdir(exist_ok=True)
-            (project_dir / "o.mp4").write_bytes(b"render")
+            tiny_mp4(project_dir / "o.mp4")
         key, art = _artifact(stage, src_tool, compose_runtime)
         artifacts = {
             key: art,

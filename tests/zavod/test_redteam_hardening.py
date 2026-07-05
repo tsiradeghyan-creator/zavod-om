@@ -17,6 +17,7 @@ from lib.checkpoint import (  # noqa: E402
     CheckpointValidationError,
 )
 from lib.gatechain import run_script_gates  # noqa: E402
+from tests.zavod.media_helpers import tiny_mp4, tiny_wav, tiny_png  # noqa: E402
 
 
 # ── Angle 1: bench rubber-stamp ────────────────────────────────────────────
@@ -77,9 +78,9 @@ def test_zavod_pipeline_allowlist_matches_manifest_source_of_truth():
 
 
 # ── Angle 3: existence gate content-awareness ──────────────────────────────
-def _assets_cp(path_or_none):
+def _assets_cp(path_or_none, atype="video"):
     assets = [] if path_or_none is None else [
-        {"id": "a", "type": "video", "path": path_or_none, "source_tool": "x", "scene_id": "s"}]
+        {"id": "a", "type": atype, "path": path_or_none, "source_tool": "x", "scene_id": "s"}]
     return {"pipeline_type": "zavod-reel", "stage": "assets", "status": "completed",
             "artifacts": {"asset_manifest": {"assets": assets}}}
 
@@ -105,8 +106,49 @@ def test_existence_blocks_empty_asset_list():
     with pytest.raises(CheckpointValidationError):
         _run_existence(_assets_cp(None), lambda d: None)
 
-def test_existence_allows_real_nonempty_file():
-    _run_existence(_assets_cp("r.mp4"), lambda d: (d / "r.mp4").write_bytes(b"12345"))
+def test_existence_allows_real_video():
+    _run_existence(_assets_cp("r.mp4"), lambda d: tiny_mp4(d / "r.mp4"))
+
+
+# ── Angle 3b: #5 content validation — a non-empty file must BE valid media of its type ──
+def test_content_gate_blocks_fake_video_bytes():
+    # A non-empty .mp4 full of garbage bytes passed the old exists()+size check.
+    with pytest.raises(CheckpointValidationError, match="not valid content"):
+        _run_existence(_assets_cp("fake.mp4"), lambda d: (d / "fake.mp4").write_bytes(b"12345"))
+
+def test_content_gate_blocks_text_renamed_mp4():
+    with pytest.raises(CheckpointValidationError, match="not valid content"):
+        _run_existence(_assets_cp("note.mp4"),
+                       lambda d: (d / "note.mp4").write_text("this is not a video"))
+
+def test_content_gate_allows_real_audio():
+    _run_existence(_assets_cp("a.wav", atype="audio"), lambda d: tiny_wav(d / "a.wav"))
+
+def test_content_gate_blocks_fake_audio_bytes():
+    with pytest.raises(CheckpointValidationError, match="not valid content"):
+        _run_existence(_assets_cp("a.wav", atype="audio"),
+                       lambda d: (d / "a.wav").write_bytes(b"nonsense"))
+
+def test_content_gate_allows_real_image():
+    _run_existence(_assets_cp("i.png", atype="image"), lambda d: tiny_png(d / "i.png"))
+
+def test_content_gate_allows_data_type_without_probe():
+    # subtitle/font/lut/code carry no A/V stream — a non-empty file is the right bar.
+    _run_existence(_assets_cp("s.srt", atype="subtitle"),
+                   lambda d: (d / "s.srt").write_text("1\n00:00:00,000 --> 00:00:01,000\nhi\n"))
+
+def test_content_gate_blocks_fake_compose_render():
+    cp = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "completed",
+          "artifacts": {"render_report": {"outputs": [
+              {"path": "o.mp4", "format": "mp4", "resolution": "64x64", "duration_seconds": 1}]}}}
+    with pytest.raises(CheckpointValidationError, match="not valid content"):
+        _run_existence(cp, lambda d: (d / "o.mp4").write_bytes(b"12345"))
+
+def test_content_gate_allows_real_compose_render():
+    cp = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "completed",
+          "artifacts": {"render_report": {"outputs": [
+              {"path": "o.mp4", "format": "mp4", "resolution": "64x64", "duration_seconds": 1}]}}}
+    _run_existence(cp, lambda d: tiny_mp4(d / "o.mp4"))
 
 
 # ── Angle 5: glyph gate invisible characters ───────────────────────────────
@@ -135,6 +177,6 @@ def test_existence_blocks_symlink_escaping_project():
 
 def test_existence_allows_internal_symlink():
     def make(d):
-        (d / "real.mp4").write_bytes(b"12345")
+        tiny_mp4(d / "real.mp4")
         (d / "link.mp4").symlink_to(d / "real.mp4")
     _run_existence(_assets_cp("link.mp4"), make)

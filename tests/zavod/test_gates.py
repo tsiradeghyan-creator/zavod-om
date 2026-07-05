@@ -35,6 +35,7 @@ from lib.gatechain import (
 )
 from lib.pipeline_loader import load_pipeline, get_stage_order
 from lib.style_selection import required_roles, validate_selections
+from tests.zavod.media_helpers import tiny_mp4
 
 
 def _bench_stage(stage: str) -> str:
@@ -323,7 +324,7 @@ def test_remotion_lane_rejects_higgsfield_asset(tmp_path):
 def test_remotion_lane_allows_designed_asset(tmp_path):
     project_dir = tmp_path / "p-clean"
     project_dir.mkdir()
-    (project_dir / "a.mp4").write_bytes(b"asset")
+    tiny_mp4(project_dir / "a.mp4")
     p = write_checkpoint(
         tmp_path, "p-clean", "assets", "completed",
         _with_bench("assets", {"asset_manifest": _asset_manifest("remotion"),
@@ -349,7 +350,7 @@ def test_higgsfield_lane_must_compose_via_ffmpeg_not_remotion(tmp_path):
 def test_higgsfield_compose_via_ffmpeg_passes(tmp_path):
     project_dir = tmp_path / "p-hf"
     project_dir.mkdir()
-    (project_dir / "o.mp4").write_bytes(b"render")
+    tiny_mp4(project_dir / "o.mp4")
     p = write_checkpoint(
         tmp_path, "p-hf", "compose", "completed",
         _with_bench("compose", {"render_report": _render_report(),
@@ -363,7 +364,7 @@ def test_higgsfield_compose_via_ffmpeg_passes(tmp_path):
 def test_remotion_compose_via_remotion_passes(tmp_path):
     project_dir = tmp_path / "p-rem"
     project_dir.mkdir()
-    (project_dir / "o.mp4").write_bytes(b"render")
+    tiny_mp4(project_dir / "o.mp4")
     p = write_checkpoint(
         tmp_path, "p-rem", "compose", "completed",
         _with_bench("compose", {"render_report": _render_report(),
