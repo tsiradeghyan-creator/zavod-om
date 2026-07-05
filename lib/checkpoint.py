@@ -82,6 +82,13 @@ CHECKPOINT_SCHEMA_PATH = (
 )
 
 
+ZAVOD_PIPELINE_TYPES = frozenset({
+    "zavod-reel",
+    "zavod-carousel",
+    "zavod-promo",
+})
+
+
 def _is_zavod_pipeline(pipeline_type: str | None) -> bool:
     """Canonical test for whether zavod gates apply to a pipeline_type.
 
@@ -93,7 +100,13 @@ def _is_zavod_pipeline(pipeline_type: str | None) -> bool:
     """
     if not pipeline_type:
         return False
-    return pipeline_type.strip().casefold().startswith("zavod")
+    canonical = pipeline_type.strip().casefold()
+    if canonical in ZAVOD_PIPELINE_TYPES:
+        return True
+    if canonical.startswith("zavod"):
+        raise CheckpointValidationError(
+            f"unknown Zavod pipeline {pipeline_type!r}; expected one of {sorted(ZAVOD_PIPELINE_TYPES)}")
+    return False
 
 
 class CheckpointValidationError(ValueError):
