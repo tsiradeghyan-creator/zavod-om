@@ -184,11 +184,21 @@ def _validate_artifacts_for_stage(
     artifacts: dict[str, Any],
 ) -> None:
     required_artifact = CANONICAL_STAGE_ARTIFACTS.get(stage)
-    if required_artifact and status in {"completed", "awaiting_human"} and required_artifact not in artifacts:
-        raise CheckpointValidationError(
-            f"Stage {stage!r} with status {status!r} must include "
-            f"canonical artifact {required_artifact!r}"
-        )
+    if required_artifact and status in {"completed", "awaiting_human"}:
+        if required_artifact not in artifacts:
+            raise CheckpointValidationError(
+                f"Stage {stage!r} with status {status!r} must include "
+                f"canonical artifact {required_artifact!r}"
+            )
+        # Fail-closed on an unschematized canonical artifact: a manifest could declare a stage
+        # whose produced artifact has no registered schema, and the validation loop below skips
+        # unknown names — so the payload would ride through unvalidated (#3 round-4). A stage
+        # cannot close on an artifact that cannot be validated.
+        if required_artifact not in ARTIFACT_NAMES:
+            raise CheckpointValidationError(
+                f"Stage {stage!r} canonical artifact {required_artifact!r} has no registered "
+                "schema — it cannot be validated, so the stage cannot close."
+            )
 
     for artifact_name, artifact_data in artifacts.items():
         if artifact_name not in ARTIFACT_NAMES:

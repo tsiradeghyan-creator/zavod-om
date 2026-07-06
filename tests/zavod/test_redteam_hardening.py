@@ -368,6 +368,15 @@ def test_character_id_skipped_without_character_design(tmp_path):
     _enforce_referential_integrity(_scene_plan_with_character("GHOST"), tmp_path)  # no source → skip
 
 
+def test_stage_with_unschematized_canonical_artifact_fails_closed(monkeypatch):
+    # #3 round-4: a manifest could register a stage whose canonical artifact has no schema;
+    # the validation loop skips unknown names, so the payload would ride through unvalidated.
+    import lib.checkpoint as cp
+    monkeypatch.setitem(cp.CANONICAL_STAGE_ARTIFACTS, "evil_stage", "unregistered_blob")
+    with pytest.raises(CheckpointValidationError, match="no registered.*schema"):
+        cp._validate_artifacts_for_stage("evil_stage", "completed", {"unregistered_blob": {"x": 1}})
+
+
 def test_edit_metadata_asset_id_is_not_a_reference(tmp_path):
     # 2026-07-06 dry re-probe regression: an asset_id under free-form metadata is a label
     # (e.g. an analytics tag), NOT a manifest reference — it must not be resolved/blocked.
