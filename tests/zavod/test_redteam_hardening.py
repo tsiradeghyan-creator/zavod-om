@@ -264,6 +264,36 @@ def test_edit_asset_reference_skips_when_no_asset_manifest(tmp_path):
     _enforce_referential_integrity(_edit_checkpoint("GHOST"), tmp_path)  # partial run → skip
 
 
+def test_edit_metadata_asset_id_is_not_a_reference(tmp_path):
+    # 2026-07-06 dry re-probe regression: an asset_id under free-form metadata is a label
+    # (e.g. an analytics tag), NOT a manifest reference — it must not be resolved/blocked.
+    pd = _project_with_assets(tmp_path)
+    cp = {"pipeline_type": "zavod-reel", "stage": "edit", "artifacts": {"edit_decisions": {
+        "overlays": [{"asset_id": "a1"}], "metadata": {"asset_id": "analytics-label"}}}}
+    _enforce_referential_integrity(cp, pd)  # must NOT raise on the metadata label
+
+    # …but a real overlay reference to a ghost is still blocked.
+    bad = {"pipeline_type": "zavod-reel", "stage": "edit", "artifacts": {"edit_decisions": {
+        "overlays": [{"asset_id": "GHOST"}], "metadata": {"asset_id": "x"}}}}
+    with pytest.raises(CheckpointValidationError, match="Referential integrity"):
+        _enforce_referential_integrity(bad, pd)
+
+
+def test_strict_resume_re_runs_referential_integrity(tmp_path):
+    # 2026-07-06 dry re-probe: RI was write-time only, so a valid asset checkpoint hand-edited
+    # on disk to a GHOST scene_id passed strict resume. resume contracts now re-run RI.
+    from lib.checkpoint import _enforce_resume_contracts
+    (tmp_path / "checkpoint_scene_plan.json").write_text(_json7.dumps(
+        {"artifacts": {"scene_plan": {"scenes": [{"id": "s1"}]}}}))
+    cp = {"pipeline_type": "zavod-reel", "stage": "assets", "status": "in_progress",
+          "artifacts": {"asset_manifest": {"assets": [
+              {"id": "a1", "type": "video", "path": "x.mp4", "source_tool": "t", "scene_id": "GHOST"}]}}}
+    with pytest.raises(CheckpointValidationError, match="Referential integrity"):
+        _enforce_resume_contracts(cp, tmp_path)
+    cp["artifacts"]["asset_manifest"]["assets"][0]["scene_id"] = "s1"
+    _enforce_resume_contracts(cp, tmp_path)  # valid reference resumes cleanly
+
+
 # ── Phase 3c (2026-07-05 council #8): glyph gate sweeps every text surface ──
 # The seam only glyph-checked scene_plan text_policy.text and the script strings, so an
 # invisible/zero-width char hiding in metadata.caption, an asset field, or any other artifact

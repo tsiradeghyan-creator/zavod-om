@@ -842,11 +842,19 @@ def _known_asset_ids(project_dir: Path) -> set[str] | None:
     return {a.get("id") for a in manifest.get("assets", []) if isinstance(a, dict)}
 
 
+# Free-form subtrees that carry arbitrary user data — an ``asset_id`` there is a label
+# (e.g. an analytics tag), NOT a pipeline reference, so it must not be resolved as one.
+_REF_FREEFORM_KEYS = frozenset({"metadata"})
+
+
 def _collect_by_key(obj: Any, key: str) -> list[str]:
-    """Every string value stored under ``key`` anywhere in a nested structure."""
+    """Every string value stored under ``key`` anywhere in a nested structure, excluding
+    free-form subtrees (see _REF_FREEFORM_KEYS) where the same key name is not a reference."""
     found: list[str] = []
     if isinstance(obj, dict):
         for k, v in obj.items():
+            if k in _REF_FREEFORM_KEYS:
+                continue  # arbitrary user data — not a semantic reference surface
             if k == key and isinstance(v, str):
                 found.append(v)
             else:
@@ -940,6 +948,7 @@ def _enforce_resume_contracts(checkpoint: dict[str, Any], project_dir: Path | st
     _enforce_run_mode(checkpoint)                   # run mode still consistent
     _check_canon_guard_readonly(checkpoint, project_dir)      # canon drift — read-only
     _enforce_artifact_path_existence(checkpoint, project_dir)  # files real + valid media (#5)
+    _enforce_referential_integrity(checkpoint, project_dir)   # cross-artifact links still resolve (#7)
 
 
 def _checkpoint_path(pipeline_dir: Path, project_id: str, stage: str) -> Path:
