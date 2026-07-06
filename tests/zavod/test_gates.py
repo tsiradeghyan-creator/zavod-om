@@ -537,8 +537,10 @@ def test_loose_continuity_keys_are_closed():
     fail_report = {"clip": "c.mp4",
                    "anchors": [{"name": "glass", "kind": "object", "persists": False}]}
     for loose_key in ("continuity_report", "continuity_reports"):
+        # No outputs → an empty valid continuity list is legitimate (#5), isolating the point:
+        # the FAIL report on the loose key must be ignored, so the stage must NOT be blocked.
         cp = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "completed",
-              "artifacts": _with_bench("compose", {"render_report": _rr_with_reports([]) | {"continuity_reports": []},
+              "artifacts": _with_bench("compose", {"render_report": _rr_with_reports([]) | {"continuity_reports": [], "outputs": []},
                             loose_key: fail_report})}
         _enforce_zavod_gates(cp)  # must NOT raise — loose route is dead
     valid = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "completed",

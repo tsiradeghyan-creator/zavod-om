@@ -293,19 +293,28 @@ def _enforce_zavod_gates(checkpoint: dict[str, Any]) -> None:
             )
         result = run_edit_gates(artifacts["edit_decisions"], artifacts.get("delivery_promise"))
     elif stage == "compose":
-        # Continuity proof is mandatory to CLOSE a Zavod compose stage. A silently-absent
-        # render_report.continuity_reports must not become a bypass (mirrors the edit-stage
-        # delivery_promise rule): the field must be present as a list. An explicitly-empty
-        # list is a positive "nothing to track" declaration and is allowed; a non-empty one
-        # is run through the continuity gate. awaiting_human may still be mid-flight, so only
-        # completion is gated.
+        # Continuity proof is mandatory to CLOSE a Zavod compose stage. The
+        # render_report.continuity_reports field must be present as a list (a silently-absent
+        # field must not become a bypass, mirroring the edit-stage delivery_promise rule).
+        # Tightened 2026-07-06 (#5): if the render produced outputs, the list must be
+        # NON-empty — every rendered clip has to be continuity-checked, so "5 clips, zero
+        # continuity reports" no longer closes. An empty list is allowed only when there are
+        # no outputs. awaiting_human may still be mid-flight, so only completion is gated.
         rr = artifacts.get("render_report")
         has_reports_field = isinstance(rr, dict) and isinstance(rr.get("continuity_reports"), list)
-        if checkpoint.get("status") == "completed" and not has_reports_field:
-            raise CheckpointValidationError(
-                f"Gate block at stage {stage!r} ({ptype}): missing render_report.continuity_reports — "
-                "a Zavod compose stage cannot close without a continuity report list."
-            )
+        if checkpoint.get("status") == "completed":
+            if not has_reports_field:
+                raise CheckpointValidationError(
+                    f"Gate block at stage {stage!r} ({ptype}): missing render_report.continuity_reports — "
+                    "a Zavod compose stage cannot close without a continuity report list."
+                )
+            outputs = rr.get("outputs") or []
+            reports_list = rr.get("continuity_reports") or []
+            if outputs and not reports_list:
+                raise CheckpointValidationError(
+                    f"Gate block at stage {stage!r} ({ptype}): render_report declares {len(outputs)} "
+                    "output(s) but no continuity_reports — every rendered output must be continuity-checked."
+                )
         reports = _continuity_reports(artifacts)
         if reports:
             result = run_compose_gates(reports)

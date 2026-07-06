@@ -182,8 +182,16 @@ def test_completed_compose_without_continuity_field_is_blocked():
         _enforce_zavod_gates(_compose_cp("completed", dict(_RR_BASE)))
 
 
-def test_completed_compose_with_explicit_empty_continuity_is_allowed():
-    _enforce_zavod_gates(_compose_cp("completed", {**_RR_BASE, "continuity_reports": []}))
+def test_completed_compose_empty_continuity_allowed_only_without_outputs():
+    # #5 tightened 2026-07-06: an empty continuity list is a valid "nothing to track"
+    # declaration ONLY when there are no rendered outputs.
+    _enforce_zavod_gates(_compose_cp("completed", {"version": "1.0", "outputs": [], "continuity_reports": []}))
+
+
+def test_completed_compose_with_outputs_requires_nonempty_continuity():
+    # Real outputs + empty continuity = "rendered N clips, checked zero" → bypass, now blocked.
+    with pytest.raises(CheckpointValidationError, match="continuity"):
+        _enforce_zavod_gates(_compose_cp("completed", {**_RR_BASE, "continuity_reports": []}))
 
 
 def test_awaiting_human_compose_without_continuity_is_allowed():
@@ -324,7 +332,8 @@ def test_glyph_caught_in_asset_manifest_surface():
 def test_glyph_sweep_allows_clean_multilingual_caption():
     rr = {"version": "1.0",
           "outputs": [{"path": "o.mp4", "format": "mp4", "resolution": "1080x1920", "duration_seconds": 5}],
-          "continuity_reports": [], "metadata": {"caption": "Ձմեռային արձակուրդ 🏔️ weekend"}}
+          "continuity_reports": [{"clip": "o.mp4", "anchors": [{"name": "h", "kind": "object", "persists": True}]}],
+          "metadata": {"caption": "Ձմեռային արձակուրդ 🏔️ weekend"}}
     cp = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "completed",
           "artifacts": {"bench_report": _good("compose"), "render_report": rr}}
     _enforce_zavod_gates(cp)  # clean text on any surface must still pass
