@@ -38,3 +38,17 @@ def tiny_png(path: Path) -> Path:
         check=True, capture_output=True,
     )
     return path
+
+
+def seed_prior_stages(project_dir: Path, pipeline_type: str, stage: str) -> None:
+    """Drop minimal completed-checkpoint markers for every stage before ``stage`` in the
+    pipeline's manifest order, so a test that writes/validates a single later-stage
+    checkpoint in isolation satisfies the manifest-order gate (#7 ordering, 2026-07-06)."""
+    import json
+    from lib.checkpoint import get_pipeline_stages
+    order = get_pipeline_stages(pipeline_type)
+    Path(project_dir).mkdir(parents=True, exist_ok=True)
+    for prior in order[:order.index(stage)]:
+        (Path(project_dir) / f"checkpoint_{prior}.json").write_text(
+            json.dumps({"status": "completed"})
+        )

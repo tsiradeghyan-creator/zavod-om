@@ -15,6 +15,7 @@ from lib.checkpoint import (  # noqa: E402
     enforce_zavod_write_contracts,
 )
 from lib.canon_guard import LOCK, lock  # noqa: E402
+from tests.zavod.media_helpers import seed_prior_stages  # noqa: E402
 
 
 def _bench_report(stage: str) -> dict:
@@ -63,12 +64,14 @@ def test_post_script_canon_drift_passes_after_fresh_revalidation(tmp_path):
     import os
     os.utime(reval, (now, now))
 
+    seed_prior_stages(tmp_path, "zavod-reel", "edit")
     enforce_zavod_write_contracts(_checkpoint("edit"), project_dir=tmp_path)
 
 
 def test_script_stage_write_contract_locks_canon_snapshot(tmp_path):
     (tmp_path / "look-bible.md").write_text("script-approved canon\n", encoding="utf-8")
 
+    seed_prior_stages(tmp_path, "zavod-reel", "script")
     enforce_zavod_write_contracts(_checkpoint("script"), project_dir=tmp_path)
 
     assert (tmp_path / LOCK).exists()

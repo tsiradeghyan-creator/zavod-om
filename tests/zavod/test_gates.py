@@ -35,7 +35,7 @@ from lib.gatechain import (
 )
 from lib.pipeline_loader import load_pipeline, get_stage_order
 from lib.style_selection import required_roles, validate_selections
-from tests.zavod.media_helpers import tiny_mp4
+from tests.zavod.media_helpers import tiny_mp4, seed_prior_stages
 
 
 def _bench_stage(stage: str) -> str:
@@ -178,6 +178,7 @@ def test_zavod_checkpoint_blocks_dirty_scene_plan(tmp_path):
 
 def test_zavod_checkpoint_allows_clean_scene_plan(tmp_path):
     good = _scene("Your desert weekend", language="en")
+    seed_prior_stages(tmp_path / "proj2", "zavod-reel", "scene_plan")
     path = write_checkpoint(
         tmp_path, "proj2", "scene_plan", "completed",
         _with_bench("scene_plan", {"scene_plan": good, "production_ladder": _scene_plan_ladder()}),
@@ -214,6 +215,7 @@ def test_completed_scene_plan_missing_one_rung_is_blocked(tmp_path):
 
 def test_full_ladder_with_per_role_styles_passes(tmp_path):
     good = _scene("Your desert weekend", language="en")
+    seed_prior_stages(tmp_path / "proj-full", "zavod-reel", "scene_plan")
     path = write_checkpoint(
         tmp_path, "proj-full", "scene_plan", "completed",
         _with_bench("scene_plan", {"scene_plan": good, "production_ladder": _scene_plan_ladder()}),
@@ -329,6 +331,7 @@ def test_remotion_lane_allows_designed_asset(tmp_path):
     project_dir = tmp_path / "p-clean"
     project_dir.mkdir()
     tiny_mp4(project_dir / "a.mp4")
+    seed_prior_stages(tmp_path / "p-clean", "zavod-reel", "assets")
     p = write_checkpoint(
         tmp_path, "p-clean", "assets", "completed",
         _with_bench("assets", {"asset_manifest": _asset_manifest("remotion"),
@@ -355,6 +358,7 @@ def test_higgsfield_compose_via_ffmpeg_passes(tmp_path):
     project_dir = tmp_path / "p-hf"
     project_dir.mkdir()
     tiny_mp4(project_dir / "o.mp4")
+    seed_prior_stages(tmp_path / "p-hf", "zavod-reel", "compose")
     p = write_checkpoint(
         tmp_path, "p-hf", "compose", "completed",
         _with_bench("compose", {"render_report": _render_report(),
@@ -369,6 +373,7 @@ def test_remotion_compose_via_remotion_passes(tmp_path):
     project_dir = tmp_path / "p-rem"
     project_dir.mkdir()
     tiny_mp4(project_dir / "o.mp4")
+    seed_prior_stages(tmp_path / "p-rem", "zavod-reel", "compose")
     p = write_checkpoint(
         tmp_path, "p-rem", "compose", "completed",
         _with_bench("compose", {"render_report": _render_report(),
@@ -404,6 +409,7 @@ def test_idea_requires_run_mode_lock(tmp_path):
 def test_automatic_run_completes_without_per_rung_approval(tmp_path):
     # The new gates are structural, not approval-based: an automatic run walks the full
     # ladder and completes without any owner freeze. Proves automatic was not damaged.
+    seed_prior_stages(tmp_path / "p-auto", "zavod-reel", "scene_plan")
     p = write_checkpoint(
         tmp_path, "p-auto", "scene_plan", "completed",
         _with_bench("scene_plan", {"scene_plan": _scene_plan(),
@@ -427,6 +433,7 @@ def test_supervised_run_requires_rung_approval(tmp_path):
 
 
 def test_supervised_run_with_approval_passes(tmp_path):
+    seed_prior_stages(tmp_path / "p-sup-ok", "zavod-reel", "scene_plan")
     p = write_checkpoint(
         tmp_path, "p-sup-ok", "scene_plan", "completed",
         _with_bench("scene_plan", {"scene_plan": _scene_plan(),

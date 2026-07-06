@@ -272,6 +272,35 @@ def test_edit_asset_reference_skips_when_no_asset_manifest(tmp_path):
     _enforce_referential_integrity(_edit_checkpoint("GHOST"), tmp_path)  # partial run → skip
 
 
+# ── Phase A#7 (2026-07-06 owner decision): completed stages follow manifest order ──
+from lib.checkpoint import _enforce_stage_order  # noqa: E402
+from tests.zavod.media_helpers import seed_prior_stages  # noqa: E402
+
+
+def _completed(stage, status="completed"):
+    return {"pipeline_type": "zavod-reel", "stage": stage, "status": status, "artifacts": {}}
+
+
+def test_stage_order_blocks_out_of_order_completion(tmp_path):
+    # assets cannot complete before scene_plan/script/idea have completed — this is what closed
+    # the assets-before-scene_plan bypass that left referential integrity nothing to check.
+    with pytest.raises(CheckpointValidationError, match="Stage order"):
+        _enforce_stage_order(_completed("assets"), tmp_path)
+
+
+def test_stage_order_allows_in_order_completion(tmp_path):
+    seed_prior_stages(tmp_path, "zavod-reel", "assets")
+    _enforce_stage_order(_completed("assets"), tmp_path)  # all priors completed → ok
+
+
+def test_stage_order_first_stage_needs_no_priors(tmp_path):
+    _enforce_stage_order(_completed("idea"), tmp_path)  # first stage → nothing before it
+
+
+def test_stage_order_only_gates_completed_status(tmp_path):
+    _enforce_stage_order(_completed("assets", status="in_progress"), tmp_path)  # not a closure
+
+
 def test_edit_metadata_asset_id_is_not_a_reference(tmp_path):
     # 2026-07-06 dry re-probe regression: an asset_id under free-form metadata is a label
     # (e.g. an analytics tag), NOT a manifest reference — it must not be resolved/blocked.

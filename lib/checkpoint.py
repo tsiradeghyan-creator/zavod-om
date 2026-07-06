@@ -926,6 +926,35 @@ def _enforce_referential_integrity(checkpoint: dict[str, Any], project_dir: Path
                 )
 
 
+def _enforce_stage_order(checkpoint: dict[str, Any], project_dir: Path | str | None) -> None:
+    """A completed zavod stage may only close after every earlier stage in the pipeline's
+    manifest order has itself completed (#7 ordering, owner decision 2026-07-06). This closes
+    the bypass where a later stage was completed first — e.g. assets before scene_plan, leaving
+    referential integrity nothing to check against."""
+    if project_dir is None or not _is_zavod_pipeline(checkpoint.get("pipeline_type") or ""):
+        return
+    if checkpoint.get("status") != "completed":
+        return
+    stage = checkpoint.get("stage")
+    order = get_pipeline_stages(checkpoint.get("pipeline_type"))
+    if stage not in order:
+        return
+    project_dir = Path(project_dir)
+    for prior in order[:order.index(stage)]:
+        p = project_dir / f"checkpoint_{prior}.json"
+        done = False
+        if p.exists():
+            try:
+                done = json.load(open(p)).get("status") == "completed"
+            except Exception:
+                done = False
+        if not done:
+            raise CheckpointValidationError(
+                f"Stage order violation: cannot complete {stage!r} before earlier stage "
+                f"{prior!r} is completed (manifest order: {order})."
+            )
+
+
 def enforce_zavod_write_contracts(
     checkpoint: dict[str, Any],
     *,
@@ -944,6 +973,7 @@ def enforce_zavod_write_contracts(
     _enforce_canon_guard(checkpoint, project_dir)  # mid-pipeline canon drift requires revalidation
     _enforce_artifact_path_existence(checkpoint, project_dir)  # manifests must point at real files
     _enforce_referential_integrity(checkpoint, project_dir)  # cross-artifact links must resolve (#7)
+    _enforce_stage_order(checkpoint, project_dir)  # completed stages follow manifest order (#7)
 
 
 def _enforce_resume_contracts(checkpoint: dict[str, Any], project_dir: Path | str | None) -> None:
