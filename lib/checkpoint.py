@@ -43,6 +43,37 @@ CANONICAL_STAGE_ARTIFACTS = {
     "publish": "publish_log",
 }
 
+
+def _merge_manifest_stage_artifacts() -> None:
+    """Make the checkpoint spine manifest-driven: extend CANONICAL_STAGE_ARTIFACTS with every
+    stage declared in any pipeline manifest (canonical artifact = the stage's first ``produces``).
+    Without this the spine only knew a hardcoded 9 stages, so pipelines with extra stages —
+    character-animation's character_design/rig_plan — could not be checkpoint-written at all
+    (KeyError), which also left character_id referential integrity with nothing to resolve
+    against (#B, 2026-07-06). Hardcoded entries win; an unloadable manifest is skipped."""
+    import glob
+    try:
+        from lib.pipeline_loader import load_pipeline
+    except Exception:
+        return
+    pdefs = Path(__file__).resolve().parent.parent / "pipeline_defs"
+    for path in sorted(glob.glob(str(pdefs / "*.yaml"))):
+        try:
+            manifest = load_pipeline(Path(path).stem)
+        except Exception:
+            continue
+        for st in manifest.get("stages", []):
+            produces = st.get("produces") or []
+            if st.get("name") and produces:
+                CANONICAL_STAGE_ARTIFACTS.setdefault(st["name"], produces[0])
+
+
+_merge_manifest_stage_artifacts()
+
+# Now that the spine knows every pipeline's stages, the "all known stages" fallback set
+# (used when a write/validate has no explicit pipeline_type) covers them too.
+ALL_KNOWN_STAGES = frozenset(CANONICAL_STAGE_ARTIFACTS)
+
 # Additional artifacts that may be produced alongside canonical ones.
 # These are not stage-defining but are required by governance contracts.
 SUPPLEMENTARY_ARTIFACTS = {
@@ -152,8 +183,8 @@ def _validate_artifacts_for_stage(
     status: str,
     artifacts: dict[str, Any],
 ) -> None:
-    required_artifact = CANONICAL_STAGE_ARTIFACTS[stage]
-    if status in {"completed", "awaiting_human"} and required_artifact not in artifacts:
+    required_artifact = CANONICAL_STAGE_ARTIFACTS.get(stage)
+    if required_artifact and status in {"completed", "awaiting_human"} and required_artifact not in artifacts:
         raise CheckpointValidationError(
             f"Stage {stage!r} with status {status!r} must include "
             f"canonical artifact {required_artifact!r}"
@@ -854,6 +885,23 @@ def _known_asset_ids(project_dir: Path) -> set[str] | None:
     return {a.get("id") for a in manifest.get("assets", []) if isinstance(a, dict)}
 
 
+def _known_character_ids(project_dir: Path) -> set[str] | None:
+    """Character ids declared by the project's character_design checkpoint (None when absent —
+    e.g. zavod-reel has no character_design stage, so there is nothing to resolve against)."""
+    cd_path = project_dir / "checkpoint_character_design.json"
+    if not cd_path.exists():
+        return None
+    try:
+        with open(cd_path) as f:
+            cp = json.load(f)
+    except Exception:
+        return None
+    cd = (cp.get("artifacts") or {}).get("character_design")
+    if not isinstance(cd, dict):
+        return None
+    return {c.get("id") for c in cd.get("characters", []) if isinstance(c, dict)}
+
+
 # Free-form subtrees that carry arbitrary user data — an ``asset_id`` there is a label
 # (e.g. an analytics tag), NOT a pipeline reference, so it must not be resolved as one.
 _REF_FREEFORM_KEYS = frozenset({"metadata"})
@@ -886,11 +934,30 @@ def _enforce_referential_integrity(checkpoint: dict[str, Any], project_dir: Path
     the links between them. Scoped to what persisted state can prove — when the referenced prior
     checkpoint exists — so an unverifiable partial run is skipped, never fabricated.
     """
-    if project_dir is None or not _is_zavod_pipeline(checkpoint.get("pipeline_type") or ""):
+    if project_dir is None:
         return
     project_dir = Path(project_dir)
     stage = checkpoint.get("stage")
     artifacts = checkpoint.get("artifacts") or {}
+
+    # character_id -> character_design.characters[].id. Self-scoping: it only fires when a
+    # character_design checkpoint exists (which only character-animation-style pipelines
+    # produce), so it runs regardless of the zavod guard below (#B, 2026-07-06).
+    if stage == "scene_plan":
+        scene_plan = artifacts.get("scene_plan")
+        if isinstance(scene_plan, dict):
+            char_ids = _known_character_ids(project_dir)
+            if char_ids is not None:
+                for ref in _collect_by_key(scene_plan, "character_id"):
+                    if ref not in char_ids:
+                        raise CheckpointValidationError(
+                            f"Referential integrity: scene_plan references character_id {ref!r} which "
+                            f"is not in the character_design (known: {sorted(x for x in char_ids if x)})."
+                        )
+
+    # scene_id / asset_id checks stay scoped to zavod pipelines.
+    if not _is_zavod_pipeline(checkpoint.get("pipeline_type") or ""):
+        return
 
     if stage == "assets":
         manifest = artifacts.get("asset_manifest")

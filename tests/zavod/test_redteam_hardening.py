@@ -301,6 +301,45 @@ def test_stage_order_only_gates_completed_status(tmp_path):
     _enforce_stage_order(_completed("assets", status="in_progress"), tmp_path)  # not a closure
 
 
+# ── Phase B (2026-07-06 owner decision): manifest-driven checkpoint spine ──
+# The spine hardcoded 9 stages, so character-animation's character_design/rig_plan could not
+# be checkpoint-written (KeyError) and character_id had nothing to resolve against.
+def test_spine_covers_manifest_declared_stages():
+    from lib.checkpoint import CANONICAL_STAGE_ARTIFACTS, ALL_KNOWN_STAGES, _validate_artifacts_for_stage
+    assert CANONICAL_STAGE_ARTIFACTS.get("character_design") == "character_design"
+    assert CANONICAL_STAGE_ARTIFACTS.get("rig_plan") == "rig_plan"
+    assert {"character_design", "rig_plan"} <= ALL_KNOWN_STAGES
+    assert CANONICAL_STAGE_ARTIFACTS.get("assets") == "asset_manifest"  # core unchanged
+    _validate_artifacts_for_stage("character_design", "in_progress", {})  # no KeyError
+
+
+def _known_char_project(tmp_path, ids=("van", "hayk")):
+    (tmp_path / "checkpoint_character_design.json").write_text(_json7.dumps(
+        {"artifacts": {"character_design": {"characters": [{"id": i} for i in ids]}}}))
+    return tmp_path
+
+
+def _scene_plan_with_character(cid):
+    return {"pipeline_type": "character-animation", "stage": "scene_plan",
+            "artifacts": {"scene_plan": {"scenes": [
+                {"id": "s1", "character_actions": [{"character_id": cid}]}]}}}
+
+
+def test_scene_plan_ghost_character_id_is_blocked(tmp_path):
+    pd = _known_char_project(tmp_path)
+    with pytest.raises(CheckpointValidationError, match="character_id"):
+        _enforce_referential_integrity(_scene_plan_with_character("GHOST"), pd)
+
+
+def test_scene_plan_real_character_id_passes(tmp_path):
+    pd = _known_char_project(tmp_path)
+    _enforce_referential_integrity(_scene_plan_with_character("van"), pd)
+
+
+def test_character_id_skipped_without_character_design(tmp_path):
+    _enforce_referential_integrity(_scene_plan_with_character("GHOST"), tmp_path)  # no source → skip
+
+
 def test_edit_metadata_asset_id_is_not_a_reference(tmp_path):
     # 2026-07-06 dry re-probe regression: an asset_id under free-form metadata is a label
     # (e.g. an analytics tag), NOT a manifest reference — it must not be resolved/blocked.
