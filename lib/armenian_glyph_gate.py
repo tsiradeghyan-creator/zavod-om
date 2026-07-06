@@ -76,15 +76,20 @@ def check_text(text: str, field: str = "") -> list[dict[str, str]]:
     #    filters. Flag a Cf/soft-hyphen char only when it sits next to a LETTER (the splice
     #    attack); the same joiners between emoji (👨‍👩‍👧, 🏳️‍🌈) are legitimate caption
     #    sequences (2026-07-04 probe) and must not be flagged.
-    def _is_letter(ch: str) -> bool:
-        return unicodedata.category(ch).startswith("L")
+    #    Scope the check to letters of scripts where a zero-width/format char between letters
+    #    is never linguistically needed — Armenian, Latin, Cyrillic — so its presence there is
+    #    always a splice. Arabic/Persian and Indic scripts legitimately use ZWNJ/ZWJ
+    #    (U+200C/U+200D) as joiners, so a format char next to THOSE letters is left alone
+    #    (2026-07-06: legit Persian ZWNJ "می‌روم" was being false-rejected).
+    def _joinerless_letter(ch: str) -> bool:
+        return bool(ch) and bool(ARMENIAN.search(ch) or LATIN.search(ch) or CYRILLIC.search(ch))
 
     spliced = set()
     for i, ch in enumerate(text):
         if unicodedata.category(ch) == "Cf" or ch == "­":
             prev_ch = text[i - 1] if i > 0 else ""
             next_ch = text[i + 1] if i + 1 < len(text) else ""
-            if _is_letter(prev_ch) or _is_letter(next_ch):
+            if _joinerless_letter(prev_ch) or _joinerless_letter(next_ch):
                 spliced.add(ch)
     if spliced:
         names = ", ".join(f"U+{ord(ch):04X}" for ch in sorted(spliced))

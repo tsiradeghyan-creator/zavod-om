@@ -364,6 +364,20 @@ def test_glyph_allows_zwj_emoji_sequences_in_captions():
     assert run_script_gates("Հպարտություն 🏳️‍🌈 բոլորին")["ok"]
 
 
+def test_glyph_allows_persian_arabic_zwnj():
+    # 2026-07-06 dry re-probe: the #8 sweep false-rejected legit Persian ZWNJ (U+200C), which
+    # is a linguistically-required joiner in Arabic-script text — not an exploit. The invisible-
+    # char check is scoped to Armenian/Latin/Cyrillic neighbours, where zero-width is never
+    # needed; Arabic/Indic joiners are left alone.
+    assert run_script_gates("می‌روم")["ok"]        # Persian "I go" with ZWNJ
+    assert run_script_gates("نمی‌خواهم")["ok"]     # Persian "I don't want" with ZWNJ
+
+
+def test_glyph_still_blocks_zwnj_spliced_into_armenian():
+    # …but the SAME character spliced next to Armenian letters is still the attack.
+    assert not run_script_gates("Հա‌յ")["ok"]
+
+
 # ── Angle 3 (cont.): symlink provenance ────────────────────────────────────
 def test_existence_blocks_symlink_escaping_project():
     def make(d):
