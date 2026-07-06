@@ -49,8 +49,16 @@ def seed_prior_stages(project_dir: Path, pipeline_type: str, stage: str) -> None
     order = get_pipeline_stages(pipeline_type)
     Path(project_dir).mkdir(parents=True, exist_ok=True)
     for prior in order[:order.index(stage)]:
-        # Structural marker: the ordering gate verifies stage + pipeline_type + completed
-        # status (not a bare status field), so these markers must carry them too.
+        # Schema-valid marker: the ordering gate schema-validates each prior (not a bare status
+        # field), so these markers must be full schema-shaped checkpoints of that stage.
         (Path(project_dir) / f"checkpoint_{prior}.json").write_text(
-            json.dumps({"pipeline_type": pipeline_type, "stage": prior, "status": "completed"})
+            json.dumps({
+                "version": "1.0",
+                "project_id": Path(project_dir).name,
+                "pipeline_type": pipeline_type,
+                "stage": prior,
+                "status": "completed",
+                "timestamp": "2026-07-06T00:00:00+00:00",
+                "artifacts": {},
+            })
         )

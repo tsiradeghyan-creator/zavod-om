@@ -19,6 +19,7 @@ from typing import Any, Optional
 
 from lib.checkpoint import (
     CheckpointValidationError,
+    _canonical_pipeline_type,
     get_completed_stages,
     get_next_stage,
     get_pipeline_stages,
@@ -38,6 +39,10 @@ def run_state(pipeline_dir: Path, project_id: str, pipeline_type: str) -> dict[s
     Returns the completed stages, the next stage to run (None when finished), whether the run
     is paused at an owner checkpoint, and a ``done`` flag.
     """
+    # Canonicalize at the public boundary: a stray-cased/whitespace pipeline_type must resolve
+    # to the real manifest, or get_pipeline_stages returns the generic order and the orchestrator
+    # drives e.g. character-animation without its character_design/rig_plan stages (#round-5).
+    pipeline_type = _canonical_pipeline_type(pipeline_type)
     completed = get_completed_stages(pipeline_dir, project_id, pipeline_type)
     next_stage = get_next_stage(pipeline_dir, project_id, pipeline_type)
     awaiting_human: Optional[str] = None
@@ -73,6 +78,7 @@ def advance(
     drive the run out of order. Every gate runs inside write_checkpoint; a gate violation
     propagates as CheckpointValidationError.
     """
+    pipeline_type = _canonical_pipeline_type(pipeline_type)  # resolve to the real manifest
     if status == "completed":
         expected = get_next_stage(pipeline_dir, project_id, pipeline_type)
         if expected is None:

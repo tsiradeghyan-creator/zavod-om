@@ -68,11 +68,29 @@ def _merge_manifest_stage_artifacts() -> None:
                 CANONICAL_STAGE_ARTIFACTS.setdefault(st["name"], produces[0])
 
 
+# The hardcoded core, kept so the spine can be rebuilt from scratch (manifest add AND remove).
+_CORE_STAGE_ARTIFACTS = dict(CANONICAL_STAGE_ARTIFACTS)
 _merge_manifest_stage_artifacts()
 
 # Now that the spine knows every pipeline's stages, the "all known stages" fallback set
 # (used when a write/validate has no explicit pipeline_type) covers them too.
 ALL_KNOWN_STAGES = frozenset(CANONICAL_STAGE_ARTIFACTS)
+
+
+def reset_pipeline_caches() -> None:
+    """Rebuild all manifest-derived state from disk. Call after adding OR removing a pipeline
+    manifest at runtime (e.g. the capability-extension flow) so the structural gates —
+    ordering, artifact-existence, canonical-artifact presence, manifest membership — see the
+    change immediately instead of after a process restart (#4 round-5). Without this the
+    lru_cached manifest set and the import-time stage map go split-brain: a freshly added
+    pipeline would bypass the whole structural spine until restart.
+    """
+    global ALL_KNOWN_STAGES
+    _manifest_pipeline_types.cache_clear()
+    CANONICAL_STAGE_ARTIFACTS.clear()          # in place — external imports keep their ref
+    CANONICAL_STAGE_ARTIFACTS.update(_CORE_STAGE_ARTIFACTS)
+    _merge_manifest_stage_artifacts()
+    ALL_KNOWN_STAGES = frozenset(CANONICAL_STAGE_ARTIFACTS)
 
 # Additional artifacts that may be produced alongside canonical ones.
 # These are not stage-defining but are required by governance contracts.
@@ -1090,9 +1108,13 @@ def _enforce_stage_order(checkpoint: dict[str, Any], project_dir: Path | str | N
         if p.exists():
             try:
                 cp = json.load(open(p))
+                # The prior must be a schema-valid checkpoint (not a bare status marker):
+                # jsonschema rejects the forged {"status":"completed"} / garbage-artifacts /
+                # extra-field markers the round-5 audit walked through write+resume, raising the
+                # bar to a full schema-shaped checkpoint of this exact stage/pipeline.
+                jsonschema.validate(instance=cp, schema=_load_checkpoint_schema())
                 ok = (
-                    isinstance(cp, dict)
-                    and cp.get("status") == "completed"
+                    cp.get("status") == "completed"
                     and cp.get("stage") == prior
                     and _canonical_pipeline_type(cp.get("pipeline_type")) == canonical_pt
                 )

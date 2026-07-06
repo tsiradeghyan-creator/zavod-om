@@ -404,6 +404,56 @@ def test_stale_character_design_does_not_block_zavod_scene_plan(tmp_path):
     _enforce_referential_integrity(cp, tmp_path)  # must NOT raise
 
 
+# ── Round-5 (2026-07-06): invalid-manifest fail-closed, all-produces, cache, orchestrator canon ──
+def test_previously_invalid_manifests_resolve_real_first_stage():
+    # documentary-montage / screen-demo were schema-invalid and silently fell back to the
+    # generic 9-stage order (false-blocking their real first stage 'idea').
+    assert get_pipeline_stages("documentary-montage")[0] == "idea"
+    assert get_pipeline_stages("screen-demo")[0] == "idea"
+
+
+def test_invalid_manifest_fails_closed_not_generic_fallback(monkeypatch):
+    import lib.pipeline_loader as pl
+    real = pl.load_pipeline
+    monkeypatch.setattr(pl, "load_pipeline",
+                        lambda pt, *a, **k: (_ for _ in ()).throw(ValueError("bad")) if pt == "documentary-montage" else real(pt, *a, **k))
+    with pytest.raises(CheckpointValidationError, match="failed to load"):
+        get_pipeline_stages("documentary-montage")
+
+
+def test_sidecar_unschematized_produce_blocks_stage(monkeypatch):
+    # produces:[script, unregistered_blob] must block — not only the canonical (first) produce.
+    import lib.checkpoint as cp
+    monkeypatch.setattr(cp, "_stage_declared_produces",
+                        lambda pt, st: ["script", "unregistered_blob"] if st == "script" else [])
+    with pytest.raises(CheckpointValidationError, match="no registered.*schema"):
+        cp._validate_artifacts_for_stage("script", "completed",
+                                         {"script": {"x": 1}, "unregistered_blob": {"evil": 1}}, "zavod-reel")
+
+
+def test_ordering_rejects_schema_invalid_prior(tmp_path):
+    # A prior that is not a schema-valid checkpoint (garbage artifacts) must not satisfy ordering.
+    for prior in ("idea", "script", "scene_plan", "assets", "edit"):
+        (tmp_path / f"checkpoint_{prior}.json").write_text(
+            '{"pipeline_type":"zavod-reel","stage":"%s","status":"completed","artifacts":"garbage"}' % prior)
+    with pytest.raises(CheckpointValidationError, match="Stage order"):
+        _enforce_stage_order(_completed("compose"), tmp_path)
+
+
+def test_reset_pipeline_caches_rebuilds_spine():
+    from lib.checkpoint import reset_pipeline_caches, CANONICAL_STAGE_ARTIFACTS, ALL_KNOWN_STAGES
+    reset_pipeline_caches()
+    import lib.checkpoint as cp
+    assert cp.CANONICAL_STAGE_ARTIFACTS.get("character_design") == "character_design"
+    assert cp.ALL_KNOWN_STAGES == frozenset(cp.CANONICAL_STAGE_ARTIFACTS)
+
+
+def test_orchestrator_canonicalizes_raw_pipeline_type(tmp_path):
+    from lib.orchestrator import run_state
+    st = run_state(tmp_path, "p", "  Character-Animation  ")
+    assert st["next_stage"] == "research"  # real ca first stage, not the generic fallback
+
+
 def test_stage_with_unschematized_canonical_artifact_fails_closed(monkeypatch):
     # #3 round-4: a manifest could register a stage whose canonical artifact has no schema;
     # the validation loop skips unknown names, so the payload would ride through unvalidated.
