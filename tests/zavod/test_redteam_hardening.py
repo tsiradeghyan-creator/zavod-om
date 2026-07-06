@@ -442,6 +442,30 @@ def test_atomic_write_preserves_prior_file_on_replace_crash(tmp_path, monkeypatc
     assert list(tmp_path.glob(".*tmp*")) == []
 
 
+def test_atomic_write_concurrent_writers_do_not_collide(tmp_path):
+    # 2026-07-06 dry re-probe: a pid-only temp name collided when multiple threads of the
+    # same process wrote the same path — most writes died with FileNotFoundError. A unique
+    # temp name (pid + uuid) lets every writer complete; the final file is a valid checkpoint.
+    import threading
+    target = tmp_path / "checkpoint_research.json"
+    errors = []
+
+    def w(i):
+        try:
+            _atomic_write_json(target, {"writer": i})
+        except Exception as e:  # noqa: BLE001
+            errors.append((i, repr(e)))
+
+    threads = [threading.Thread(target=w, args=(i,)) for i in range(16)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert errors == []
+    assert isinstance(_json.loads(target.read_text())["writer"], int)  # valid, one winner
+    assert list(tmp_path.glob(".*tmp*")) == []
+
+
 def test_atomic_write_never_truncates_on_serialize_crash(tmp_path, monkeypatch):
     target = tmp_path / "checkpoint_idea.json"
     _atomic_write_json(target, {"state": "valid-v1"})

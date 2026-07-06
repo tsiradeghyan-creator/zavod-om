@@ -10,6 +10,7 @@ import json
 import os
 import shutil
 import subprocess
+import uuid
 from functools import lru_cache
 from datetime import datetime, timezone
 from pathlib import Path
@@ -907,13 +908,26 @@ def _atomic_write_json(path: Path, data: Any) -> None:
     leaves the previous valid file fully intact instead of a truncated/corrupt one.
     """
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.parent / f".{path.name}.tmp.{os.getpid()}"
+    # Unique temp name (pid + uuid): pid alone collides when two threads of the SAME process
+    # write the same project/stage concurrently — they clobbered one temp file and most
+    # writes died with FileNotFoundError (2026-07-06 dry re-probe).
+    tmp = path.parent / f".{path.name}.tmp.{os.getpid()}.{uuid.uuid4().hex}"
     try:
         with open(tmp, "w") as f:
             json.dump(data, f, indent=2)
             f.flush()
             os.fsync(f.fileno())
         os.replace(tmp, path)  # atomic on the same filesystem
+        # Durability: fsync the parent directory so the rename itself survives a crash/power
+        # loss, not just the file contents. Best-effort — some platforms cannot fsync a dir.
+        try:
+            dir_fd = os.open(path.parent, os.O_RDONLY)
+            try:
+                os.fsync(dir_fd)
+            finally:
+                os.close(dir_fd)
+        except OSError:
+            pass
     finally:
         if tmp.exists():
             tmp.unlink()
