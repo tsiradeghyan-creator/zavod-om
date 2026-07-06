@@ -843,3 +843,78 @@ def test_pipeline_without_any_manifest_keeps_lenient_fallback(monkeypatch):
         raise FileNotFoundError("no manifest")
     monkeypatch.setattr(_pl, "load_pipeline", _boom)
     assert get_pipeline_stages("totally-unknown-pipeline") == list(STAGES)
+
+
+# ── Round 6 #1 (2026-07-06 external audit №2): manifest deletion is a downgrade path ──
+# _is_manifest_pipeline() is a live filesystem glob, so deleting/renaming a manifest between
+# runs reclassified the pipeline as generic in a FRESH process: zavod-* included, its stage
+# order silently downgraded to the generic fallback. Two closures: (a) zavod pipelines never
+# fall back regardless of manifest presence; (b) every checkpoint written under a manifest
+# pins its hash + stage order, and navigation/resume refuse a vanished or re-sequenced pin.
+import lib.checkpoint as _cpm  # noqa: E402
+from lib.checkpoint import get_latest_checkpoint  # noqa: E402
+
+
+def _simulate_deleted_manifest(monkeypatch, gone: str):
+    """A fresh process after `pipeline_defs/<gone>.yaml` was deleted: the glob-backed set
+    no longer contains it and loading it fails."""
+    remaining = frozenset(s for s in _cpm._manifest_pipeline_types() if s != gone)
+    monkeypatch.setattr(_cpm, "_manifest_pipeline_types", lambda: remaining)
+    def _missing(name, defs_dir=None):
+        raise FileNotFoundError(f"pipeline_defs/{name}.yaml")
+    monkeypatch.setattr(_pl, "load_pipeline", _missing)
+
+
+def test_zavod_manifest_deletion_never_falls_back(monkeypatch):
+    _simulate_deleted_manifest(monkeypatch, "zavod-reel")
+    with pytest.raises(CheckpointValidationError, match="will not be substituted"):
+        get_pipeline_stages("zavod-reel")
+
+
+def test_checkpoint_pins_manifest_on_write(tmp_path):
+    p = write_checkpoint(tmp_path, "p", "idea", "in_progress", {}, pipeline_type="screen-demo")
+    pin = _json.loads(p.read_text())["manifest_pin"]
+    assert pin["stage_order"][0] == "idea"
+    assert len(pin["manifest_sha256"]) == 64
+
+
+def test_non_manifest_pipeline_writes_no_pin(tmp_path):
+    p = write_checkpoint(tmp_path, "p", "idea", "in_progress", {}, pipeline_type=None)
+    assert "manifest_pin" not in _json.loads(p.read_text())
+
+
+def test_navigation_blocks_when_pinned_manifest_vanishes(tmp_path, monkeypatch):
+    write_checkpoint(tmp_path, "p", "idea", "in_progress", {}, pipeline_type="screen-demo")
+    _simulate_deleted_manifest(monkeypatch, "screen-demo")
+    with pytest.raises(CheckpointValidationError, match="no longer exists"):
+        get_completed_stages(tmp_path, "p", None)
+
+
+def test_resume_blocks_when_pinned_manifest_vanishes(tmp_path, monkeypatch):
+    write_checkpoint(tmp_path, "p", "idea", "in_progress", {}, pipeline_type="screen-demo")
+    _simulate_deleted_manifest(monkeypatch, "screen-demo")
+    with pytest.raises(CheckpointValidationError, match="no longer exists"):
+        get_latest_checkpoint(tmp_path, "p", strict_resume=True)
+
+
+def test_navigation_blocks_on_pinned_stage_order_drift(tmp_path):
+    p = write_checkpoint(tmp_path, "p", "idea", "in_progress", {}, pipeline_type="screen-demo")
+    cp = _json.loads(p.read_text())
+    cp["manifest_pin"]["stage_order"] = ["research", "idea"]  # what an older manifest pinned
+    p.write_text(_json.dumps(cp))
+    with pytest.raises(CheckpointValidationError, match="stage order changed"):
+        get_completed_stages(tmp_path, "p", "screen-demo")
+
+
+def test_legacy_checkpoint_without_pin_still_navigates(tmp_path):
+    p = write_checkpoint(tmp_path, "p", "idea", "in_progress", {}, pipeline_type="screen-demo")
+    cp = _json.loads(p.read_text())
+    del cp["manifest_pin"]  # checkpoint written before pinning existed
+    p.write_text(_json.dumps(cp))
+    assert get_completed_stages(tmp_path, "p", "screen-demo") == []
+
+
+def test_intact_pin_navigates_normally(tmp_path):
+    write_checkpoint(tmp_path, "p", "idea", "in_progress", {}, pipeline_type="screen-demo")
+    assert get_completed_stages(tmp_path, "p", "screen-demo") == []  # in_progress ≠ completed
+    assert get_next_stage(tmp_path, "p", "screen-demo") == "idea"

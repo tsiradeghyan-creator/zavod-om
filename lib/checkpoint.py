@@ -6,6 +6,7 @@ checkpoints to resume pipelines and to present state at human checkpoints.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import shutil
@@ -138,11 +139,15 @@ def get_pipeline_stages(pipeline_type: str | None) -> list[str]:
         # CONFIGURATION ERROR — fail closed. Silently substituting the generic stage order
         # mis-sequences the real pipeline and false-blocks its true first stage (#2 round-5:
         # documentary-montage / screen-demo both start at 'idea', not research/proposal).
-        # Only a pipeline with NO manifest at all gets the lenient generic fallback.
-        if _is_manifest_pipeline(pipeline_type):
+        # A zavod pipeline additionally NEVER falls back — its manifest is its allowlist
+        # entry, so a deleted/renamed zavod manifest is a downgrade attempt, not a generic
+        # pipeline (round-6 #1, external audit №2). Only a non-zavod pipeline with NO
+        # manifest at all gets the lenient generic fallback.
+        if is_zavod or _is_manifest_pipeline(pipeline_type):
             raise CheckpointValidationError(
-                f"Pipeline {pipeline_type!r} has a manifest that failed to load — fix the "
-                f"manifest; the generic stage order will not be substituted. ({exc})"
+                f"Pipeline {pipeline_type!r} has (or must have) a manifest that failed to "
+                f"load — fix/restore the manifest; the generic stage order will not be "
+                f"substituted. ({exc})"
             ) from exc
         return list(STAGES)
 
@@ -200,6 +205,55 @@ def _is_manifest_pipeline(pipeline_type: str | None) -> bool:
     if not pipeline_type:
         return False
     return pipeline_type.strip().casefold() in _manifest_pipeline_types()
+
+
+def _manifest_pin(pipeline_type: str | None) -> dict[str, Any] | None:
+    """Pin of the manifest a checkpoint is being written under (round-6 #1, audit №2).
+
+    The manifest-pipeline set is a live filesystem glob, so deleting/renaming a manifest
+    between runs silently reclassified the pipeline as generic and downgraded its stage
+    order — the write-time fail-closed rule never fired because, to a fresh process, the
+    pipeline never "had" a manifest. The checkpoint itself is the durable witness: it
+    records the manifest's content hash and the stage order it was written under, and
+    _enforce_manifest_pin() refuses navigation/resume when that witness no longer matches.
+    """
+    if not _is_manifest_pipeline(pipeline_type):
+        return None
+    canonical = pipeline_type.strip().casefold()
+    manifest_path = Path(__file__).resolve().parent.parent / "pipeline_defs" / f"{canonical}.yaml"
+    return {
+        "manifest_sha256": hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
+        "stage_order": get_pipeline_stages(canonical),
+    }
+
+
+def _enforce_manifest_pin(checkpoint: dict[str, Any]) -> None:
+    """A pinned checkpoint refuses to advance under a vanished or re-sequenced manifest.
+
+    Presence is mandatory: the pipeline must still resolve as a manifest pipeline. Ordering
+    is mandatory: the current manifest's stage order must equal the pinned one — a mid-project
+    re-sequencing is an owner decision, not a silent resume. The content hash is recorded for
+    provenance but not enforced alone, so a cosmetic manifest edit does not block projects.
+    Checkpoints written before pinning existed carry no pin and stay loadable (legacy).
+    """
+    pin = checkpoint.get("manifest_pin")
+    if not isinstance(pin, dict):
+        return
+    ptype = checkpoint.get("pipeline_type")
+    if not _is_manifest_pipeline(ptype):
+        raise CheckpointValidationError(
+            f"checkpoint for {checkpoint.get('project_id')!r}/{checkpoint.get('stage')!r} was "
+            f"written under a manifest for pipeline {ptype!r} that no longer exists — restore "
+            f"pipeline_defs/{ptype}.yaml; the generic stage order will not be substituted."
+        )
+    current = get_pipeline_stages(ptype)
+    if current != pin.get("stage_order"):
+        raise CheckpointValidationError(
+            f"pipeline {ptype!r} manifest stage order changed since checkpoint "
+            f"{checkpoint.get('stage')!r} was written (pinned {pin.get('stage_order')}, "
+            f"now {current}) — mid-project re-sequencing requires an explicit owner "
+            f"decision, not a silent resume."
+        )
 
 
 def _canonical_pipeline_type(pipeline_type: str | None) -> str | None:
@@ -1157,6 +1211,7 @@ def _enforce_resume_contracts(checkpoint: dict[str, Any], project_dir: Path | st
     write contracts, this path is side-effect free: the canon check is read-only (no lock write),
     so resuming/inspecting never mutates project state.
     """
+    _enforce_manifest_pin(checkpoint)               # manifest still present + same order (r6 #1)
     _enforce_stage_order(checkpoint, project_dir)   # run structure first: manifest order holds (#7 r4)
     _enforce_production_ladder(checkpoint)          # specialist ladder still non-collapsed
     _enforce_engine_lane(checkpoint)                # engine lane still consistent
@@ -1279,6 +1334,9 @@ def write_checkpoint(
         "human_approved": human_approved,
         "artifacts": artifacts,
     }
+    pin = _manifest_pin(pipeline_type)
+    if pin is not None:
+        checkpoint["manifest_pin"] = pin
     if style_playbook is not None:
         checkpoint["style_playbook"] = style_playbook
     if review is not None:
@@ -1426,7 +1484,13 @@ def get_completed_stages(
     completed = []
     for stage in stages_to_check:
         cp = read_checkpoint(pipeline_dir, project_id, stage)
-        if cp and cp.get("status") == "completed":
+        if not cp:
+            continue
+        # A pinned checkpoint blocks ALL navigation once its manifest vanishes or
+        # re-sequences — otherwise stage navigation would quietly proceed on the generic
+        # fallback order the pin exists to forbid (round-6 #1).
+        _enforce_manifest_pin(cp)
+        if cp.get("status") == "completed":
             completed.append(stage)
     return completed
 

@@ -18,6 +18,16 @@
     },
     "timestamp": { "type": "string", "format": "date-time" },
     "pipeline_type": { "type": "string", "description": "Pipeline manifest name" },
+    "manifest_pin": {
+      "type": "object",
+      "description": "Pin of the pipeline manifest this checkpoint was written under. A pinned checkpoint refuses to navigate/resume if the manifest later disappears or re-sequences its stages.",
+      "required": ["manifest_sha256", "stage_order"],
+      "additionalProperties": false,
+      "properties": {
+        "manifest_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "stage_order": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      }
+    },
     "style_playbook": { "type": "string" },
     "checkpoint_policy": { "type": "string", "enum": ["guided", "manual_all", "auto_noncreative"] },
     "human_approval_required": { "type": "boolean" },
