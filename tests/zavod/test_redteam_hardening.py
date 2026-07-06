@@ -747,3 +747,49 @@ def test_ladder_resolver_fails_closed_on_unresolvable_zavod(raw):
 
 def test_ladder_resolver_stays_lenient_for_non_zavod():
     assert _required_ladder_sub_stages("some-unknown-nonzavod", "scene_plan") == []
+
+
+# ── Round 5 (2026-07-06 #2): broken manifest fails closed, not silent fallback ──
+# get_pipeline_stages() swallowed EVERY load failure into the generic STAGES fallback.
+# For a pipeline whose manifest exists but is schema-invalid (documentary-montage's
+# 'documentary' category, screen-demo's top-level production_modes) that silently
+# mis-sequenced the run: both start at 'idea', but the fallback demanded research/proposal
+# first — false-blocking the pipeline's true first stage while looking like governance.
+import lib.pipeline_loader as _pl  # noqa: E402
+from lib.pipeline_loader import load_pipeline, get_stage_order  # noqa: E402
+
+_ALL_MANIFESTS = sorted(p.stem for p in (ROOT / "pipeline_defs").glob("*.yaml"))
+
+
+@pytest.mark.parametrize("name", _ALL_MANIFESTS)
+def test_every_pipeline_manifest_loads_and_orders(name):
+    # Every manifest that exists must load against the schema and yield a stage order —
+    # otherwise the fail-closed rule below turns it into a hard block, by design.
+    order = get_stage_order(load_pipeline(name))
+    assert order, f"{name} produced an empty stage order"
+
+
+@pytest.mark.parametrize("name", ["screen-demo", "documentary-montage"])
+def test_manifest_pipelines_resolve_real_order_not_generic_fallback(name):
+    order = get_pipeline_stages(name)
+    assert order[0] == "idea"          # their true first stage
+    assert order != list(STAGES)       # never the generic fallback that false-blocked it
+
+
+def test_broken_manifest_of_manifest_pipeline_fails_closed(monkeypatch):
+    # A manifest that EXISTS but fails to load is a configuration error — block loudly,
+    # never substitute the generic stage order.
+    def _boom(name, defs_dir=None):
+        raise ValueError("schema-invalid manifest")
+    monkeypatch.setattr(_pl, "load_pipeline", _boom)
+    with pytest.raises(CheckpointValidationError, match="failed to load"):
+        get_pipeline_stages("screen-demo")
+
+
+def test_pipeline_without_any_manifest_keeps_lenient_fallback(monkeypatch):
+    # Scope check: even with the loader broken, a pipeline that has NO manifest at all
+    # still gets the graceful generic fallback — the fail-closed rule is manifest-scoped.
+    def _boom(name, defs_dir=None):
+        raise FileNotFoundError("no manifest")
+    monkeypatch.setattr(_pl, "load_pipeline", _boom)
+    assert get_pipeline_stages("totally-unknown-pipeline") == list(STAGES)

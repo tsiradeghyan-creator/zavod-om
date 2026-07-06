@@ -19,26 +19,28 @@ category: screen_recording
 stability: production
 default_checkpoint_policy: guided
 
-# Production modes this pipeline supports
-production_modes:
-  - name: real_capture
-    description: "OS screen recording of a real desktop/browser session"
-    required_tools: [screen_recorder]
-    optional_tools: [cap_recorder]
-    best_for:
-      - Real app UIs (Figma, Photoshop, web apps with live state)
-      - Demos that depend on unpredictable live behavior
-      - User explicitly asked for a recording of their own screen
-  - name: synthetic_terminal
-    description: "Remotion TerminalScene — synthesized terminal animation"
-    required_tools: [video_compose]  # Remotion path
-    scene_type: terminal_scene
-    agent_skills: [synthetic-screen-recording]
-    best_for:
-      - CLI / terminal / coding session demos
-      - Install walkthroughs, setup demos, config flows
-      - Tight narration-synced pacing where every command lands on a beat
-      - Reproducible renders (same input = identical pixels)
+# Production modes this pipeline supports (under metadata: the manifest schema locks
+# top-level properties, and metadata is the free-form bag for pipeline-specific config).
+metadata:
+  production_modes:
+    - name: real_capture
+      description: "OS screen recording of a real desktop/browser session"
+      required_tools: [screen_recorder]
+      optional_tools: [cap_recorder]
+      best_for:
+        - Real app UIs (Figma, Photoshop, web apps with live state)
+        - Demos that depend on unpredictable live behavior
+        - User explicitly asked for a recording of their own screen
+    - name: synthetic_terminal
+      description: "Remotion TerminalScene — synthesized terminal animation"
+      required_tools: [video_compose]  # Remotion path
+      scene_type: terminal_scene
+      agent_skills: [synthetic-screen-recording]
+      best_for:
+        - CLI / terminal / coding session demos
+        - Install walkthroughs, setup demos, config flows
+        - Tight narration-synced pacing where every command lands on a beat
+        - Reproducible renders (same input = identical pixels)
 
 orchestration:
   mode: executive-producer

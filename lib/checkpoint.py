@@ -113,8 +113,19 @@ def get_pipeline_stages(pipeline_type: str | None) -> list[str]:
         from lib.pipeline_loader import load_pipeline, get_stage_order
         manifest = load_pipeline(lookup)
         return get_stage_order(manifest)
-    except Exception:
-        # Graceful fallback only for a genuinely non-zavod pipeline whose manifest is absent.
+    except CheckpointValidationError:
+        raise
+    except Exception as exc:
+        # A manifest that EXISTS but fails to load (schema-invalid, unparseable) is a
+        # CONFIGURATION ERROR — fail closed. Silently substituting the generic stage order
+        # mis-sequences the real pipeline and false-blocks its true first stage (#2 round-5:
+        # documentary-montage / screen-demo both start at 'idea', not research/proposal).
+        # Only a pipeline with NO manifest at all gets the lenient generic fallback.
+        if _is_manifest_pipeline(pipeline_type):
+            raise CheckpointValidationError(
+                f"Pipeline {pipeline_type!r} has a manifest that failed to load — fix the "
+                f"manifest; the generic stage order will not be substituted. ({exc})"
+            ) from exc
         return list(STAGES)
 
 CHECKPOINT_SCHEMA_PATH = (
@@ -201,10 +212,26 @@ def _load_checkpoint_schema() -> dict[str, Any]:
         return json.load(f)
 
 
+def _stage_declared_produces(pipeline_type: str | None, stage: str) -> list[str]:
+    """The artifacts a pipeline manifest declares a stage produces (empty when no manifest)."""
+    if not pipeline_type:
+        return []
+    try:
+        from lib.pipeline_loader import load_pipeline
+        manifest = load_pipeline(_canonical_pipeline_type(pipeline_type))
+    except Exception:
+        return []
+    for st in manifest.get("stages", []):
+        if st.get("name") == stage:
+            return list(st.get("produces") or [])
+    return []
+
+
 def _validate_artifacts_for_stage(
     stage: str,
     status: str,
     artifacts: dict[str, Any],
+    pipeline_type: str | None = None,
 ) -> None:
     required_artifact = CANONICAL_STAGE_ARTIFACTS.get(stage)
     if required_artifact and status in {"completed", "awaiting_human"}:
@@ -213,15 +240,16 @@ def _validate_artifacts_for_stage(
                 f"Stage {stage!r} with status {status!r} must include "
                 f"canonical artifact {required_artifact!r}"
             )
-        # Fail-closed on an unschematized canonical artifact: a manifest could declare a stage
-        # whose produced artifact has no registered schema, and the validation loop below skips
-        # unknown names — so the payload would ride through unvalidated (#3 round-4). A stage
-        # cannot close on an artifact that cannot be validated.
-        if required_artifact not in ARTIFACT_NAMES:
-            raise CheckpointValidationError(
-                f"Stage {stage!r} canonical artifact {required_artifact!r} has no registered "
-                "schema — it cannot be validated, so the stage cannot close."
-            )
+        # Fail-closed on ANY declared-but-unschematized produce, not just the canonical (first)
+        # one. A manifest with produces:[script, unregistered_blob] otherwise smuggles the
+        # 'unregistered_blob' payload past the validation loop below, which skips unknown names
+        # (#3 round-5). An artifact that cannot be validated cannot close the stage.
+        for produced in (_stage_declared_produces(pipeline_type, stage) or [required_artifact]):
+            if produced not in ARTIFACT_NAMES:
+                raise CheckpointValidationError(
+                    f"Stage {stage!r} declares artifact {produced!r} which has no registered "
+                    "schema — it cannot be validated, so the stage cannot close."
+                )
 
     for artifact_name, artifact_data in artifacts.items():
         if artifact_name not in ARTIFACT_NAMES:
@@ -634,7 +662,7 @@ def validate_checkpoint(checkpoint: dict[str, Any]) -> None:
     if not isinstance(artifacts, dict):
         raise CheckpointValidationError("Checkpoint artifacts must be a dictionary")
 
-    _validate_artifacts_for_stage(stage, status, artifacts)
+    _validate_artifacts_for_stage(stage, status, artifacts, pipeline_type)
 
     try:
         jsonschema.validate(instance=checkpoint, schema=_load_checkpoint_schema())
