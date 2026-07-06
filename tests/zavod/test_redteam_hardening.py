@@ -452,6 +452,17 @@ def test_glyph_seam_blocks_zero_width_in_artifact_key():
         _gz(cp)
 
 
+def test_glyph_seam_blocks_poisoned_top_level_artifact_name():
+    # 2026-07-06 dry re-probe: a zero-width in the top-level artifact NAME (the key in the
+    # artifacts dict) rode along unchecked because only artifact contents were swept.
+    from lib.checkpoint import _enforce_zavod_gates as _gz
+    cp = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "completed",
+          "artifacts": {"render_report": {**_RR_BASE, "continuity_reports": []},
+                        "Հայ​երեն": {"x": "y"}}}  # U+200B in the artifact name
+    with pytest.raises(CheckpointValidationError, match="glyph"):
+        _gz(cp)
+
+
 # ── Angle 3 (cont.): symlink provenance ────────────────────────────────────
 def test_existence_blocks_symlink_escaping_project():
     def make(d):
