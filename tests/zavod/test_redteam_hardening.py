@@ -237,6 +237,33 @@ def test_referential_integrity_skips_when_no_scene_plan(tmp_path):
     _enforce_referential_integrity(_assets_checkpoint("GHOST"), tmp_path)
 
 
+# ── Phase 4c (2026-07-06 dry re-probe #7-cont): edit -> asset_manifest references ──
+def _project_with_assets(tmp_path, ids=("a1", "a2")):
+    (tmp_path / "checkpoint_assets.json").write_text(_json7.dumps(
+        {"artifacts": {"asset_manifest": {"assets": [{"id": i} for i in ids]}}}))
+    return tmp_path
+
+
+def _edit_checkpoint(asset_id):
+    return {"pipeline_type": "zavod-reel", "stage": "edit",
+            "artifacts": {"edit_decisions": {"overlays": [{"asset_id": asset_id}]}}}
+
+
+def test_edit_referencing_ghost_asset_id_is_blocked(tmp_path):
+    pd = _project_with_assets(tmp_path)
+    with pytest.raises(CheckpointValidationError, match="Referential integrity"):
+        _enforce_referential_integrity(_edit_checkpoint("GHOST"), pd)
+
+
+def test_edit_referencing_real_asset_id_passes(tmp_path):
+    pd = _project_with_assets(tmp_path)
+    _enforce_referential_integrity(_edit_checkpoint("a1"), pd)
+
+
+def test_edit_asset_reference_skips_when_no_asset_manifest(tmp_path):
+    _enforce_referential_integrity(_edit_checkpoint("GHOST"), tmp_path)  # partial run → skip
+
+
 # ── Phase 3c (2026-07-05 council #8): glyph gate sweeps every text surface ──
 # The seam only glyph-checked scene_plan text_policy.text and the script strings, so an
 # invisible/zero-width char hiding in metadata.caption, an asset field, or any other artifact

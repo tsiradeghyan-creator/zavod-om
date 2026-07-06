@@ -825,34 +825,85 @@ def _known_scene_ids(project_dir: Path) -> set[str] | None:
     return {s.get("id") for s in scene_plan.get("scenes", []) if isinstance(s, dict)}
 
 
+def _known_asset_ids(project_dir: Path) -> set[str] | None:
+    """Asset ids declared by the project's assets checkpoint (None when absent — see
+    _known_scene_ids for why unverifiable state is skipped, not fabricated)."""
+    ap = project_dir / "checkpoint_assets.json"
+    if not ap.exists():
+        return None
+    try:
+        with open(ap) as f:
+            cp = json.load(f)
+    except Exception:
+        return None
+    manifest = (cp.get("artifacts") or {}).get("asset_manifest")
+    if not isinstance(manifest, dict):
+        return None
+    return {a.get("id") for a in manifest.get("assets", []) if isinstance(a, dict)}
+
+
+def _collect_by_key(obj: Any, key: str) -> list[str]:
+    """Every string value stored under ``key`` anywhere in a nested structure."""
+    found: list[str] = []
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            if k == key and isinstance(v, str):
+                found.append(v)
+            else:
+                found += _collect_by_key(v, key)
+    elif isinstance(obj, list):
+        for v in obj:
+            found += _collect_by_key(v, key)
+    return found
+
+
 def _enforce_referential_integrity(checkpoint: dict[str, Any], project_dir: Path | str | None) -> None:
     """Cross-artifact referential integrity (write-time, zavod only).
 
     A schema-valid artifact can still reference entities that do not exist: an asset_manifest
-    asset naming a scene_id absent from the scene_plan (#7, 2026-07-05). JSON Schema validates
-    each artifact in isolation; this checks the links between them. Scoped to what persisted
-    state can prove: when a completed scene_plan checkpoint exists, every asset_manifest
-    scene_id must resolve to one of its scene ids.
+    asset naming a scene_id absent from the scene_plan, or an edit naming an asset_id absent
+    from the asset_manifest (#7). JSON Schema validates each artifact in isolation; this checks
+    the links between them. Scoped to what persisted state can prove — when the referenced prior
+    checkpoint exists — so an unverifiable partial run is skipped, never fabricated.
     """
     if project_dir is None or not _is_zavod_pipeline(checkpoint.get("pipeline_type") or ""):
         return
-    if checkpoint.get("stage") != "assets":
-        return
-    manifest = (checkpoint.get("artifacts") or {}).get("asset_manifest")
-    if not isinstance(manifest, dict):
-        return
-    scene_ids = _known_scene_ids(Path(project_dir))
-    if scene_ids is None:
-        return
-    for asset in manifest.get("assets", []):
-        if not isinstance(asset, dict):
-            continue
-        sid = asset.get("scene_id")
-        if sid not in scene_ids:
-            raise CheckpointValidationError(
-                f"Referential integrity: asset {asset.get('id')!r} references scene_id {sid!r} "
-                f"which is not in the scene_plan (known: {sorted(x for x in scene_ids if x)})."
-            )
+    project_dir = Path(project_dir)
+    stage = checkpoint.get("stage")
+    artifacts = checkpoint.get("artifacts") or {}
+
+    if stage == "assets":
+        manifest = artifacts.get("asset_manifest")
+        if not isinstance(manifest, dict):
+            return
+        scene_ids = _known_scene_ids(project_dir)
+        if scene_ids is None:
+            return
+        for asset in manifest.get("assets", []):
+            if not isinstance(asset, dict):
+                continue
+            sid = asset.get("scene_id")
+            if sid not in scene_ids:
+                raise CheckpointValidationError(
+                    f"Referential integrity: asset {asset.get('id')!r} references scene_id {sid!r} "
+                    f"which is not in the scene_plan (known: {sorted(x for x in scene_ids if x)})."
+                )
+
+    elif stage == "edit":
+        edits = artifacts.get("edit_decisions")
+        if not isinstance(edits, dict):
+            return
+        asset_ids = _known_asset_ids(project_dir)
+        if asset_ids is None:
+            return
+        # Explicit asset_id references (overlays, audio, subtitles, …) must resolve. cuts[].source
+        # is overloaded (file path OR asset id), so it is left out to avoid false positives.
+        for ref in _collect_by_key(edits, "asset_id"):
+            if ref not in asset_ids:
+                raise CheckpointValidationError(
+                    f"Referential integrity: edit_decisions references asset_id {ref!r} which is "
+                    f"not in the asset_manifest (known: {sorted(x for x in asset_ids if x)})."
+                )
 
 
 def enforce_zavod_write_contracts(
