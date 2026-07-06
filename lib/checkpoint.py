@@ -226,14 +226,13 @@ def _enforce_zavod_gates(checkpoint: dict[str, Any]) -> None:
     # ids, enums), so sweeping every string leaf is safe and closes the gap.
     from lib.armenian_glyph_gate import gate as _glyph_gate
     for _name, _art in artifacts.items():
-        for _s in _all_strings(_art):
-            _gg = _glyph_gate(_s)
-            if not _gg["ok"]:
-                _detail = "; ".join(x["reason"] for x in _gg["violations"])
-                raise CheckpointValidationError(
-                    f"Gate block at stage {stage!r} ({ptype}): glyph violation in "
-                    f"artifacts.{_name}: {_detail}"
-                )
+        _gg = _glyph_gate(_art)  # walks keys AND values of the whole artifact
+        if not _gg["ok"]:
+            _detail = "; ".join(x["reason"] for x in _gg["violations"])
+            raise CheckpointValidationError(
+                f"Gate block at stage {stage!r} ({ptype}): glyph violation in "
+                f"artifacts.{_name}: {_detail}"
+            )
 
     # Lazy import: keeps the spine importable without the gate libs, and avoids any cycle.
     from lib.gatechain import (

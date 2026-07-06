@@ -156,6 +156,10 @@ def _walk(obj: Any, path: str = "") -> list[dict[str, str]]:
         out += check_text(obj, path)
     elif isinstance(obj, dict):
         for k, v in obj.items():
+            # Dict KEYS are text surfaces too — an invisible/homoglyph char hidden in a key
+            # must not slip past because we only walked values (2026-07-06 dry re-probe).
+            if isinstance(k, str):
+                out += check_text(k, f"{path}.<key>{k}" if path else f"<key>{k}")
             out += _walk(v, f"{path}.{k}" if path else str(k))
     elif isinstance(obj, list):
         for i, v in enumerate(obj):

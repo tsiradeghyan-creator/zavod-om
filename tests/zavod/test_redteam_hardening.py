@@ -378,6 +378,23 @@ def test_glyph_still_blocks_zwnj_spliced_into_armenian():
     assert not run_script_gates("Հա‌յ")["ok"]
 
 
+def test_glyph_gate_walks_dict_keys():
+    # 2026-07-06 dry re-probe: the sweep walked only dict values, so an invisible char hidden
+    # in a KEY slipped through. The gate now checks keys too.
+    from lib.armenian_glyph_gate import gate as _g
+    assert not _g({"cap​tion": "clean value"})["ok"]   # U+200B in the key
+    assert _g({"version": "1.0", "title": "Ձմեռ"})["ok"]  # clean keys still pass
+
+
+def test_glyph_seam_blocks_zero_width_in_artifact_key():
+    from lib.checkpoint import _enforce_zavod_gates as _gz
+    rr = {**_RR_BASE, "continuity_reports": [], "metadata": {"cap​tion": "clean"}}  # U+200B in key
+    cp = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "completed",
+          "artifacts": {"render_report": rr}}
+    with pytest.raises(CheckpointValidationError, match="glyph"):
+        _gz(cp)
+
+
 # ── Angle 3 (cont.): symlink provenance ────────────────────────────────────
 def test_existence_blocks_symlink_escaping_project():
     def make(d):
