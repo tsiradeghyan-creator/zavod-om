@@ -241,6 +241,7 @@ def test_awaiting_human_does_not_require_full_ladder(tmp_path):
     # Mid-ladder pause: a not-yet-completed scene_plan must be writable without the
     # whole specialist chain present.
     good = _scene("Your desert weekend", language="en")
+    seed_prior_stages(tmp_path / "proj-pause", "zavod-reel", "scene_plan")
     path = write_checkpoint(
         tmp_path, "proj-pause", "scene_plan", "awaiting_human",
         _with_bench("scene_plan", {"scene_plan": good}), pipeline_type="zavod-reel",

@@ -301,6 +301,34 @@ def test_stage_order_only_gates_completed_status(tmp_path):
     _enforce_stage_order(_completed("assets", status="in_progress"), tmp_path)  # not a closure
 
 
+# ── Phase A#7 round-4 (2026-07-06): ordering trusts no forged marker, gates pauses + resume ──
+def test_stage_order_rejects_forged_bare_markers(tmp_path):
+    # A hand-dropped {"status":"completed"} with no stage/pipeline_type must not satisfy ordering.
+    for prior in ("idea", "script", "scene_plan", "assets", "edit"):
+        (tmp_path / f"checkpoint_{prior}.json").write_text('{"status": "completed"}')
+    with pytest.raises(CheckpointValidationError, match="Stage order"):
+        _enforce_stage_order(_completed("compose"), tmp_path)
+
+
+def test_stage_order_accepts_structural_markers(tmp_path):
+    seed_prior_stages(tmp_path, "zavod-reel", "compose")  # carries stage + pipeline_type
+    _enforce_stage_order(_completed("compose"), tmp_path)
+
+
+def test_stage_order_gates_awaiting_human_pause(tmp_path):
+    # A late-stage owner-pause cannot be created out of order (bogus resumable checkpoint).
+    with pytest.raises(CheckpointValidationError, match="Stage order"):
+        _enforce_stage_order(_completed("compose", status="awaiting_human"), tmp_path)
+
+
+def test_resume_contracts_re_run_stage_order(tmp_path):
+    from lib.checkpoint import _enforce_resume_contracts
+    seed_prior_stages(tmp_path, "zavod-reel", "compose")
+    (tmp_path / "checkpoint_scene_plan.json").unlink()  # a prior vanishes after the fact
+    with pytest.raises(CheckpointValidationError, match="Stage order"):
+        _enforce_resume_contracts(_completed("compose"), tmp_path)
+
+
 # ── Phase B (2026-07-06 owner decision): manifest-driven checkpoint spine ──
 # The spine hardcoded 9 stages, so character-animation's character_design/rig_plan could not
 # be checkpoint-written (KeyError) and character_id had nothing to resolve against.

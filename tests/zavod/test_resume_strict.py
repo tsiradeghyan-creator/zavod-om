@@ -32,7 +32,7 @@ from lib.checkpoint import (  # noqa: E402
     _required_ladder_sub_stages,
 )
 from lib.canon_guard import LOCK, lock as canon_lock  # noqa: E402
-from tests.zavod.media_helpers import tiny_mp4  # noqa: E402
+from tests.zavod.media_helpers import tiny_mp4, seed_prior_stages  # noqa: E402
 from tests.zavod.test_gates import _with_bench, _brief, _ladder, _IDEA_SUBS, _ASSET_SUBS  # noqa: E402
 
 
@@ -67,12 +67,14 @@ def test_resume_contracts_block_collapsed_ladder():
 
 
 def test_resume_contracts_block_missing_artifact(tmp_path):
+    seed_prior_stages(tmp_path, "zavod-reel", "assets")  # a real run has its prior stages
     cp = _raw_cp("assets", artifacts=_assets_artifacts("assets/gone.mp4"))
     with pytest.raises(CheckpointValidationError, match="existence"):
         _enforce_resume_contracts(cp, tmp_path)
 
 
 def test_resume_contracts_block_fake_media(tmp_path):
+    seed_prior_stages(tmp_path, "zavod-reel", "assets")
     (tmp_path / "assets").mkdir()
     (tmp_path / "assets" / "fake.mp4").write_bytes(b"12345")  # non-empty but not real video
     cp = _raw_cp("assets", artifacts=_assets_artifacts("assets/fake.mp4"))
@@ -83,6 +85,7 @@ def test_resume_contracts_block_fake_media(tmp_path):
 def test_resume_contracts_pass_on_clean_state(tmp_path):
     (tmp_path / "assets").mkdir()
     tiny_mp4(tmp_path / "assets" / "real.mp4")
+    seed_prior_stages(tmp_path, "zavod-reel", "assets")
     cp = _raw_cp("assets", artifacts=_assets_artifacts("assets/real.mp4"))
     _enforce_resume_contracts(cp, tmp_path)  # no raise
 

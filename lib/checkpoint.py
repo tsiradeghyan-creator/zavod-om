@@ -994,31 +994,47 @@ def _enforce_referential_integrity(checkpoint: dict[str, Any], project_dir: Path
 
 
 def _enforce_stage_order(checkpoint: dict[str, Any], project_dir: Path | str | None) -> None:
-    """A completed zavod stage may only close after every earlier stage in the pipeline's
-    manifest order has itself completed (#7 ordering, owner decision 2026-07-06). This closes
-    the bypass where a later stage was completed first — e.g. assets before scene_plan, leaving
-    referential integrity nothing to check against."""
+    """A zavod stage may only close — OR pause at an owner checkpoint (awaiting_human) — after
+    every earlier stage in the pipeline's manifest order has itself completed (#7 ordering).
+
+    Prior stages are verified as structurally-real completed checkpoints *for that stage of this
+    pipeline*, not a bare status field, so a hand-dropped ``{"status":"completed"}`` marker
+    cannot forge the run's history (#2/#5 round-4). This also gates awaiting_human, so a bogus
+    late-stage owner-pause cannot be created out of order (#1 round-4).
+
+    NOTE: this raises the forgery bar to a full schema-shaped checkpoint and matches the
+    orchestrator's validated view; it cannot stop an attacker who can write arbitrary
+    valid-looking checkpoints into the project dir — the whole spine trusts on-disk checkpoints.
+    """
     if project_dir is None or not _is_zavod_pipeline(checkpoint.get("pipeline_type") or ""):
         return
-    if checkpoint.get("status") != "completed":
+    if checkpoint.get("status") not in {"completed", "awaiting_human"}:
         return
+    ptype = checkpoint.get("pipeline_type")
     stage = checkpoint.get("stage")
-    order = get_pipeline_stages(checkpoint.get("pipeline_type"))
+    order = get_pipeline_stages(ptype)
     if stage not in order:
         return
+    canonical_pt = _canonical_pipeline_type(ptype)
     project_dir = Path(project_dir)
     for prior in order[:order.index(stage)]:
         p = project_dir / f"checkpoint_{prior}.json"
-        done = False
+        ok = False
         if p.exists():
             try:
-                done = json.load(open(p)).get("status") == "completed"
+                cp = json.load(open(p))
+                ok = (
+                    isinstance(cp, dict)
+                    and cp.get("status") == "completed"
+                    and cp.get("stage") == prior
+                    and _canonical_pipeline_type(cp.get("pipeline_type")) == canonical_pt
+                )
             except Exception:
-                done = False
-        if not done:
+                ok = False
+        if not ok:
             raise CheckpointValidationError(
-                f"Stage order violation: cannot complete {stage!r} before earlier stage "
-                f"{prior!r} is completed (manifest order: {order})."
+                f"Stage order violation: cannot advance {stage!r} before earlier stage {prior!r} "
+                f"is a completed checkpoint of this pipeline (manifest order: {order})."
             )
 
 
@@ -1052,6 +1068,7 @@ def _enforce_resume_contracts(checkpoint: dict[str, Any], project_dir: Path | st
     write contracts, this path is side-effect free: the canon check is read-only (no lock write),
     so resuming/inspecting never mutates project state.
     """
+    _enforce_stage_order(checkpoint, project_dir)   # run structure first: manifest order holds (#7 r4)
     _enforce_production_ladder(checkpoint)          # specialist ladder still non-collapsed
     _enforce_engine_lane(checkpoint)                # engine lane still consistent
     _enforce_run_mode(checkpoint)                   # run mode still consistent

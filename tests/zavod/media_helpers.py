@@ -49,6 +49,8 @@ def seed_prior_stages(project_dir: Path, pipeline_type: str, stage: str) -> None
     order = get_pipeline_stages(pipeline_type)
     Path(project_dir).mkdir(parents=True, exist_ok=True)
     for prior in order[:order.index(stage)]:
+        # Structural marker: the ordering gate verifies stage + pipeline_type + completed
+        # status (not a bare status field), so these markers must carry them too.
         (Path(project_dir) / f"checkpoint_{prior}.json").write_text(
-            json.dumps({"status": "completed"})
+            json.dumps({"pipeline_type": pipeline_type, "stage": prior, "status": "completed"})
         )
