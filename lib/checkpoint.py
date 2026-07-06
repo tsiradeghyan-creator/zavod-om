@@ -152,6 +152,27 @@ def _is_zavod_pipeline(pipeline_type: str | None) -> bool:
     return False
 
 
+@lru_cache(maxsize=1)
+def _manifest_pipeline_types() -> frozenset[str]:
+    """Every pipeline that has a manifest in pipeline_defs/ — the set whose runs are
+    structurally governed (stage order, artifact existence), zavod or not."""
+    pdefs = Path(__file__).resolve().parent.parent / "pipeline_defs"
+    return frozenset(p.stem for p in pdefs.glob("*.yaml"))
+
+
+def _is_manifest_pipeline(pipeline_type: str | None) -> bool:
+    """True when pipeline_type names a manifest-driven pipeline (canonical form).
+
+    Round-4 (#11.1): ordering and artifact-existence were zavod-only, so a
+    character-animation compose could be completed first, with a phantom render, and resume.
+    Structural run-integrity applies to every manifest pipeline; brand-specific gates
+    (glyph/bench/ladder/engine) stay scoped to their packs.
+    """
+    if not pipeline_type:
+        return False
+    return pipeline_type.strip().casefold() in _manifest_pipeline_types()
+
+
 def _canonical_pipeline_type(pipeline_type: str | None) -> str | None:
     """Canonical storage form of a pipeline_type.
 
@@ -165,7 +186,9 @@ def _canonical_pipeline_type(pipeline_type: str | None) -> str | None:
     if not pipeline_type:
         return pipeline_type
     canonical = pipeline_type.strip().casefold()
-    return canonical if canonical in ZAVOD_PIPELINE_TYPES else pipeline_type
+    if canonical in ZAVOD_PIPELINE_TYPES or canonical in _manifest_pipeline_types():
+        return canonical
+    return pipeline_type
 
 
 class CheckpointValidationError(ValueError):
@@ -764,7 +787,9 @@ def _enforce_artifact_path_existence(
     directory where relative paths must physically exist.
     """
     ptype = checkpoint.get("pipeline_type") or ""
-    if not _is_zavod_pipeline(ptype) or project_dir is None:
+    # Structural gate: applies to every manifest-driven pipeline, not only zavod (#11.1 r4).
+    # _is_zavod_pipeline still runs first so an unknown zavod-* keeps failing closed.
+    if not (_is_zavod_pipeline(ptype) or _is_manifest_pipeline(ptype)) or project_dir is None:
         return
     if checkpoint.get("status") != "completed":
         return
@@ -950,10 +975,13 @@ def _enforce_referential_integrity(checkpoint: dict[str, Any], project_dir: Path
     stage = checkpoint.get("stage")
     artifacts = checkpoint.get("artifacts") or {}
 
-    # character_id -> character_design.characters[].id. Self-scoping: it only fires when a
-    # character_design checkpoint exists (which only character-animation-style pipelines
-    # produce), so it runs regardless of the zavod guard below (#B, 2026-07-06).
-    if stage == "scene_plan":
+    # character_id -> character_design.characters[].id. Scoped by the MANIFEST (does this
+    # pipeline declare a character_design stage?), not by file presence — a stale
+    # checkpoint_character_design.json dropped into e.g. a zavod-reel project must not
+    # false-block its scene_plan on an unrelated character_id-shaped field (#6 round-4).
+    if stage == "scene_plan" and "character_design" in get_pipeline_stages(
+        checkpoint.get("pipeline_type")
+    ):
         scene_plan = artifacts.get("scene_plan")
         if isinstance(scene_plan, dict):
             char_ids = _known_character_ids(project_dir)
@@ -1016,7 +1044,8 @@ def _enforce_stage_order(checkpoint: dict[str, Any], project_dir: Path | str | N
     orchestrator's validated view; it cannot stop an attacker who can write arbitrary
     valid-looking checkpoints into the project dir — the whole spine trusts on-disk checkpoints.
     """
-    if project_dir is None or not _is_zavod_pipeline(checkpoint.get("pipeline_type") or ""):
+    _pt = checkpoint.get("pipeline_type") or ""
+    if project_dir is None or not (_is_zavod_pipeline(_pt) or _is_manifest_pipeline(_pt)):
         return
     if checkpoint.get("status") not in {"completed", "awaiting_human"}:
         return

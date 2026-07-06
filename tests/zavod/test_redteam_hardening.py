@@ -368,6 +368,42 @@ def test_character_id_skipped_without_character_design(tmp_path):
     _enforce_referential_integrity(_scene_plan_with_character("GHOST"), tmp_path)  # no source → skip
 
 
+# ── Round-4 #11.1: structural gates cover every manifest pipeline, not only zavod ──
+def test_non_zavod_manifest_pipeline_gets_stage_ordering(tmp_path):
+    # character-animation compose completed first (empty project) must block — it used to pass.
+    with pytest.raises(CheckpointValidationError):
+        _enforce_stage_order({"pipeline_type": "character-animation", "stage": "compose",
+                              "status": "completed", "artifacts": {}}, tmp_path)
+
+
+def test_non_zavod_manifest_pipeline_gets_existence_gate(tmp_path):
+    # A phantom render must not close a character-animation compose even with priors seeded.
+    from lib.checkpoint import _enforce_artifact_path_existence
+    rr = {"version": "1.0", "outputs": [{"path": "missing.mp4", "format": "mp4",
+                                          "resolution": "1080x1920", "duration_seconds": 5}]}
+    cp = {"pipeline_type": "character-animation", "stage": "compose", "status": "completed",
+          "artifacts": {"render_report": rr}}
+    with pytest.raises(CheckpointValidationError, match="existence"):
+        _enforce_artifact_path_existence(cp, tmp_path)
+
+
+def test_unmanifested_pipeline_stays_ungated(tmp_path):
+    # A pipeline with no manifest keeps the lenient behaviour — no false block.
+    _enforce_stage_order({"pipeline_type": "some-custom-flow", "stage": "compose",
+                          "status": "completed", "artifacts": {}}, tmp_path)
+
+
+# ── Round-4 #6: character_id RI scoped by manifest, not file presence ──
+def test_stale_character_design_does_not_block_zavod_scene_plan(tmp_path):
+    # zavod-reel declares no character_design stage; a stale checkpoint_character_design.json
+    # dropped into its project must not false-block an unrelated character_id-shaped field.
+    _known_char_project(tmp_path)
+    cp = {"pipeline_type": "zavod-reel", "stage": "scene_plan",
+          "artifacts": {"scene_plan": {"scenes": [
+              {"id": "s1", "character_actions": [{"character_id": "unrelated"}]}]}}}
+    _enforce_referential_integrity(cp, tmp_path)  # must NOT raise
+
+
 def test_stage_with_unschematized_canonical_artifact_fails_closed(monkeypatch):
     # #3 round-4: a manifest could register a stage whose canonical artifact has no schema;
     # the validation loop skips unknown names, so the payload would ride through unvalidated.
