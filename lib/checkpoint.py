@@ -120,6 +120,22 @@ def _is_zavod_pipeline(pipeline_type: str | None) -> bool:
     return False
 
 
+def _canonical_pipeline_type(pipeline_type: str | None) -> str | None:
+    """Canonical storage form of a pipeline_type.
+
+    A valid zavod pipeline is stored by its canonical id (strip + casefold) so a stray-cased
+    or whitespace-padded variant (``" zavod-reel "``) can never persist raw. Otherwise every
+    downstream consumer that looks the manifest up by the stored value — the production ladder
+    requirement most dangerously — fails the lookup, silently gets an empty result, and the
+    stage closes without its specialist ladder (#11, 2026-07-05). Non-zavod types are returned
+    unchanged; an unknown zavod-* is left for _is_zavod_pipeline to reject at the gate.
+    """
+    if not pipeline_type:
+        return pipeline_type
+    canonical = pipeline_type.strip().casefold()
+    return canonical if canonical in ZAVOD_PIPELINE_TYPES else pipeline_type
+
+
 class CheckpointValidationError(ValueError):
     """Raised when a checkpoint or its canonical artifacts are invalid."""
 
@@ -313,6 +329,14 @@ def _required_ladder_sub_stages(pipeline_type: str, stage: str) -> list[str]:
         from lib.pipeline_loader import load_pipeline
         manifest = load_pipeline(pipeline_type)
     except Exception:
+        # Fail-closed for zavod: a zavod pipeline whose manifest cannot be resolved must not
+        # silently yield an empty ladder requirement — that would let the stage close without
+        # its specialist rungs. Non-zavod pipelines keep the lenient empty default.
+        if _is_zavod_pipeline(pipeline_type):
+            raise CheckpointValidationError(
+                f"cannot resolve production-ladder requirements for zavod pipeline "
+                f"{pipeline_type!r}: manifest unavailable"
+            )
         return []
     for st in manifest.get("stages", []):
         if st.get("name") != stage:
@@ -942,6 +966,9 @@ def write_checkpoint(
     metadata: Optional[dict] = None,
 ) -> Path:
     """Write a checkpoint file for a pipeline stage."""
+    # Canonicalize at the source so a stray-cased / whitespace-padded zavod type is never
+    # persisted raw — every downstream consumer then sees the canonical id (#11).
+    pipeline_type = _canonical_pipeline_type(pipeline_type)
     valid_stages = (
         set(get_pipeline_stages(pipeline_type)) if pipeline_type
         else ALL_KNOWN_STAGES

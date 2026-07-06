@@ -443,3 +443,34 @@ def test_checkpoint_persisted_before_decision_log_merge(tmp_path, monkeypatch):
         )
     assert seen["cp_on_disk"] is True
     assert _checkpoint_path(tmp_path, "projX", "idea").exists()
+
+
+# ── Phase 4a (2026-07-05 dry re-probe #11): canonical pipeline identity ──
+# ' zavod-reel ' was recognized as a valid zavod pipeline by the gate but STORED raw, so the
+# ladder resolver (load_pipeline(raw) -> except -> []) yielded no required rungs and a stage
+# could close without its specialist ladder — the whole production-ladder governance bypassed.
+from lib.checkpoint import _canonical_pipeline_type, _required_ladder_sub_stages  # noqa: E402
+
+
+def test_pipeline_type_canonicalized_on_write(tmp_path):
+    p = write_checkpoint(tmp_path, "p", "idea", "in_progress", {}, pipeline_type="  Zavod-Reel  ")
+    assert _json.loads(p.read_text())["pipeline_type"] == "zavod-reel"
+
+
+def test_canonical_pipeline_type_helper():
+    assert _canonical_pipeline_type(" zavod-reel ") == "zavod-reel"
+    assert _canonical_pipeline_type("animation") == "animation"  # non-zavod unchanged
+
+
+@pytest.mark.parametrize("raw", [" zavod-reel ", "zavod-reel​"])
+def test_ladder_resolver_fails_closed_on_unresolvable_zavod(raw):
+    # A zavod pipeline whose manifest cannot be resolved by the given (raw) value — the
+    # whitespace/zero-width variants load_pipeline rejects — must not yield an empty ladder
+    # requirement. That empty result was the ladder bypass; write-time canonicalization
+    # prevents the raw value from ever persisting, and this keeps the resolver itself honest.
+    with pytest.raises(CheckpointValidationError):
+        _required_ladder_sub_stages(raw, "scene_plan")
+
+
+def test_ladder_resolver_stays_lenient_for_non_zavod():
+    assert _required_ladder_sub_stages("some-unknown-nonzavod", "scene_plan") == []
