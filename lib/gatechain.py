@@ -129,10 +129,24 @@ def run_compose_gates(continuity_reports: list[dict[str, Any]]) -> dict[str, Any
     (anchors not yet judged — pause at the human checkpoint, do NOT mark completed).
     Collapsing the two would either silently pass un-judged clips or block a legitimate
     human-review pause; the pipeline's whole premise is human checkpoints, so we surface both.
+
+    Round-6 #2 (external audit №7): presence of a report is not proof of a check. A report
+    with zero anchors "passed" trivially (nothing judged → no violations), and a report
+    missing the identity anchor never looked at the one dimension every clip has. Both are
+    structural inadequacy of the REPORT — a hard fail, not a pending human judgment — so a
+    hollow report blocks awaiting_human too. The documented builder
+    (continuity_checker.build_review_request) always emits the identity anchor.
     """
     violations: list[str] = []
     pending: list[str] = []
     for r in continuity_reports:
+        clip = r.get("clip", "clip")
+        anchors = [a for a in (r.get("anchors") or []) if isinstance(a, dict)]
+        if not anchors:
+            violations.append(f"{clip}: continuity report carries no anchors — nothing was actually checked")
+            continue
+        if not any(a.get("kind") == "identity" for a in anchors):
+            violations.append(f"{clip}: continuity report lacks the mandatory identity anchor")
         v = continuity_verdict(r)
         if v["verdict"] == "fail":
             violations.append(f"{r.get('clip','clip')}: continuity fail — {v['violations']}")

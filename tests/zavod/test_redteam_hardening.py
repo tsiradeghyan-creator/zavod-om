@@ -523,7 +523,9 @@ def test_glyph_caught_in_asset_manifest_surface():
 def test_glyph_sweep_allows_clean_multilingual_caption():
     rr = {"version": "1.0",
           "outputs": [{"path": "o.mp4", "format": "mp4", "resolution": "1080x1920", "duration_seconds": 5}],
-          "continuity_reports": [{"clip": "o.mp4", "anchors": [{"name": "h", "kind": "object", "persists": True}]}],
+          "continuity_reports": [{"clip": "o.mp4", "anchors": [
+              {"name": "h", "kind": "object", "persists": True},
+              {"name": "subject identity", "kind": "identity", "persists": True}]}],
           "metadata": {"caption": "Ձմեռային արձակուրդ 🏔️ weekend"}}
     cp = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "completed",
           "artifacts": {"bench_report": _good("compose"), "render_report": rr}}
@@ -918,3 +920,56 @@ def test_intact_pin_navigates_normally(tmp_path):
     write_checkpoint(tmp_path, "p", "idea", "in_progress", {}, pipeline_type="screen-demo")
     assert get_completed_stages(tmp_path, "p", "screen-demo") == []  # in_progress ≠ completed
     assert get_next_stage(tmp_path, "p", "screen-demo") == "idea"
+
+
+# ── Round 6 #2 (2026-07-06 external audit №7): continuity is content, not presence ──
+# The compose gate checked that continuity_reports EXISTS and is non-empty, but not that it
+# proves anything: a report with zero anchors "passed" trivially, a report missing the
+# identity anchor never judged the one dimension every clip has, and N outputs with one
+# report closed with N-1 clips never checked.
+_IDENTITY_OK = {"name": "subject identity", "kind": "identity", "persists": True}
+
+
+def test_zero_anchor_continuity_report_blocks_completed_and_awaiting():
+    rr = {**_RR_BASE, "continuity_reports": [{"clip": "o.mp4", "anchors": []}]}
+    for status in ("completed", "awaiting_human"):
+        with pytest.raises(CheckpointValidationError, match="no anchors"):
+            _enforce_zavod_gates(_compose_cp(status, dict(rr)))
+
+
+def test_continuity_report_without_identity_anchor_blocks():
+    rr = {**_RR_BASE, "continuity_reports": [
+        {"clip": "o.mp4", "anchors": [{"name": "glass", "kind": "object", "persists": True}]}]}
+    with pytest.raises(CheckpointValidationError, match="identity anchor"):
+        _enforce_zavod_gates(_compose_cp("completed", rr))
+
+
+def test_uncovered_output_blocks_completed_compose():
+    # 2 rendered outputs, 1 continuity report → the unchecked clip blocks closure.
+    rr = {"version": "1.0",
+          "outputs": [
+              {"path": "a.mp4", "format": "mp4", "resolution": "1080x1920", "duration_seconds": 5},
+              {"path": "renders/b.mp4", "format": "mp4", "resolution": "1080x1920", "duration_seconds": 5}],
+          "continuity_reports": [{"clip": "a.mp4", "anchors": [dict(_IDENTITY_OK)]}]}
+    with pytest.raises(CheckpointValidationError, match="b.mp4"):
+        _enforce_zavod_gates(_compose_cp("completed", rr))
+
+
+def test_fully_covered_judged_reports_still_close():
+    # Control: one judged report per output (matched by clip basename) closes normally.
+    rr = {"version": "1.0",
+          "outputs": [
+              {"path": "a.mp4", "format": "mp4", "resolution": "1080x1920", "duration_seconds": 5},
+              {"path": "renders/b.mp4", "format": "mp4", "resolution": "1080x1920", "duration_seconds": 5}],
+          "continuity_reports": [
+              {"clip": "a.mp4", "anchors": [dict(_IDENTITY_OK)]},
+              {"clip": "b.mp4", "anchors": [dict(_IDENTITY_OK)]}]}
+    _enforce_zavod_gates(_compose_cp("completed", rr))  # must not raise
+
+
+def test_zero_anchor_report_fails_render_report_schema():
+    # Belt and suspenders: the artifact schema itself now rejects an anchor-less report.
+    from schemas.artifacts import validate_artifact
+    rr = {**_RR_BASE, "continuity_reports": [{"clip": "o.mp4", "anchors": []}]}
+    with pytest.raises(Exception):
+        validate_artifact("render_report", rr)

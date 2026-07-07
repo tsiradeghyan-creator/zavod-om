@@ -4,49 +4,99 @@
   "title": "Render Report",
   "description": "Output report produced by the Composer agent after rendering.",
   "type": "object",
-  "required": ["version", "outputs"],
+  "required": [
+    "version",
+    "outputs"
+  ],
   "properties": {
-    "version": { "type": "string", "const": "1.0" },
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
     "outputs": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["path", "format", "resolution", "duration_seconds"],
+        "required": [
+          "path",
+          "format",
+          "resolution",
+          "duration_seconds"
+        ],
         "properties": {
-          "path": { "type": "string" },
-          "format": { "type": "string" },
-          "codec": { "type": "string" },
-          "audio_codec": { "type": "string" },
-          "resolution": { "type": "string" },
-          "fps": { "type": "number" },
-          "duration_seconds": { "type": "number", "minimum": 0 },
-          "file_size_bytes": { "type": "integer" },
-          "platform_target": { "type": "string" }
+          "path": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string"
+          },
+          "codec": {
+            "type": "string"
+          },
+          "audio_codec": {
+            "type": "string"
+          },
+          "resolution": {
+            "type": "string"
+          },
+          "fps": {
+            "type": "number"
+          },
+          "duration_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "file_size_bytes": {
+            "type": "integer"
+          },
+          "platform_target": {
+            "type": "string"
+          }
         },
         "additionalProperties": false
       },
       "minItems": 1
     },
-    "render_time_seconds": { "type": "number", "minimum": 0 },
+    "render_time_seconds": {
+      "type": "number",
+      "minimum": 0
+    },
     "warnings": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
     "verification_notes": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
     "render_grammar": {
       "type": "string",
       "description": "Which renderer family was used for this render",
-      "enum": ["explainer-data", "explainer-teacher", "cinematic-trailer", "documentary-montage", "product-reveal", "screen-demo", "presenter", "animation-first"]
+      "enum": [
+        "explainer-data",
+        "explainer-teacher",
+        "cinematic-trailer",
+        "documentary-montage",
+        "product-reveal",
+        "screen-demo",
+        "presenter",
+        "animation-first"
+      ]
     },
     "slideshow_risk_score": {
       "type": "object",
       "description": "Final slideshow risk assessment",
       "properties": {
-        "average": { "type": "number" },
-        "verdict": { "type": "string" }
+        "average": {
+          "type": "number"
+        },
+        "verdict": {
+          "type": "string"
+        }
       }
     },
     "decision_log_ref": {
@@ -58,24 +108,59 @@
       "description": "Filled per-clip continuity review reports (lib/continuity_checker.build_review_request shape, judged by the runtime VLM). This is the documented route the checkpoint seam reads (checkpoint._continuity_reports) to run the compose continuity gate — the 06-18 disappearing-glass class.",
       "items": {
         "type": "object",
-        "required": ["clip", "anchors"],
+        "required": [
+          "clip",
+          "anchors"
+        ],
         "properties": {
-          "clip": { "type": "string" },
-          "frames": { "type": "array", "items": { "type": "string" } },
-          "instruction": { "type": "string" },
+          "clip": {
+            "type": "string"
+          },
+          "frames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "instruction": {
+            "type": "string"
+          },
           "anchors": {
             "type": "array",
             "items": {
               "type": "object",
-              "required": ["name", "kind", "persists"],
+              "required": [
+                "name",
+                "kind",
+                "persists"
+              ],
               "properties": {
-                "name": { "type": "string" },
-                "kind": { "type": "string", "enum": ["object", "identity", "architecture"] },
-                "persists": { "type": ["boolean", "null"], "description": "true=continuous; false=dropped/changed; null=not yet judged" },
-                "note": { "type": "string" }
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "object",
+                    "identity",
+                    "architecture"
+                  ]
+                },
+                "persists": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ],
+                  "description": "true=continuous; false=dropped/changed; null=not yet judged"
+                },
+                "note": {
+                  "type": "string"
+                }
               },
               "additionalProperties": false
-            }
+            },
+            "minItems": 1,
+            "description": "Judged continuity anchors. minItems 1: a report with zero anchors checked nothing and must not exist (round-6 #2)."
           }
         },
         "additionalProperties": false
@@ -85,7 +170,9 @@
       "type": "string",
       "description": "Path or inline reference to the final_review artifact produced by post-render self-review. Provides durable audit linkage between the render output and its quality inspection."
     },
-    "metadata": { "type": "object" }
+    "metadata": {
+      "type": "object"
+    }
   },
   "additionalProperties": false
 }

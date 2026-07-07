@@ -158,9 +158,10 @@ def test_scene_plan_clean_passes():
 
 
 def test_compose_gates_separate_fail_from_needs_human():
-    fail = run_compose_gates([{"clip": "a.mp4", "anchors": [{"name": "g", "kind": "object", "persists": False}]}])
-    pend = run_compose_gates([{"clip": "a.mp4", "anchors": [{"name": "g", "kind": "object", "persists": None}]}])
-    ok = run_compose_gates([{"clip": "a.mp4", "anchors": [{"name": "g", "kind": "object", "persists": True}]}])
+    _id = {"name": "subject identity", "kind": "identity", "persists": True}
+    fail = run_compose_gates([{"clip": "a.mp4", "anchors": [{"name": "g", "kind": "object", "persists": False}, dict(_id)]}])
+    pend = run_compose_gates([{"clip": "a.mp4", "anchors": [{"name": "g", "kind": "object", "persists": None}, dict(_id)]}])
+    ok = run_compose_gates([{"clip": "a.mp4", "anchors": [{"name": "g", "kind": "object", "persists": True}, dict(_id)]}])
     assert fail["verdict"] == "fail" and fail["ok"] is False
     assert pend["verdict"] == "needs_human" and pend["ok"] is False
     assert ok["verdict"] == "pass" and ok["ok"] is True
@@ -282,11 +283,13 @@ def _asset_manifest(source_tool):
 
 def _render_report():
     # A completed compose must carry the continuity_reports field (presence is enforced
-    # at closure). One clean, persisting anchor keeps these engine-lane fixtures realistic.
+    # at closure). The identity anchor is mandatory (round-6 #2) — the builder always emits it.
     return {"version": "1.0", "outputs": [
         {"path": "o.mp4", "format": "mp4", "resolution": "1080x1920", "duration_seconds": 30}],
         "continuity_reports": [
-            {"clip": "o.mp4", "anchors": [{"name": "hero", "kind": "object", "persists": True}]}]}
+            {"clip": "o.mp4", "anchors": [
+                {"name": "hero", "kind": "object", "persists": True},
+                {"name": "subject identity", "kind": "identity", "persists": True}]}]}
 
 
 _IDEA_SUBS = ["intake_or_writer_room", "concept_lock"]
@@ -521,7 +524,9 @@ def _rr_with_reports(reports):
 
 def test_needs_human_blocks_completed_but_allows_awaiting(tmp_path):
     art = _with_bench("compose", {"render_report": _rr_with_reports([{
-        "clip": "c.mp4", "anchors": [{"name": "glass", "kind": "object", "persists": None}]}])})
+        "clip": "c.mp4", "anchors": [
+            {"name": "glass", "kind": "object", "persists": None},
+            {"name": "subject identity", "kind": "identity", "persists": True}]}])})
     completed = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "completed", "artifacts": art}
     awaiting = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "awaiting_human", "artifacts": art}
     with pytest.raises(CheckpointValidationError):
@@ -618,17 +623,20 @@ def _cp(stage, status, artifacts):
 
 
 def _filled_continuity_report(clip, persists, note=""):
-    """The build_review_request shape after the runtime VLM filled in the anchors."""
+    """The build_review_request shape after the runtime VLM filled in the anchors.
+    Carries the mandatory identity anchor (round-6 #2) — the builder always emits it."""
     return {"clip": clip, "frames": [], "anchors": [
         {"name": "drinking glass in hand", "kind": "object",
-         "persists": persists, "note": note}]}
+         "persists": persists, "note": note},
+        {"name": "subject identity (same people/wardrobe)", "kind": "identity",
+         "persists": True, "note": ""}]}
 
 
 def _render_report_with(reports):
-    return {"version": "1.0",
-            "outputs": [{"path": "/tmp/out.mp4", "format": "mp4",
-                         "resolution": "1080x1920", "duration_seconds": 10.0}],
-            "continuity_reports": reports}
+    # Outputs derive from the reports' clip names: coverage is 1:1 by basename (round-6 #2).
+    outs = [{"path": f"/tmp/{r['clip']}", "format": "mp4",
+             "resolution": "1080x1920", "duration_seconds": 10.0} for r in reports]
+    return {"version": "1.0", "outputs": outs, "continuity_reports": reports}
 
 
 # ---------------------------------------------------------------- P0 (BROKEN fix)

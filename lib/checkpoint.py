@@ -479,6 +479,19 @@ def _enforce_zavod_gates(checkpoint: dict[str, Any]) -> None:
                     f"Gate block at stage {stage!r} ({ptype}): render_report declares {len(outputs)} "
                     "output(s) but no continuity_reports — every rendered output must be continuity-checked."
                 )
+            # Coverage, not just presence (round-6 #2, audit №7): N outputs with one report
+            # closed with N-1 clips never checked. Every output must have a report matching
+            # its clip basename — the name the documented builder writes.
+            covered = {str(r.get("clip")) for r in reports_list if isinstance(r, dict)}
+            uncovered = sorted(
+                {os.path.basename(str(o.get("path") or "")) for o in outputs if isinstance(o, dict)}
+                - covered
+            )
+            if uncovered:
+                raise CheckpointValidationError(
+                    f"Gate block at stage {stage!r} ({ptype}): output(s) {uncovered} have no "
+                    "continuity report — every rendered output must be continuity-checked by clip name."
+                )
         reports = _continuity_reports(artifacts)
         if reports:
             result = run_compose_gates(reports)
