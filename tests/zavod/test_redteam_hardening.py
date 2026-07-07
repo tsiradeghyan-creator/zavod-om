@@ -1114,14 +1114,28 @@ def test_concept_rejection_without_rationale_blocks(tmp_path):
                          {"decision_log": _log(c)}, pipeline_type=None)
 
 
-def test_concept_same_direction_reworded_blocks(tmp_path):
+def test_concept_same_direction_reworded_warns_not_blocks(tmp_path, caplog):
+    # Strategy audit №17: the similarity threshold is a signal for the reviewer, not a
+    # judge — it both false-blocked close-but-legit directions and passed reworded
+    # duplicates. A paraphrase now WARNS loudly and the write proceeds.
     c = _concept()
-    # c3 becomes a paraphrase of c1 — same mechanism, different words.
     c["options_considered"][2] = {
         "option_id": "c3", "label": "desert dawn confession, retold", "score": 0.5,
         "reason": "single intimate voice carries the arc",
         "rejected_because": "weaker variant"}
-    with pytest.raises(CheckpointValidationError, match="same direction"):
+    import logging
+    with caplog.at_level(logging.WARNING):
+        p = write_checkpoint(tmp_path, "p", "idea", "in_progress",
+                             {"decision_log": _log(c)}, pipeline_type=None)
+    assert p.exists()
+    assert any("same direction" in r.message for r in caplog.records)
+
+
+def test_concept_duplicate_label_still_hard_blocks(tmp_path):
+    c = _concept()
+    c["options_considered"][2] = dict(c["options_considered"][0],
+                                      option_id="c3", rejected_because="dup")
+    with pytest.raises(CheckpointValidationError, match="same label"):
         write_checkpoint(tmp_path, "p", "idea", "in_progress",
                          {"decision_log": _log(c)}, pipeline_type=None)
 

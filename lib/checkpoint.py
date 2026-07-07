@@ -1409,20 +1409,30 @@ def _validate_concept_selection(decision: dict[str, Any]) -> None:
             f"decision_log: concept_selection {did!r} selects "
             f"{decision.get('selected')!r} which is not among its options."
         )
+    # Similarity is a SIGNAL, not a judge (strategy audit №17): the token threshold both
+    # false-blocked legitimately close directions and passed reworded duplicates, so it
+    # was demoted from hard block to a loud warning for the reviewer/bench. Only literal
+    # label equality remains a hard block — the same name twice is never two directions.
     from lib.bench_gate import _similarity
+    import logging
     for i in range(len(opts)):
         for j in range(i + 1, len(opts)):
             a, b = opts[i], opts[j]
             la = str(a.get("label") or "").strip().casefold()
             lb = str(b.get("label") or "").strip().casefold()
+            if la == lb:
+                raise CheckpointValidationError(
+                    f"decision_log: concept_selection {did!r} lists the same label "
+                    f"{a.get('label')!r} twice — one name is one direction."
+                )
             ta = f"{a.get('label', '')} {a.get('reason', '')}"
             tb = f"{b.get('label', '')} {b.get('reason', '')}"
-            if la == lb or _similarity(ta, tb) >= 0.85:
-                raise CheckpointValidationError(
-                    f"decision_log: concept_selection {did!r} options "
-                    f"{a.get('option_id')!r} and {b.get('option_id')!r} are the same "
-                    "direction in different words — directions must differ in mechanism, "
-                    "not phrasing."
+            if _similarity(ta, tb) >= 0.85:
+                logging.getLogger(__name__).warning(
+                    "concept_selection %s: options %s and %s read as the same direction "
+                    "in different words (similarity signal) — reviewer should confirm "
+                    "they differ in mechanism, not phrasing.",
+                    did, a.get("option_id"), b.get("option_id"),
                 )
     for o in opts:
         if o.get("option_id") != decision.get("selected") and not str(o.get("rejected_because") or "").strip():
