@@ -595,14 +595,14 @@ def test_content_gate_allows_data_type_without_probe():
 def test_content_gate_blocks_fake_compose_render():
     cp = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "completed",
           "artifacts": {"render_report": {"outputs": [
-              {"path": "o.mp4", "format": "mp4", "resolution": "64x64", "duration_seconds": 1}]}}}
+              {"path": "o.mp4", "format": "mp4", "resolution": "64x64", "duration_seconds": 0.2}]}}}
     with pytest.raises(CheckpointValidationError, match="not valid content"):
         _run_existence(cp, lambda d: (d / "o.mp4").write_bytes(b"12345"))
 
 def test_content_gate_allows_real_compose_render():
     cp = {"pipeline_type": "zavod-reel", "stage": "compose", "status": "completed",
           "artifacts": {"render_report": {"outputs": [
-              {"path": "o.mp4", "format": "mp4", "resolution": "64x64", "duration_seconds": 1}]}}}
+              {"path": "o.mp4", "format": "mp4", "resolution": "64x64", "duration_seconds": 0.2}]}}}
     _run_existence(cp, lambda d: tiny_mp4(d / "o.mp4"))
 
 
@@ -1249,3 +1249,56 @@ def test_unapproved_ledger_entry_is_a_violation(tmp_path):
     dec2 = _decisions_file(tmp_path, {"new_model_v1": "reject"})   # approval revoked
     bad = adoption_ledger_violations(led, dec2)
     assert bad and "approve" in bad[0]
+
+
+# ── Round 6 #6 (2026-07-06 external audit №5): usable asset ≠ readable media ──
+# A 1×1/8×8 single-black-frame H.264 decodes fine and passed the ffprobe gate as a "video".
+# Floors now block degenerate media outright, and compose outputs must MATCH their own
+# render_report declaration (resolution exact, duration within tolerance).
+from tests.zavod.media_helpers import degenerate_mp4  # noqa: E402
+
+
+def test_degenerate_single_frame_video_asset_is_blocked(tmp_path):
+    pdir = tmp_path / "p1"; pdir.mkdir(parents=True)
+    degenerate_mp4(pdir / "a.mp4")
+    cp = {"pipeline_type": "zavod-reel", "stage": "assets", "status": "completed",
+          "artifacts": {"asset_manifest": {"assets": [
+              {"id": "a", "type": "video", "path": "a.mp4", "source_tool": "x", "scene_id": "s"}]}}}
+    with pytest.raises(CheckpointValidationError, match="degenerate|single-frame"):
+        _enforce_artifact_path_existence(cp, pdir)
+
+
+def test_healthy_tiny_video_asset_still_passes(tmp_path):
+    pdir = tmp_path / "p1"; pdir.mkdir(parents=True)
+    tiny_mp4(pdir / "a.mp4")  # 64x64, 2 frames, 0.2s — above every floor
+    cp = {"pipeline_type": "zavod-reel", "stage": "assets", "status": "completed",
+          "artifacts": {"asset_manifest": {"assets": [
+              {"id": "a", "type": "video", "path": "a.mp4", "source_tool": "x", "scene_id": "s"}]}}}
+    _enforce_artifact_path_existence(cp, pdir)  # must not raise
+
+
+def _compose_existence_cp(resolution, duration):
+    return {"pipeline_type": "zavod-reel", "stage": "compose", "status": "completed",
+            "artifacts": {"render_report": {"version": "1.0", "outputs": [
+                {"path": "o.mp4", "format": "mp4",
+                 "resolution": resolution, "duration_seconds": duration}]}}}
+
+
+def test_compose_output_lying_about_resolution_is_blocked(tmp_path):
+    pdir = tmp_path / "p1"; pdir.mkdir(parents=True)
+    tiny_mp4(pdir / "o.mp4")  # actually 64x64
+    with pytest.raises(CheckpointValidationError, match="declares 1080x1920"):
+        _enforce_artifact_path_existence(_compose_existence_cp("1080x1920", 0.2), pdir)
+
+
+def test_compose_output_lying_about_duration_is_blocked(tmp_path):
+    pdir = tmp_path / "p1"; pdir.mkdir(parents=True)
+    tiny_mp4(pdir / "o.mp4")  # actually 0.2s
+    with pytest.raises(CheckpointValidationError, match="runs 0.2"):
+        _enforce_artifact_path_existence(_compose_existence_cp("64x64", 30), pdir)
+
+
+def test_compose_output_with_honest_declaration_passes(tmp_path):
+    pdir = tmp_path / "p1"; pdir.mkdir(parents=True)
+    tiny_mp4(pdir / "o.mp4")
+    _enforce_artifact_path_existence(_compose_existence_cp("64x64", 0.2), pdir)  # must not raise

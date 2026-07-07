@@ -302,8 +302,9 @@ def _asset_manifest(source_tool):
 def _render_report():
     # A completed compose must carry the continuity_reports field (presence is enforced
     # at closure). The identity anchor is mandatory (round-6 #2) — the builder always emits it.
+    # Declarations are HONEST for the tiny_mp4 fixture: declared-vs-actual is enforced (r6 #6).
     return {"version": "1.0", "outputs": [
-        {"path": "o.mp4", "format": "mp4", "resolution": "1080x1920", "duration_seconds": 30}],
+        {"path": "o.mp4", "format": "mp4", "resolution": "64x64", "duration_seconds": 0.2}],
         "continuity_reports": [
             {"clip": "o.mp4", "anchors": [
                 {"name": "hero", "kind": "object", "persists": True},

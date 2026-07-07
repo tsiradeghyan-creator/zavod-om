@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import uuid
@@ -837,10 +838,20 @@ def _safe_float(value: Any) -> float:
         return 0.0
 
 
-def _media_defect(path: Path, kind: str) -> str | None:
+# Round-6 #6 (external audit №5): "readable media" and "usable production asset" are not the
+# same thing. A 1×1, single-black-frame, 0.04s H.264 decodes fine and passed as a video.
+# Floor thresholds block degenerate assets outright; compose outputs additionally must match
+# what the render_report DECLARES (resolution exact, duration within tolerance) — a report
+# that lies about its own output is a defect, not a formality.
+_MIN_MEDIA_SIDE_PX = 32
+_MIN_MEDIA_SECONDS = 0.1
+
+
+def _media_defect(path: Path, kind: str, declared: dict[str, Any] | None = None) -> str | None:
     """Return a problem description if `path` is not valid media of `kind`, else None.
 
     Uses ffprobe to inspect real streams. Callers must confirm ffprobe is available first.
+    ``declared`` (compose outputs) enables the declared-vs-actual check.
     """
     try:
         proc = subprocess.run(
@@ -866,16 +877,36 @@ def _media_defect(path: Path, kind: str) -> str | None:
         if not video:
             return "declared video but ffprobe found no video stream"
         s0 = video[0]
-        if not (int(s0.get("width") or 0) > 0 and int(s0.get("height") or 0) > 0):
+        w, h = int(s0.get("width") or 0), int(s0.get("height") or 0)
+        if not (w > 0 and h > 0):
             return "video stream has no dimensions"
-        if _safe_float(fmt.get("duration")) <= 0 and _safe_float(s0.get("duration")) <= 0:
+        if min(w, h) < _MIN_MEDIA_SIDE_PX:
+            return f"degenerate video canvas {w}x{h} (min side {_MIN_MEDIA_SIDE_PX}px)"
+        duration = max(_safe_float(fmt.get("duration")), _safe_float(s0.get("duration")))
+        if duration <= 0:
             return "video has zero/unknown duration"
+        if duration < _MIN_MEDIA_SECONDS:
+            return f"degenerate video duration {duration}s (min {_MIN_MEDIA_SECONDS}s)"
+        frames = int(_safe_float(s0.get("nb_frames")))
+        if 0 < frames < 2:
+            return "single-frame video (a still passed off as motion)"
+        if declared:
+            m = re.fullmatch(r"(\d+)x(\d+)", str(declared.get("resolution") or ""))
+            if m and (int(m.group(1)), int(m.group(2))) != (w, h):
+                return (f"render_report declares {declared['resolution']} but the file "
+                        f"is {w}x{h}")
+            want = _safe_float(declared.get("duration_seconds"))
+            if want > 0 and abs(duration - want) > max(0.5, 0.1 * want):
+                return (f"render_report declares {want}s but the file runs {duration:.2f}s")
         return None
     if kind in _PROBE_AUDIO:
         if not audio:
             return "declared audio but ffprobe found no audio stream"
-        if _safe_float(fmt.get("duration")) <= 0 and _safe_float(audio[0].get("duration")) <= 0:
+        duration = max(_safe_float(fmt.get("duration")), _safe_float(audio[0].get("duration")))
+        if duration <= 0:
             return "audio has zero/unknown duration"
+        if duration < _MIN_MEDIA_SECONDS:
+            return f"degenerate audio duration {duration}s (min {_MIN_MEDIA_SECONDS}s)"
         return None
     if kind in _PROBE_IMAGE:
         # A still decodes as a single-frame video stream (png/mjpeg/webp); require dimensions,
@@ -883,8 +914,11 @@ def _media_defect(path: Path, kind: str) -> str | None:
         if not video:
             return "declared image but ffprobe could not decode it"
         s0 = video[0]
-        if not (int(s0.get("width") or 0) > 0 and int(s0.get("height") or 0) > 0):
+        w, h = int(s0.get("width") or 0), int(s0.get("height") or 0)
+        if not (w > 0 and h > 0):
             return "image has no dimensions"
+        if min(w, h) < _MIN_MEDIA_SIDE_PX:
+            return f"degenerate image canvas {w}x{h} (min side {_MIN_MEDIA_SIDE_PX}px)"
         return None
     return None
 
@@ -971,7 +1005,11 @@ def _enforce_artifact_path_existence(
     for entry in real_entries:
         kind = (entry.get("type") if stage == "assets" else "video") or "video"
         if kind in _PROBE_KINDS:
-            probe_targets.append((entry["path"], _resolve_artifact_path(project_dir_p, entry["path"]), kind))
+            # Compose outputs also carry their own declaration (resolution/duration) —
+            # verified against the actual file (round-6 #6).
+            declared = entry if stage == "compose" else None
+            probe_targets.append(
+                (entry["path"], _resolve_artifact_path(project_dir_p, entry["path"]), kind, declared))
 
     if probe_targets and shutil.which("ffprobe") is None:
         # A final render must never be accepted unverified. Upstream asset stages degrade to the
@@ -984,8 +1022,8 @@ def _enforce_artifact_path_existence(
         return
 
     invalid = []
-    for raw, resolved, kind in probe_targets:
-        defect = _media_defect(resolved, kind)
+    for raw, resolved, kind, declared in probe_targets:
+        defect = _media_defect(resolved, kind, declared)
         if defect:
             invalid.append(f"{raw} ({kind}: {defect})")
     if invalid:

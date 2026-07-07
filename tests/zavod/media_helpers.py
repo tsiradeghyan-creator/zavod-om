@@ -62,3 +62,15 @@ def seed_prior_stages(project_dir: Path, pipeline_type: str, stage: str) -> None
                 "artifacts": {},
             })
         )
+
+
+def degenerate_mp4(path: Path) -> Path:
+    """A perfectly decodable but production-useless video: 8x8, one black frame (audit №5)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        ["ffmpeg", "-y", "-v", "error", "-f", "lavfi",
+         "-i", "color=c=black:s=8x8:d=0.1:r=10", "-frames:v", "1",
+         "-pix_fmt", "yuv420p", str(path)],
+        check=True, capture_output=True,
+    )
+    return path

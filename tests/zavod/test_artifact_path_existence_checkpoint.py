@@ -52,7 +52,8 @@ def _asset_manifest(path: str) -> dict:
 
 def _render_report(path: str) -> dict:
     return {"version": "1.0", "outputs": [{
-        "path": path, "format": "mp4", "resolution": "1080x1920", "duration_seconds": 3.0,
+        # Honest declaration for the tiny_mp4 fixture — declared-vs-actual is enforced (r6 #6).
+        "path": path, "format": "mp4", "resolution": "64x64", "duration_seconds": 0.2,
     }]}
 
 
