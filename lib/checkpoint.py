@@ -1521,6 +1521,40 @@ def _merge_decision_log(
     _atomic_write_json(_decision_log_path(pipeline_dir, project_id), existing)
 
 
+def _enforce_project_pipeline_identity(
+    pipeline_dir: Path, project_id: str, pipeline_type: str | None
+) -> None:
+    """Pipeline identity is a PROJECT property, not a per-checkpoint field (round-7 #1,
+    external audit №8 — code-confirmed bypass).
+
+    Every gate is keyed off the checkpoint's own pipeline_type, so a project that started
+    as zavod-reel could close its next stage as 'animation' and silently shed bench,
+    ladder, glyph, and engine-lane enforcement — a full governance bypass with one field.
+    The first TYPED checkpoint locks the project's identity: every later write must carry
+    the same canonical type (an untyped/'unknown' write after a typed one is a downgrade
+    and blocks too). Projects that were never typed stay unrestricted.
+    """
+    project_dir = pipeline_dir / project_id
+    if not project_dir.exists():
+        return
+    new = _canonical_pipeline_type(pipeline_type) or "unknown"
+    for path in sorted(project_dir.glob("checkpoint_*.json")):
+        try:
+            with open(path) as f:
+                existing = json.load(f).get("pipeline_type") or "unknown"
+        except Exception:
+            continue
+        if existing == "unknown":
+            continue
+        if new != existing:
+            raise CheckpointValidationError(
+                f"Pipeline identity lock: project {project_id!r} is a {existing!r} "
+                f"production (per {path.name}); writing stage {new!r}-typed checkpoints "
+                "into it would shed that pipeline's gates. One project, one pipeline."
+            )
+        return  # locked and matching — no need to scan further
+
+
 def write_checkpoint(
     pipeline_dir: Path,
     project_id: str,
@@ -1542,6 +1576,7 @@ def write_checkpoint(
     # Canonicalize at the source so a stray-cased / whitespace-padded zavod type is never
     # persisted raw — every downstream consumer then sees the canonical id (#11).
     pipeline_type = _canonical_pipeline_type(pipeline_type)
+    _enforce_project_pipeline_identity(pipeline_dir, project_id, pipeline_type)
     valid_stages = (
         set(get_pipeline_stages(pipeline_type)) if pipeline_type
         else ALL_KNOWN_STAGES

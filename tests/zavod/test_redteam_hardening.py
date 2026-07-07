@@ -1356,3 +1356,46 @@ def test_glyph_nested_decode_is_bounded():
     outer = _b64.b64encode(inner.encode()).decode()
     r = _glyph({"blob": outer})
     assert not r["ok"]
+
+
+# ── Round 7 #1 (2026-07-07 re-audit №8, code-confirmed): one project, one pipeline ──
+# Every gate keys off the checkpoint's OWN pipeline_type, so a zavod-reel project could
+# close its next stage as pipeline_type="animation" and shed bench/ladder/glyph/engine
+# enforcement entirely. The first typed checkpoint now locks the project's identity.
+from tests.zavod.media_helpers import seed_prior_stages  # noqa: E402
+
+
+def test_mixed_pipeline_type_in_one_project_is_blocked(tmp_path):
+    pdir = tmp_path / "p1"; pdir.mkdir()
+    seed_prior_stages(pdir, "zavod-reel", "assets")   # idea..scene_plan completed as zavod-reel
+    tiny_mp4(pdir / "a.mp4")
+    with pytest.raises(CheckpointValidationError, match="identity lock"):
+        write_checkpoint(
+            tmp_path, "p1", "assets", "completed",
+            {"asset_manifest": {"version": "1.0", "assets": [
+                {"id": "a1", "type": "video", "path": "a.mp4",
+                 "source_tool": "x", "scene_id": "s1"}]}},
+            pipeline_type="animation",
+        )
+
+
+def test_untyped_write_into_typed_project_is_blocked(tmp_path):
+    pdir = tmp_path / "p1"; pdir.mkdir()
+    seed_prior_stages(pdir, "zavod-reel", "script")
+    with pytest.raises(CheckpointValidationError, match="identity lock"):
+        write_checkpoint(tmp_path, "p1", "script", "in_progress", {}, pipeline_type=None)
+
+
+def test_same_pipeline_type_keeps_writing_normally(tmp_path):
+    pdir = tmp_path / "p1"; pdir.mkdir()
+    seed_prior_stages(pdir, "zavod-reel", "script")
+    p = write_checkpoint(tmp_path, "p1", "script", "in_progress", {},
+                         pipeline_type="zavod-reel")
+    assert p.exists()
+
+
+def test_untyped_project_stays_unrestricted(tmp_path):
+    write_checkpoint(tmp_path, "p1", "idea", "in_progress", {}, pipeline_type=None)
+    p = write_checkpoint(tmp_path, "p1", "script", "in_progress", {},
+                         pipeline_type="screen-demo")  # first TYPED write locks from here on
+    assert p.exists()
