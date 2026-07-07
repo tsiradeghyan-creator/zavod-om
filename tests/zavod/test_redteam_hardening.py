@@ -1302,3 +1302,57 @@ def test_compose_output_with_honest_declaration_passes(tmp_path):
     pdir = tmp_path / "p1"; pdir.mkdir(parents=True)
     tiny_mp4(pdir / "o.mp4")
     _enforce_artifact_path_existence(_compose_existence_cp("64x64", 0.2), pdir)  # must not raise
+
+
+# ── Round 6 #7 (2026-07-06 external audit №4): glyph gate sweeps DECODED payloads ──
+# The gate checked only the immediately visible string; transliterated or mixed-script
+# Armenian hidden in a base64 data: URI (SVG), a percent-encoded caption, a \uXXXX-escaped
+# JSON splice, or an HTML entity only materialized at render time — after the gate.
+import base64 as _b64  # noqa: E402
+from lib.armenian_glyph_gate import gate as _glyph  # noqa: E402
+
+
+def test_glyph_catches_translit_inside_base64_data_uri():
+    payload = _b64.b64encode("<svg><text>barev dzez shnorhakalutyun</text></svg>".encode()).decode()
+    art = {"logo": f"data:image/svg+xml;base64,{payload}"}
+    r = _glyph(art)
+    assert not r["ok"] and any("decoded:base64" in v["field"] for v in r["violations"])
+
+
+def test_glyph_catches_mixed_script_inside_bare_base64():
+    payload = _b64.b64encode(("Vanը Հայկական դարպասների հեղինակն է " * 2).encode()).decode()
+    r = _glyph({"blob": payload})
+    assert not r["ok"] and any("decoded:base64" in v["field"] for v in r["violations"])
+
+
+def test_glyph_catches_percent_encoded_translit():
+    from urllib.parse import quote
+    r = _glyph({"caption_url": "https://x.am/p?text=" + quote("barev dzez inchpes es")})
+    assert not r["ok"] and any("decoded:percent-encoding" in v["field"] for v in r["violations"])
+
+
+def test_glyph_catches_unicode_escaped_splice():
+    # Escaped JSON riding inside a string value: decodes to the mixed-script "Vanը".
+    r = _glyph({"line": "Van\\u0568 \\u0540\\u0561\\u0575\\u056f\\u0561\\u056f\\u0561\\u0576"})
+    assert not r["ok"] and any("decoded:unicode-escape" in v["field"] for v in r["violations"])
+
+
+def test_glyph_catches_html_entity_splice():
+    r = _glyph({"line": "Van&#x568; &#x540;&#x561;&#x575;&#x56f;&#x561;&#x56f;&#x561;&#x576;"})
+    assert not r["ok"] and any("decoded:html-entity" in v["field"] for v in r["violations"])
+
+
+def test_glyph_clean_base64_and_binary_payloads_pass():
+    clean_text = _b64.b64encode(b"Just an English caption, nothing hidden here at all").decode()
+    binary = _b64.b64encode(bytes(range(256)) * 4).decode()
+    r = _glyph({"a": f"data:text/plain;base64,{clean_text}", "b": binary,
+                "sha": "f" * 64})  # hex hash: base64-decodable but binary → skipped
+    assert r["ok"], r["violations"]
+
+
+def test_glyph_nested_decode_is_bounded():
+    # base64(base64(translit)) is caught (depth 2); the sweep never recurses unboundedly.
+    inner = _b64.b64encode("barev dzez inchpes es".encode()).decode()
+    outer = _b64.b64encode(inner.encode()).decode()
+    r = _glyph({"blob": outer})
+    assert not r["ok"]

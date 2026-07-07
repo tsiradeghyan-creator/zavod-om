@@ -15,8 +15,11 @@ Verdict contract (matches the other QC libs):
 
 from __future__ import annotations
 
+import base64
+import html as _html
 import re
 import unicodedata
+import urllib.parse
 from typing import Any
 
 # Armenian letters: main block U+0531–U+0556 (caps), U+0561–U+0586 (lower),
@@ -54,7 +57,52 @@ TRANSLIT_RE = re.compile(
 )
 
 
-def check_text(text: str, field: str = "") -> list[dict[str, str]]:
+# Round-6 #7 (external audit №4): the gate checked only the immediately visible string,
+# but text often materializes at a later decode/render step — Latin transliteration hidden
+# in a base64 `data:` URI inside an SVG, a percent-encoded caption, a \uXXXX-escaped JSON
+# splice, or an HTML entity. Decode every such layer (bounded depth) and sweep the result.
+_B64_DATA_URI = re.compile(r"data:[\w.+/-]*;base64,([A-Za-z0-9+/=\s]{8,})")
+_BARE_B64 = re.compile(r"(?<![A-Za-z0-9+/])[A-Za-z0-9+/]{24,}={0,2}")
+_PCT_ESC = re.compile(r"%[0-9A-Fa-f]{2}")
+_U_ESC = re.compile(r"\\u([0-9A-Fa-f]{4})")
+_HTML_ENT = re.compile(r"&(#\d+|#x[0-9A-Fa-f]+|[A-Za-z]+);")
+_DECODE_DEPTH = 3
+
+
+def _decoded_payloads(text: str) -> list[tuple[str, str]]:
+    """Text layers hiding inside `text` that only appear after a decode step."""
+    out: list[tuple[str, str]] = []
+    blobs = [m.group(1) for m in _B64_DATA_URI.finditer(text)]
+    blobs += [m.group(0) for m in _BARE_B64.finditer(text)]
+    for blob in blobs:
+        blob = re.sub(r"\s+", "", blob)
+        blob += "=" * (-len(blob) % 4)  # regex word-boundaries may shave the padding
+        try:
+            raw = base64.b64decode(blob, validate=True)
+            decoded = raw.decode("utf-8")
+        except Exception:
+            continue  # binary payload — nothing textual to sweep
+        if decoded.strip():
+            out.append((decoded, "base64"))
+    if _PCT_ESC.search(text):
+        try:
+            decoded = urllib.parse.unquote(text, errors="strict")
+        except Exception:
+            decoded = text
+        if decoded != text:
+            out.append((decoded, "percent-encoding"))
+    if _U_ESC.search(text):
+        decoded = _U_ESC.sub(lambda m: chr(int(m.group(1), 16)), text)
+        if decoded != text:
+            out.append((decoded, "unicode-escape"))
+    if _HTML_ENT.search(text):
+        decoded = _html.unescape(text)
+        if decoded != text:
+            out.append((decoded, "html-entity"))
+    return out
+
+
+def check_text(text: str, field: str = "", _depth: int = 0) -> list[dict[str, str]]:
     """Return violations for a single string.
 
     Catches two failure modes:
@@ -147,6 +195,11 @@ def check_text(text: str, field: str = "") -> list[dict[str, str]]:
                 f"Eastern Armenian Unicode; transliteration is never allowed."
             ),
         })
+    # 4. Decode-sweep (round-6 #7): text that only materializes after base64 / percent /
+    #    \uXXXX / entity decoding gets the SAME checks, bounded depth against decode bombs.
+    if _depth < _DECODE_DEPTH:
+        for decoded, how in _decoded_payloads(text):
+            violations += check_text(decoded, f"{field}<decoded:{how}>", _depth + 1)
     return violations
 
 
