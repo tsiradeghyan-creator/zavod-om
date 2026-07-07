@@ -133,6 +133,31 @@
           "timestamp": {
             "type": "string",
             "description": "ISO-8601 time the decision was made"
+          },
+          "performance_refs": {
+            "type": "array",
+            "description": "Structural links to recent performance_brief results that informed this decision. Mandatory for concept_selection once >=3 briefs exist (performance loop).",
+            "items": {
+              "type": "object",
+              "required": [
+                "performance_id",
+                "used_for"
+              ],
+              "properties": {
+                "performance_id": {
+                  "type": "string"
+                },
+                "used_for": {
+                  "type": "string",
+                  "description": "e.g. repeat_hook_type | avoid_topic | adapt_cta"
+                },
+                "signal": {
+                  "type": "string",
+                  "description": "e.g. high_saves | low_completion | comment_question"
+                }
+              },
+              "additionalProperties": false
+            }
           }
         },
         "additionalProperties": false

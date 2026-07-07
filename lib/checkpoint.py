@@ -1509,6 +1509,12 @@ def _validate_decision_log_merge(
     for d in new_log.get("decisions", []):
         if d.get("category") == "concept_selection":
             _validate_concept_selection(d)
+            # Performance loop (strategy audit №9): once >=3 briefs are published, a new
+            # concept decision must reference the latest 3 results — dormant before that.
+            from lib.performance_loop import concept_refs_violation
+            viol = concept_refs_violation(d)
+            if viol:
+                raise CheckpointValidationError(f"decision_log: {viol}")
     # A direction an ACTIVE decision explicitly rejected must not return by name in a new
     # decision of the same category — reopening it requires superseding the decision that
     # rejected it, so the rejection (and its rationale) leaves history explicitly.

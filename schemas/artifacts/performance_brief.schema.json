@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openmontage/artifacts/performance_brief",
+  "title": "Performance Brief",
+  "description": "Post-publish performance record (publish + 48h). The performance loop the strategy audit demanded: each brief becomes a structural input to the NEXT concept decision via decision_log performance_refs.",
+  "type": "object",
+  "required": ["version", "performance_id", "project_id", "published_at", "platform", "format", "metrics_48h", "verdict"],
+  "properties": {
+    "version": { "type": "string", "const": "1.0" },
+    "performance_id": { "type": "string", "minLength": 1 },
+    "project_id": { "type": "string" },
+    "published_at": { "type": "string", "description": "ISO-8601" },
+    "platform": { "type": "string" },
+    "format": { "type": "string" },
+    "content_pillar": { "type": "string" },
+    "hook_type": { "type": "string" },
+    "topic": { "type": "string" },
+    "duration_seconds": { "type": "number" },
+    "metrics_48h": {
+      "type": "object",
+      "description": "Raw platform metrics at publish+48h. Nulls allowed — small accounts don't get every metric.",
+      "properties": {
+        "views": { "type": ["integer", "null"] },
+        "reach": { "type": ["integer", "null"] },
+        "three_second_hold_rate": { "type": ["number", "null"] },
+        "average_watch_time_seconds": { "type": ["number", "null"] },
+        "completion_rate": { "type": ["number", "null"] },
+        "saves": { "type": ["integer", "null"] },
+        "shares": { "type": ["integer", "null"] },
+        "comments": { "type": ["integer", "null"] },
+        "profile_visits": { "type": ["integer", "null"] },
+        "follows": { "type": ["integer", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "qualitative_signals": {
+      "type": "object",
+      "properties": {
+        "best_comment": { "type": "string" },
+        "audience_question": { "type": "string" },
+        "owner_note": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "verdict": {
+      "type": "object",
+      "description": "What the next production should do differently — the actionable part.",
+      "required": ["keep_hook_type", "repeat_topic"],
+      "properties": {
+        "keep_hook_type": { "type": "boolean" },
+        "repeat_topic": { "type": "boolean" },
+        "next_test": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

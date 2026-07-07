@@ -66,6 +66,35 @@ STAGE_BENCH: dict[str, list[str]] = {
 }
 
 
+# The 5-criterion hook rubric (strategy audit): filled by the story-hook reviewer, each
+# criterion 1-5. brand_specificity is the universalized criterion — "could any brand have
+# said this?"; what counts as THIS brand's specificity comes from the loaded brand pack.
+HOOK_RUBRIC_CRITERIA = (
+    "first_3_seconds_promise",   # does the opening promise a concrete reason to watch?
+    "brand_specificity",         # could only this brand (per its pack) have made this?
+    "emotional_charge",          # is there felt tension, not dry information?
+    "clarity",                   # does the viewer know what they will get?
+    "share_or_save_reason",      # is there a reason to save/share/comment?
+)
+HOOK_RUBRIC_PASS = 18  # of 25
+
+
+def _hook_rubric_violation(rubric: Any) -> str | None:
+    if not isinstance(rubric, dict):
+        return ("missing hook rubric — the story-hook ruling must carry scores for "
+                f"{list(HOOK_RUBRIC_CRITERIA)} (1-5 each, pass >= {HOOK_RUBRIC_PASS}).")
+    total = 0
+    for crit in HOOK_RUBRIC_CRITERIA:
+        score = rubric.get(crit)
+        if not isinstance(score, int) or not 1 <= score <= 5:
+            return f"hook rubric criterion {crit!r} must be an integer 1-5 (got {score!r})."
+        total += score
+    if total < HOOK_RUBRIC_PASS:
+        return (f"hook rubric total {total} < {HOOK_RUBRIC_PASS} — the hook is not strong "
+                "enough to close the idea stage; rework the hook, not the rubric.")
+    return None
+
+
 def required_bench(stage: str, pipeline_type: str | None = None) -> list[str]:
     """The stage's required bench roles.
 
@@ -139,6 +168,15 @@ def run_bench_gates(stage: str, report: dict[str, Any],
                     f"bench.{role}: specialist verdict {verdict!r} ({issues}) — the stage cannot "
                     "close 'completed' over an unresolved specialist objection.")
             continue
+
+        # Hook rubric (strategy audit): the story-hook reviewer judges the hook, the code
+        # only demands that the judgment is STRUCTURED — five named criteria, 1-5 each,
+        # and a passing total. Code never pretends to measure hook strength itself.
+        if role == "story-hook":
+            rubric_violation = _hook_rubric_violation(entry.get("rubric"))
+            if rubric_violation:
+                violations.append(f"bench.{role}: {rubric_violation}")
+                continue
 
         present[role] = ruling
 

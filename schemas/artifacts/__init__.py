@@ -37,6 +37,7 @@ ARTIFACT_NAMES = [
     "glyph_gate_report",
     "continuity_report",
     "story_bible",
+    "performance_brief",
 ]
 
 

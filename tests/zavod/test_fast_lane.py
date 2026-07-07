@@ -38,10 +38,20 @@ def test_fast_lane_has_no_ladder_rungs():
         assert _required_ladder_sub_stages("zavod-reel-fast", stage) == []
 
 
+_RUBRIC_OK = {"first_3_seconds_promise": 4, "brand_specificity": 4,
+              "emotional_charge": 4, "clarity": 4, "share_or_save_reason": 4}
+
+
 def _fast_bench(stage_roles):
-    return {"bench": {r: {"ruling": f"The {r} examined its own {r} domain thoroughly and "
-                                    f"reached a specific, well-supported conclusion here.",
-                          "verdict": "approve"} for r in stage_roles}}
+    bench = {}
+    for r in stage_roles:
+        entry = {"ruling": f"The {r} examined its own {r} domain thoroughly and "
+                           f"reached a specific, well-supported conclusion here.",
+                 "verdict": "approve"}
+        if r == "story-hook":
+            entry["rubric"] = dict(_RUBRIC_OK)
+        bench[r] = entry
+    return {"bench": bench}
 
 
 def test_fast_lane_idea_closes_with_light_bench(tmp_path):
@@ -88,3 +98,42 @@ def test_fast_lane_missing_bench_role_still_blocks(tmp_path):
              "decision_log": _concept_log("p")},
             pipeline_type="zavod-reel-fast",
         )
+
+
+# ── Hook rubric (strategy audit): the reviewer judges, the code demands structure ──
+from lib.bench_gate import run_bench_gates  # noqa: E402
+
+
+def _idea_report(rubric):
+    entry = {"ruling": "The story-hook reviewer weighed the opening promise, tension and "
+                       "save-worthiness of this hook against the brand pack in detail.",
+             "verdict": "approve"}
+    if rubric is not None:
+        entry["rubric"] = rubric
+    other = {"ruling": "The brand-voice-guard checked register, vocabulary and visual "
+                       "identity against the loaded brand pack and found them consistent.",
+             "verdict": "approve"}
+    return {"stage": "idea", "bench": {"story-hook": entry, "brand-voice-guard": other}}
+
+
+def test_story_hook_without_rubric_blocks():
+    r = run_bench_gates("idea", _idea_report(None), pipeline_type="zavod-reel-fast")
+    assert not r["ok"] and any("rubric" in v for v in r["violations"])
+
+
+def test_low_rubric_total_blocks():
+    weak = dict(_RUBRIC_OK, first_3_seconds_promise=1, emotional_charge=1, clarity=1)  # 14
+    r = run_bench_gates("idea", _idea_report(weak), pipeline_type="zavod-reel-fast")
+    assert not r["ok"] and any("not strong enough" in v for v in r["violations"])
+
+
+def test_invalid_rubric_score_blocks():
+    r = run_bench_gates("idea", _idea_report(dict(_RUBRIC_OK, clarity=7)),
+                        pipeline_type="zavod-reel-fast")
+    assert not r["ok"] and any("1-5" in v for v in r["violations"])
+
+
+def test_passing_rubric_closes():
+    r = run_bench_gates("idea", _idea_report(dict(_RUBRIC_OK)),
+                        pipeline_type="zavod-reel-fast")
+    assert r["ok"], r["violations"]
