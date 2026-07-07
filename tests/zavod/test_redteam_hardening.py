@@ -1178,3 +1178,74 @@ def test_rejected_direction_returns_only_by_superseding(tmp_path):
     comeback["options_considered"][0]["rejected_because"] = "already used for the reel"
     write_checkpoint(tmp_path, "p", "script", "in_progress",
                      {"decision_log": _log(comeback)}, pipeline_type=None)  # must not raise
+
+
+# ── Round 6 #5 (2026-07-06 external audit №15): Scout adoption pre/post control ──
+# The memo/decision loop keeps the Scout DRIVER from installing anything, but the adoption
+# step (the agent wiring an approved capability in) had no enforcement: nothing forced a
+# green suite after the change or left a one-step rollback anchor. record_adoption() is now
+# the one valid write path, and healthcheck turns the tree RED on a ledger entry that skips
+# the protocol — which also blocks the next wake-safe Scout run.
+from lib.scout import (  # noqa: E402
+    AdoptionError, record_adoption, adoption_ledger_violations,
+)
+
+
+def _decisions_file(tmp_path, items):
+    p = tmp_path / "memo_decisions.json"
+    p.write_text(_json.dumps({"decisions": {
+        "scout_memo_x.md": {"decided": "2026-07-07", "by": "owner", "items": items}}}))
+    return str(p)
+
+
+def _adopt(tmp_path, items=None, **over):
+    dec = _decisions_file(tmp_path, items if items is not None else {"new_model_v1": "approve"})
+    led = str(tmp_path / "adoption_ledger.json")
+    kw = dict(memo="scout_memo_x.md", pre_commit="aaa1111", post_commit="bbb2222",
+              suite_passed=600, suite_failed=0, files_changed=["lib/x.py"],
+              decisions_path=dec, ledger_path=led)
+    kw.update(over)
+    return record_adoption("new_model_v1", **kw), led, dec
+
+
+def test_adoption_without_owner_approval_blocks(tmp_path):
+    with pytest.raises(AdoptionError, match="approve"):
+        _adopt(tmp_path, items={"new_model_v1": "reject"})
+
+
+def test_adoption_of_undecided_item_blocks(tmp_path):
+    with pytest.raises(AdoptionError, match="approve"):
+        _adopt(tmp_path, items={"other_item": "approve"})
+
+
+def test_adoption_without_rollback_anchor_blocks(tmp_path):
+    with pytest.raises(AdoptionError, match="rollback"):
+        _adopt(tmp_path, post_commit="aaa1111")  # same as pre → no revert anchor
+
+
+def test_adoption_with_red_suite_blocks(tmp_path):
+    with pytest.raises(AdoptionError, match="green"):
+        _adopt(tmp_path, suite_failed=2)
+
+
+def test_valid_adoption_lands_in_ledger_with_rollback(tmp_path):
+    entry, led, dec = _adopt(tmp_path)
+    ledger = _json.loads(Path(led).read_text())
+    assert ledger["adoptions"][0]["rollback"] == "git revert bbb2222"
+    assert adoption_ledger_violations(led, dec) == []
+
+
+def test_hand_edited_ledger_entry_is_a_violation(tmp_path):
+    entry, led, dec = _adopt(tmp_path)
+    ledger = _json.loads(Path(led).read_text())
+    ledger["adoptions"][0]["suite"] = {"passed": 1, "failed": 3}   # forged after the fact
+    Path(led).write_text(_json.dumps(ledger))
+    bad = adoption_ledger_violations(led, dec)
+    assert bad and "suite" in bad[0]
+
+
+def test_unapproved_ledger_entry_is_a_violation(tmp_path):
+    entry, led, dec = _adopt(tmp_path)
+    dec2 = _decisions_file(tmp_path, {"new_model_v1": "reject"})   # approval revoked
+    bad = adoption_ledger_violations(led, dec2)
+    assert bad and "approve" in bad[0]

@@ -113,7 +113,15 @@ def _scout():
         return (False, "known_capabilities.json missing")
     reg = json.load(open(p))
     n = sum(len(v) for v in reg.get("capabilities", {}).values())
-    return (n > 0, f"{n} known capabilities (Scout dedup ready)")
+    if n == 0:
+        return (False, "0 known capabilities")
+    # Round-6 #5: an adoption without owner approval, rollback anchor, or green post-change
+    # suite turns the tree RED — which also blocks the next Scout run (wake-safe gate).
+    from lib.scout import adoption_ledger_violations
+    bad = adoption_ledger_violations()
+    if bad:
+        return (False, f"adoption ledger violations: {bad}")
+    return (True, f"{n} known capabilities (Scout dedup ready; adoption ledger clean)")
 
 
 def _style_radar():

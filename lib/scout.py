@@ -18,6 +18,128 @@ from typing import Any
 REGISTRY = os.path.join(os.path.dirname(__file__), "..", "library", "known_capabilities.json")
 LIB_DIR = os.path.join(os.path.dirname(__file__), "..", "library")
 DECISIONS = os.path.join(LIB_DIR, "memo_decisions.json")
+ADOPTIONS = os.path.join(LIB_DIR, "adoption_ledger.json")
+
+
+class AdoptionError(ValueError):
+    """An adoption that violates the pre/post-change control protocol (round-6 #5)."""
+
+
+def _approved_items(decisions_path: str = DECISIONS) -> dict[str, str]:
+    """memo item id -> decision string, for every item whose decision starts with 'approve'."""
+    if not os.path.exists(decisions_path):
+        return {}
+    try:
+        data = json.load(open(decisions_path))
+    except Exception:
+        return {}
+    out: dict[str, str] = {}
+    for memo in data.get("decisions", {}).values():
+        for item, verdict in (memo.get("items") or {}).items():
+            if str(verdict).lower().startswith("approve"):
+                out[item] = str(verdict)
+    return out
+
+
+def record_adoption(
+    item_id: str,
+    *,
+    memo: str,
+    pre_commit: str,
+    post_commit: str,
+    suite_passed: int,
+    suite_failed: int,
+    files_changed: list[str],
+    decisions_path: str = DECISIONS,
+    ledger_path: str = ADOPTIONS,
+) -> dict[str, Any]:
+    """The ONE valid way to mark a Scout finding as adopted (round-6 #5, audit №15).
+
+    The memo/decision loop already keeps Scout from installing anything on its own, but the
+    ADOPTION step — the agent wiring an approved capability in — had no pre/post-change
+    control: nothing forced a green suite after the change or left a one-step rollback
+    anchor. This ledger does both, fail-closed:
+      - the item must carry an owner 'approve*' decision in memo_decisions.json;
+      - pre and post git commits are mandatory and distinct — the adoption is ONE commit,
+        so `git revert <post_commit>` is always the one-step rollback;
+      - the full regression suite must have run green AFTER the change (failed == 0).
+    Healthcheck cross-validates this ledger, so a hand-written entry that skips the
+    protocol turns the tree RED (which also blocks the next Scout run).
+    """
+    verdict = _approved_items(decisions_path).get(item_id)
+    if verdict is None:
+        raise AdoptionError(
+            f"adoption of {item_id!r} has no owner 'approve' decision in memo_decisions.json "
+            "— Scout findings are adopted only after explicit approval."
+        )
+    if not pre_commit or not post_commit or pre_commit == post_commit:
+        raise AdoptionError(
+            f"adoption of {item_id!r} needs distinct pre/post commits — the post commit is "
+            "the one-step rollback anchor (git revert <post_commit>)."
+        )
+    if suite_failed != 0 or suite_passed <= 0:
+        raise AdoptionError(
+            f"adoption of {item_id!r} requires the full suite green after the change "
+            f"(got {suite_passed} passed / {suite_failed} failed) — a targeted new test "
+            "passing while old protections regress is exactly the failure this blocks."
+        )
+    if not files_changed:
+        raise AdoptionError(f"adoption of {item_id!r} lists no changed files.")
+
+    entry = {
+        "item": item_id,
+        "memo": memo,
+        "decision": verdict,
+        "pre_commit": pre_commit,
+        "post_commit": post_commit,
+        "rollback": f"git revert {post_commit}",
+        "suite": {"passed": suite_passed, "failed": suite_failed},
+        "files_changed": sorted(files_changed),
+        "adopted": date.today().isoformat(),
+    }
+    ledger = {"note": "Scout adoption ledger — every adopted finding with its rollback "
+                      "anchor and post-change suite proof. Written ONLY via "
+                      "lib.scout.record_adoption; healthcheck cross-validates.",
+              "adoptions": []}
+    if os.path.exists(ledger_path):
+        try:
+            ledger = json.load(open(ledger_path))
+        except Exception:
+            pass
+    ledger.setdefault("adoptions", []).append(entry)
+    with open(ledger_path, "w") as f:
+        json.dump(ledger, f, indent=1, ensure_ascii=False)
+    return entry
+
+
+def adoption_ledger_violations(
+    ledger_path: str = ADOPTIONS, decisions_path: str = DECISIONS
+) -> list[str]:
+    """Cross-validate the adoption ledger for healthcheck (round-6 #5).
+
+    Every entry must reference an owner-approved item, carry distinct pre/post commits,
+    and a green post-change suite. A hand-edited entry that skips the protocol is a
+    violation — the tree goes RED, which also blocks the next Scout run (wake-safe gate).
+    """
+    if not os.path.exists(ledger_path):
+        return []
+    try:
+        ledger = json.load(open(ledger_path))
+    except Exception as e:
+        return [f"adoption_ledger.json unreadable ({e})"]
+    approved = _approved_items(decisions_path)
+    out: list[str] = []
+    for i, e in enumerate(ledger.get("adoptions", [])):
+        tag = f"adoption[{i}] {e.get('item')!r}"
+        if e.get("item") not in approved:
+            out.append(f"{tag}: no owner approve decision")
+        if not e.get("pre_commit") or not e.get("post_commit") \
+                or e.get("pre_commit") == e.get("post_commit"):
+            out.append(f"{tag}: missing/identical pre/post commits (no rollback anchor)")
+        suite = e.get("suite") or {}
+        if suite.get("failed") != 0 or not suite.get("passed"):
+            out.append(f"{tag}: no green post-change suite proof")
+    return out
 
 
 def undecided_memos(lib_dir: str = LIB_DIR, decisions_path: str = DECISIONS) -> list[str]:
