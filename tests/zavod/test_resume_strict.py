@@ -33,7 +33,9 @@ from lib.checkpoint import (  # noqa: E402
 )
 from lib.canon_guard import LOCK, lock as canon_lock  # noqa: E402
 from tests.zavod.media_helpers import tiny_mp4, seed_prior_stages  # noqa: E402
-from tests.zavod.test_gates import _with_bench, _brief, _ladder, _IDEA_SUBS, _ASSET_SUBS  # noqa: E402
+from tests.zavod.test_gates import (  # noqa: E402
+    _with_bench, _brief, _ladder, _concept_log, _IDEA_SUBS, _ASSET_SUBS,
+)
 
 
 def _raw_cp(stage, *, status="completed", artifacts=None, ptype="zavod-reel"):
@@ -122,7 +124,7 @@ def _valid_idea_project(tmp_path):
         tmp_path, "proj", "idea", "completed",
         _with_bench("idea", {"brief": _brief(), "production_ladder": _ladder(_IDEA_SUBS),
                              "engine_lock": {"engine": "higgsfield", "compose_runtime": "ffmpeg"},
-                             "run_mode": "automatic"}),
+                             "run_mode": "automatic", "decision_log": _concept_log("proj")}),
         pipeline_type="zavod-reel",
     )
 

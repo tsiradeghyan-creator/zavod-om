@@ -276,6 +276,24 @@ def _brief():
             "target_duration_seconds": 30}
 
 
+def _concept_log(pid="p"):
+    # A zavod idea stage closes only with a recorded concept_selection decision (round-6 #4):
+    # ≥3 mechanism-level-different directions, rejections carrying their rationale.
+    return {"version": "1.0", "project_id": pid, "decisions": [{
+        "decision_id": "d-concept", "stage": "idea", "category": "concept_selection",
+        "subject": "reel concept direction",
+        "options_considered": [
+            {"option_id": "c1", "label": "desert dawn confession", "score": 0.9,
+             "reason": "single intimate voice carries the whole arc"},
+            {"option_id": "c2", "label": "pool-party cold open", "score": 0.6,
+             "reason": "ensemble energy hook cut on the beat",
+             "rejected_because": "tone clashes with the brand's restraint"},
+            {"option_id": "c3", "label": "static architecture study", "score": 0.4,
+             "reason": "slow wordless visual meditation",
+             "rejected_because": "no narrative pull for a 30s reel"}],
+        "selected": "c1", "reason": "strongest emotional mechanism for 30 seconds"}]}
+
+
 def _asset_manifest(source_tool):
     return {"version": "1.0", "assets": [
         {"id": "a1", "type": "video", "path": "a.mp4", "source_tool": source_tool, "scene_id": "s1"}]}
@@ -313,7 +331,7 @@ def test_idea_with_engine_lock_passes(tmp_path):
         tmp_path, "p-eng", "idea", "completed",
         _with_bench("idea", {"brief": _brief(), "production_ladder": _ladder(_IDEA_SUBS),
          "engine_lock": {"engine": "higgsfield", "compose_runtime": "ffmpeg"},
-         "run_mode": "automatic"}),
+         "run_mode": "automatic", "decision_log": _concept_log("p-eng")}),
         pipeline_type="zavod-reel",
     )
     assert p.exists()

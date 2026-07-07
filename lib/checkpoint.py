@@ -1194,6 +1194,30 @@ def _enforce_stage_order(checkpoint: dict[str, Any], project_dir: Path | str | N
             )
 
 
+def _enforce_concept_lock(checkpoint: dict[str, Any]) -> None:
+    """Zavod idea closure requires a recorded concept_selection decision (round-6 #4).
+
+    The proposal ritual — several directions, one chosen, the rest rejected with reasons —
+    only binds later stages if it is RECORDED. An idea stage that closes without a
+    concept_selection decision leaves no trace of what was considered, so rejected
+    directions can silently return and the choice rationale is lost. The decision itself
+    is validated by _validate_concept_selection at merge time; this seam only refuses
+    closure without one.
+    """
+    if not _is_zavod_pipeline(checkpoint.get("pipeline_type") or ""):
+        return
+    if checkpoint.get("stage") != "idea" or checkpoint.get("status") != "completed":
+        return
+    dl = (checkpoint.get("artifacts") or {}).get("decision_log") or {}
+    if not any(isinstance(d, dict) and d.get("category") == "concept_selection"
+               for d in dl.get("decisions", [])):
+        raise CheckpointValidationError(
+            "Gate block at stage 'idea': a Zavod idea stage cannot close without a "
+            "concept_selection decision in artifacts.decision_log — at least three "
+            "directions with recorded rejections (round-6 #4)."
+        )
+
+
 def enforce_zavod_write_contracts(
     checkpoint: dict[str, Any],
     *,
@@ -1209,6 +1233,7 @@ def enforce_zavod_write_contracts(
     _enforce_production_ladder(checkpoint)   # specialist ladder is non-collapsible
     _enforce_engine_lane(checkpoint)         # Remotion and Higgsfield lanes stay separate
     _enforce_run_mode(checkpoint)            # supervised vs automatic stay separated
+    _enforce_concept_lock(checkpoint)        # idea closes only with a recorded concept choice (r6 #4)
     _enforce_canon_guard(checkpoint, project_dir)  # mid-pipeline canon drift requires revalidation
     _enforce_artifact_path_existence(checkpoint, project_dir)  # manifests must point at real files
     _enforce_referential_integrity(checkpoint, project_dir)  # cross-artifact links must resolve (#7)
@@ -1229,6 +1254,7 @@ def _enforce_resume_contracts(checkpoint: dict[str, Any], project_dir: Path | st
     _enforce_production_ladder(checkpoint)          # specialist ladder still non-collapsed
     _enforce_engine_lane(checkpoint)                # engine lane still consistent
     _enforce_run_mode(checkpoint)                   # run mode still consistent
+    _enforce_concept_lock(checkpoint)               # concept choice still recorded (r6 #4)
     _check_canon_guard_readonly(checkpoint, project_dir)      # canon drift — read-only
     _enforce_artifact_path_existence(checkpoint, project_dir)  # files real + valid media (#5)
     _enforce_referential_integrity(checkpoint, project_dir)   # cross-artifact links still resolve (#7)
@@ -1294,6 +1320,50 @@ def active_decisions(log: dict[str, Any]) -> list[dict[str, Any]]:
     return [d for d in log.get("decisions", []) if d.get("decision_id") not in superseded]
 
 
+def _validate_concept_selection(decision: dict[str, Any]) -> None:
+    """Anti-mediocrity contract for a concept_selection decision (round-6 #4, audit №12).
+
+    Claiming the category means meeting the bar: at least three directions that are not
+    the same idea in different words, the selection actually among them, and every
+    rejected direction carrying its rejection rationale — that record is what keeps a
+    rejected idea from silently returning in a later stage.
+    """
+    did = decision.get("decision_id")
+    opts = [o for o in decision.get("options_considered") or [] if isinstance(o, dict)]
+    if len(opts) < 3:
+        raise CheckpointValidationError(
+            f"decision_log: concept_selection {did!r} offers only {len(opts)} option(s) — "
+            "at least three genuinely different directions are required."
+        )
+    if decision.get("selected") not in {o.get("option_id") for o in opts}:
+        raise CheckpointValidationError(
+            f"decision_log: concept_selection {did!r} selects "
+            f"{decision.get('selected')!r} which is not among its options."
+        )
+    from lib.bench_gate import _similarity
+    for i in range(len(opts)):
+        for j in range(i + 1, len(opts)):
+            a, b = opts[i], opts[j]
+            la = str(a.get("label") or "").strip().casefold()
+            lb = str(b.get("label") or "").strip().casefold()
+            ta = f"{a.get('label', '')} {a.get('reason', '')}"
+            tb = f"{b.get('label', '')} {b.get('reason', '')}"
+            if la == lb or _similarity(ta, tb) >= 0.85:
+                raise CheckpointValidationError(
+                    f"decision_log: concept_selection {did!r} options "
+                    f"{a.get('option_id')!r} and {b.get('option_id')!r} are the same "
+                    "direction in different words — directions must differ in mechanism, "
+                    "not phrasing."
+                )
+    for o in opts:
+        if o.get("option_id") != decision.get("selected") and not str(o.get("rejected_because") or "").strip():
+            raise CheckpointValidationError(
+                f"decision_log: concept_selection {did!r} rejects option "
+                f"{o.get('option_id')!r} without rejected_because — the rejection "
+                "rationale must survive for later stages."
+            )
+
+
 def _validate_decision_log_merge(
     existing: dict[str, Any], new_log: dict[str, Any]
 ) -> None:
@@ -1355,6 +1425,42 @@ def _validate_decision_log_merge(
                 "requires supersedes; two active answers must never coexist."
             )
         active_by_subject.setdefault(key, d)
+
+    # Round-6 #4 (audit №12): concept contract + forbidden directions.
+    for d in new_log.get("decisions", []):
+        if d.get("category") == "concept_selection":
+            _validate_concept_selection(d)
+    # A direction an ACTIVE decision explicitly rejected must not return by name in a new
+    # decision of the same category — reopening it requires superseding the decision that
+    # rejected it, so the rejection (and its rationale) leaves history explicitly.
+    for d in new_log.get("decisions", []):
+        sel_label = next(
+            (str(o.get("label") or "").strip().casefold()
+             for o in d.get("options_considered") or [] if isinstance(o, dict)
+             and o.get("option_id") == d.get("selected")),
+            "",
+        )
+        if not sel_label:
+            continue
+        for other in combined.values():
+            if other.get("decision_id") == d.get("decision_id"):
+                continue
+            if other.get("decision_id") in superseded_by:
+                continue
+            if other.get("category") != d.get("category"):
+                continue
+            rejected_labels = {
+                str(o.get("label") or "").strip().casefold()
+                for o in other.get("options_considered") or [] if isinstance(o, dict)
+                and o.get("option_id") != other.get("selected")
+            }
+            if sel_label in rejected_labels:
+                raise CheckpointValidationError(
+                    f"decision_log: decision {d['decision_id']!r} selects "
+                    f"{sel_label!r}, which active decision {other['decision_id']!r} "
+                    "explicitly rejected — a rejected direction must not return without "
+                    "superseding the decision that rejected it."
+                )
 
 
 def _merge_decision_log(

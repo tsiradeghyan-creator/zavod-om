@@ -1065,3 +1065,116 @@ def test_blocked_decision_conflict_leaves_no_checkpoint(tmp_path):
         write_checkpoint(tmp_path, "p", "script", "in_progress",
                          {"decision_log": _log(_decision("d-002", "ffmpeg"))}, pipeline_type=None)
     assert not _checkpoint_path(tmp_path, "p", "script").exists()
+
+
+# ── Round 6 #4 (2026-07-06 external audit №12): concept contract + forbidden directions ──
+# Nothing guaranteed that proposal directions were genuinely different, that the choice
+# rationale survived, or that a rejected direction could not silently return later. Now:
+# concept_selection decisions must offer ≥3 mechanism-different options with recorded
+# rejections; a zavod idea stage cannot close without one; and a direction an active
+# decision rejected cannot be re-selected in that category without superseding it.
+from tests.zavod.test_gates import (  # noqa: E402
+    _with_bench as _gb_bench, _brief as _gb_brief, _ladder as _gb_ladder,
+    _concept_log as _gb_concept, _IDEA_SUBS as _GB_IDEA_SUBS,
+)
+
+
+def _concept(did="d-c", options=None, selected="c1", subject="reel concept direction",
+             supersedes=None):
+    opts = options if options is not None else [
+        {"option_id": "c1", "label": "desert dawn confession", "score": 0.9,
+         "reason": "single intimate voice carries the arc"},
+        {"option_id": "c2", "label": "pool-party cold open", "score": 0.6,
+         "reason": "ensemble energy hook on the beat",
+         "rejected_because": "tone clashes with brand restraint"},
+        {"option_id": "c3", "label": "static architecture study", "score": 0.4,
+         "reason": "slow wordless visual meditation",
+         "rejected_because": "no narrative pull in 30s"}]
+    d = {"decision_id": did, "stage": "idea", "category": "concept_selection",
+         "subject": subject, "options_considered": opts, "selected": selected,
+         "reason": "strongest mechanism"}
+    if supersedes:
+        d["supersedes"] = supersedes
+    return d
+
+
+def test_concept_selection_with_two_options_blocks(tmp_path):
+    c = _concept()
+    c["options_considered"] = c["options_considered"][:2]
+    with pytest.raises(CheckpointValidationError, match="three"):
+        write_checkpoint(tmp_path, "p", "idea", "in_progress",
+                         {"decision_log": _log(c)}, pipeline_type=None)
+
+
+def test_concept_rejection_without_rationale_blocks(tmp_path):
+    c = _concept()
+    del c["options_considered"][1]["rejected_because"]
+    with pytest.raises(CheckpointValidationError, match="rejected_because"):
+        write_checkpoint(tmp_path, "p", "idea", "in_progress",
+                         {"decision_log": _log(c)}, pipeline_type=None)
+
+
+def test_concept_same_direction_reworded_blocks(tmp_path):
+    c = _concept()
+    # c3 becomes a paraphrase of c1 — same mechanism, different words.
+    c["options_considered"][2] = {
+        "option_id": "c3", "label": "desert dawn confession, retold", "score": 0.5,
+        "reason": "single intimate voice carries the arc",
+        "rejected_because": "weaker variant"}
+    with pytest.raises(CheckpointValidationError, match="same direction"):
+        write_checkpoint(tmp_path, "p", "idea", "in_progress",
+                         {"decision_log": _log(c)}, pipeline_type=None)
+
+
+def test_concept_selected_outside_options_blocks(tmp_path):
+    with pytest.raises(CheckpointValidationError, match="not among"):
+        write_checkpoint(tmp_path, "p", "idea", "in_progress",
+                         {"decision_log": _log(_concept(selected="c9"))}, pipeline_type=None)
+
+
+def test_zavod_idea_cannot_close_without_concept_decision(tmp_path):
+    with pytest.raises(CheckpointValidationError, match="concept_selection"):
+        write_checkpoint(
+            tmp_path, "p", "idea", "completed",
+            _gb_bench("idea", {"brief": _gb_brief(), "production_ladder": _gb_ladder(_GB_IDEA_SUBS),
+                               "engine_lock": {"engine": "higgsfield", "compose_runtime": "ffmpeg"},
+                               "run_mode": "automatic"}),
+            pipeline_type="zavod-reel",
+        )
+
+
+def test_zavod_idea_with_concept_decision_closes(tmp_path):
+    p = write_checkpoint(
+        tmp_path, "p", "idea", "completed",
+        _gb_bench("idea", {"brief": _gb_brief(), "production_ladder": _gb_ladder(_GB_IDEA_SUBS),
+                           "engine_lock": {"engine": "higgsfield", "compose_runtime": "ffmpeg"},
+                           "run_mode": "automatic", "decision_log": _gb_concept("p")}),
+        pipeline_type="zavod-reel",
+    )
+    assert p.exists()
+
+
+def test_rejected_direction_cannot_return_without_supersede(tmp_path):
+    write_checkpoint(tmp_path, "p", "idea", "in_progress",
+                     {"decision_log": _log(_concept("d-c1"))}, pipeline_type=None)
+    # New decision in the SAME category but a different subject re-selects the direction
+    # d-c1 explicitly rejected ('pool-party cold open').
+    comeback = _concept("d-c2", subject="teaser concept direction", selected="c2")
+    comeback["options_considered"][1] = dict(comeback["options_considered"][1])
+    del comeback["options_considered"][1]["rejected_because"]
+    comeback["options_considered"][0]["rejected_because"] = "already used for the reel"
+    with pytest.raises(CheckpointValidationError, match="explicitly rejected"):
+        write_checkpoint(tmp_path, "p", "script", "in_progress",
+                         {"decision_log": _log(comeback)}, pipeline_type=None)
+
+
+def test_rejected_direction_returns_only_by_superseding(tmp_path):
+    write_checkpoint(tmp_path, "p", "idea", "in_progress",
+                     {"decision_log": _log(_concept("d-c1"))}, pipeline_type=None)
+    comeback = _concept("d-c2", subject="teaser concept direction", selected="c2",
+                        supersedes="d-c1")
+    comeback["options_considered"][1] = dict(comeback["options_considered"][1])
+    del comeback["options_considered"][1]["rejected_because"]
+    comeback["options_considered"][0]["rejected_because"] = "already used for the reel"
+    write_checkpoint(tmp_path, "p", "script", "in_progress",
+                     {"decision_log": _log(comeback)}, pipeline_type=None)  # must not raise

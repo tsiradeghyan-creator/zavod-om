@@ -152,6 +152,9 @@ def test_full_reel_run_is_accepted_end_to_end(tmp_path, engine, mode):
             "run_mode": mode,
             "bench_report": _full_bench_report(stage),
         }
+        if stage == "idea":
+            from tests.zavod.test_gates import _concept_log
+            artifacts["decision_log"] = _concept_log("ideal")
         if stage == "script":
             artifacts["story_bible"] = _story_bible()
         if stage == "edit":
