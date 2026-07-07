@@ -1,0 +1,109 @@
+name: zavod-reel-fast
+version: "1.0"
+description: >
+  Short-form fast lane (15-45s vertical reel) — the 2026-07-07 strategy-audit answer to
+  "one reel costs 35-42 bench rulings". Same enforcement code as zavod-reel, LIGHTER
+  requirements declared here: 4 stages instead of 7, a 3-role bench, no owner-gated
+  sub-stage ladder. The invariant core stays identical: glyph gate on every text
+  payload, canonical artifact per stage, real-file + ffprobe + declared-vs-actual on
+  outputs, continuity report per generated output, decision log + concept lock, owner
+  checkpoints. Brand voice/identity come from the loaded brand pack, never from this
+  manifest — the fast lane is brand-neutral.
+category: generated
+stability: beta
+default_checkpoint_policy: guided
+
+orchestration:
+  mode: executive-producer
+  skill: pipelines/zavod/executive-producer
+  budget_default_usd: 1.00
+  max_revisions_per_stage: 2
+  max_send_backs: 2
+  max_wall_time_minutes: 15
+
+metadata:
+  # Fast-lane eligibility (strategy audit): the guard against "run everything fast".
+  fast_lane:
+    max_duration_seconds: 45
+    owner_override_required_if:
+      - paid_client_delivery
+      - new_series_launch
+      - legal_or_sensitive_topic
+  # Manifest-declared bench (keys = bench-stage names): the enforcement code is the
+  # same run_bench_gates; only the required roles are fewer and sharper.
+  bench_roles:
+    idea: [story-hook, brand-voice-guard]
+    scene: [brand-voice-guard]
+    compose: [delivery-qc]
+    publish: [delivery-qc]
+  production_engine:
+    ask_at_start: true
+    locked_in: engine_lock
+    no_cross_lane: true
+    lanes:
+      remotion:
+        generation: none
+        compose_runtime: [remotion, hyperframes]
+        forbids: [higgsfield]
+      higgsfield:
+        generation: higgsfield
+        compose_runtime: [ffmpeg]
+        forbids: [remotion, hyperframes]
+
+required_skills:
+  - pipelines/zavod/executive-producer
+  - pipelines/zavod/idea-director
+  - pipelines/zavod/scene-director
+  - pipelines/zavod/compose-director
+  - pipelines/zavod/publish-director
+  - meta/reviewer
+  - meta/checkpoint-protocol
+
+stages:
+  - name: idea
+    skill: pipelines/zavod/idea-director
+    produces: [brief]
+    checkpoint_required: true
+    human_approval_default: true    # owner decision 1: approve hook + angle
+    review_focus:
+      - Hook rubric filled and passing (story-hook bench role)
+      - concept_selection decision recorded (>=3 directions, rejections with reasons)
+      - Duration within the fast-lane limit (<=45s) or explicit owner override
+    success_criteria:
+      - Schema-valid brief
+
+  - name: scene_plan
+    skill: pipelines/zavod/scene-director
+    required_artifacts_in: [brief]
+    produces: [scene_plan]
+    checkpoint_required: true
+    human_approval_default: false   # technical: auto-proceed, bench still rules
+    review_focus:
+      - Every scene has shot_language + staging; in_hand_objects declared
+      - text_policy set (glyph gate runs on all text payloads)
+    success_criteria:
+      - Schema-valid scene_plan
+
+  - name: compose
+    skill: pipelines/zavod/compose-director
+    required_artifacts_in: [scene_plan]
+    produces: [render_report]
+    checkpoint_required: true
+    human_approval_default: true    # owner decision 2: approve rough preview
+    review_focus:
+      - Continuity report per output (identity anchor mandatory)
+      - Output matches its own declaration (resolution exact, duration in tolerance)
+    success_criteria:
+      - Schema-valid render_report
+
+  - name: publish
+    skill: pipelines/zavod/publish-director
+    required_artifacts_in: [render_report]
+    produces: [publish_log]
+    checkpoint_required: true
+    human_approval_default: true    # owner decision 3: approve caption + posting
+    review_focus:
+      - Final visible text passes the glyph gate
+      - performance_brief scheduled for publish+48h
+    success_criteria:
+      - Schema-valid publish_log

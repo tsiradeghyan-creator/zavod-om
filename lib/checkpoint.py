@@ -162,6 +162,7 @@ CHECKPOINT_SCHEMA_PATH = (
 
 ZAVOD_PIPELINE_TYPES = frozenset({
     "zavod-reel",
+    "zavod-reel-fast",
     "zavod-carousel",
     "zavod-promo",
 })
@@ -424,7 +425,7 @@ def _enforce_zavod_gates(checkpoint: dict[str, Any]) -> None:
             f"Gate block at stage {stage!r} ({ptype}): missing artifacts.bench_report — "
             "every zavod stage requires a full bench_report before it can close."
         )
-    bench_result = run_bench_gates(bench_stage, bench_report)
+    bench_result = run_bench_gates(bench_stage, bench_report, pipeline_type=ptype)
     if not bench_result.get("ok"):
         detail = bench_result.get("violations") or bench_result
         raise CheckpointValidationError(
@@ -1256,6 +1257,35 @@ def _enforce_concept_lock(checkpoint: dict[str, Any]) -> None:
         )
 
 
+def _enforce_fast_lane_eligibility(checkpoint: dict[str, Any]) -> None:
+    """The fast lane's own failure mode is 'run everything through the fast lane'.
+
+    A manifest that declares ``metadata.fast_lane.max_duration_seconds`` gets this guard:
+    the idea stage cannot close with a brief whose target duration exceeds the limit —
+    long-form work belongs in the standard pipeline with its full bench and ladder.
+    """
+    ptype = checkpoint.get("pipeline_type") or ""
+    if not _is_zavod_pipeline(ptype):
+        return
+    if checkpoint.get("stage") != "idea" or checkpoint.get("status") != "completed":
+        return
+    try:
+        from lib.pipeline_loader import load_pipeline
+        limits = (load_pipeline(ptype).get("metadata") or {}).get("fast_lane") or {}
+    except Exception:
+        return  # manifest problems are the manifest gates' job
+    max_s = limits.get("max_duration_seconds")
+    if not max_s:
+        return
+    brief = (checkpoint.get("artifacts") or {}).get("brief") or {}
+    want = brief.get("target_duration_seconds")
+    if isinstance(want, (int, float)) and want > max_s:
+        raise CheckpointValidationError(
+            f"Fast-lane eligibility: {ptype!r} allows at most {max_s}s, the brief asks "
+            f"for {want}s — use the standard pipeline for long-form work."
+        )
+
+
 def enforce_zavod_write_contracts(
     checkpoint: dict[str, Any],
     *,
@@ -1272,6 +1302,7 @@ def enforce_zavod_write_contracts(
     _enforce_engine_lane(checkpoint)         # Remotion and Higgsfield lanes stay separate
     _enforce_run_mode(checkpoint)            # supervised vs automatic stay separated
     _enforce_concept_lock(checkpoint)        # idea closes only with a recorded concept choice (r6 #4)
+    _enforce_fast_lane_eligibility(checkpoint)  # fast lane stays short-form (strategy audit)
     _enforce_canon_guard(checkpoint, project_dir)  # mid-pipeline canon drift requires revalidation
     _enforce_artifact_path_existence(checkpoint, project_dir)  # manifests must point at real files
     _enforce_referential_integrity(checkpoint, project_dir)  # cross-artifact links must resolve (#7)

@@ -66,16 +66,33 @@ STAGE_BENCH: dict[str, list[str]] = {
 }
 
 
-def required_bench(stage: str) -> list[str]:
+def required_bench(stage: str, pipeline_type: str | None = None) -> list[str]:
+    """The stage's required bench roles.
+
+    A pipeline manifest may declare its own bench under ``metadata.bench_roles`` (keys =
+    bench-stage names) — the fast-lane mechanism (2026-07-07 strategy audit): same
+    enforcement code, fewer and sharper roles declared per pipeline. No declaration (or
+    an unloadable manifest) falls back to the FULL default bench — the strict direction.
+    """
+    if pipeline_type:
+        try:
+            from lib.pipeline_loader import load_pipeline
+            declared = (load_pipeline(pipeline_type).get("metadata") or {}).get("bench_roles") or {}
+            roles = declared.get(stage)
+            if isinstance(roles, list) and roles and all(isinstance(r, str) for r in roles):
+                return list(roles)
+        except Exception:
+            pass  # full default bench — stricter, never lighter
     return STAGE_BENCH.get(stage, ["reviewer"])
 
 
-def run_bench_gates(stage: str, report: dict[str, Any]) -> dict[str, Any]:
+def run_bench_gates(stage: str, report: dict[str, Any],
+                    pipeline_type: str | None = None) -> dict[str, Any]:
     bench = report.get("bench", {})
     violations: list[str] = []
     present: dict[str, str] = {}  # role -> ruling, for cross-role independence check
 
-    for role in required_bench(stage):
+    for role in required_bench(stage, pipeline_type):
         entry = bench.get(role)
         if entry is None:
             violations.append(f"bench.{role}: MISSING — the specialist never worked this stage")
