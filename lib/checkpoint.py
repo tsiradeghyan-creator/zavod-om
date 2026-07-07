@@ -1276,6 +1276,87 @@ def _atomic_write_json(path: Path, data: Any) -> None:
             tmp.unlink()
 
 
+def _read_decision_log(pipeline_dir: Path, project_id: str) -> dict[str, Any]:
+    path = _decision_log_path(pipeline_dir, project_id)
+    if path.exists():
+        with open(path) as f:
+            return json.load(f)
+    return {"version": "1.0", "project_id": project_id, "decisions": []}
+
+
+def active_decisions(log: dict[str, Any]) -> list[dict[str, Any]]:
+    """The decisions currently in force, derived unambiguously from history (round-6 #3).
+
+    A decision is active unless another decision supersedes it. History is append-only:
+    superseded entries stay in the log, they just stop being the answer.
+    """
+    superseded = {d.get("supersedes") for d in log.get("decisions", []) if d.get("supersedes")}
+    return [d for d in log.get("decisions", []) if d.get("decision_id") not in superseded]
+
+
+def _validate_decision_log_merge(
+    existing: dict[str, Any], new_log: dict[str, Any]
+) -> None:
+    """Lifecycle invariants for the combined decision history (round-6 #3, audit №11).
+
+    The old merge appended by id and silently DROPPED a re-submitted id with different
+    content — a history-rewrite attempt vanished without a trace — and let two active
+    decisions on the same (category, subject) contradict each other, so 'the current
+    decision' was whichever a consumer happened to read (day-4 Remotion vs day-18 FFmpeg).
+    Invariants, order-independent over existing ∪ new:
+      1. a decision_id is immutable — same id with different content is a rewrite, blocked;
+      2. every ``supersedes`` names a known decision, and a decision is superseded at most
+         once (no forked history);
+      3. active decisions never disagree: same (category, subject) with a different
+         ``selected`` requires ``supersedes`` on the newcomer — an explicit re-decision,
+         never a silent contradiction.
+    """
+    combined: dict[str, dict[str, Any]] = {}
+    for d in existing.get("decisions", []):
+        combined[d["decision_id"]] = d
+    for d in new_log.get("decisions", []):
+        did = d.get("decision_id")
+        prev = combined.get(did)
+        if prev is not None and prev != d:
+            raise CheckpointValidationError(
+                f"decision_log: decision {did!r} was re-submitted with different content — "
+                "history is append-only; supersede it with a new decision instead."
+            )
+        combined[did] = d
+
+    superseded_by: dict[str, str] = {}
+    for d in combined.values():
+        target = d.get("supersedes")
+        if not target:
+            continue
+        if target not in combined:
+            raise CheckpointValidationError(
+                f"decision_log: decision {d['decision_id']!r} supersedes unknown "
+                f"decision {target!r}."
+            )
+        if target in superseded_by:
+            raise CheckpointValidationError(
+                f"decision_log: decision {target!r} is superseded by both "
+                f"{superseded_by[target]!r} and {d['decision_id']!r} — forked history."
+            )
+        superseded_by[target] = d["decision_id"]
+
+    active_by_subject: dict[tuple[str, str], dict[str, Any]] = {}
+    for d in combined.values():
+        if d.get("decision_id") in superseded_by:
+            continue
+        key = (str(d.get("category")), str(d.get("subject")))
+        other = active_by_subject.get(key)
+        if other is not None and other.get("selected") != d.get("selected"):
+            raise CheckpointValidationError(
+                f"decision_log: active decisions {other['decision_id']!r} "
+                f"(selected {other.get('selected')!r}) and {d['decision_id']!r} "
+                f"(selected {d.get('selected')!r}) contradict on {key} — re-deciding "
+                "requires supersedes; two active answers must never coexist."
+            )
+        active_by_subject.setdefault(key, d)
+
+
 def _merge_decision_log(
     pipeline_dir: Path, project_id: str, new_log: dict[str, Any]
 ) -> None:
@@ -1283,25 +1364,17 @@ def _merge_decision_log(
 
     Each stage may produce decisions. This function merges them into a
     single cumulative file so reviewers and the bench can inspect the
-    full audit trail.
+    full audit trail. Lifecycle invariants were already validated pre-persist
+    (_validate_decision_log_merge), so identical re-submissions are the only
+    duplicates left to skip here.
     """
-    path = _decision_log_path(pipeline_dir, project_id)
-    if path.exists():
-        with open(path) as f:
-            existing = json.load(f)
-    else:
-        existing = {
-            "version": "1.0",
-            "project_id": project_id,
-            "decisions": [],
-        }
-
+    existing = _read_decision_log(pipeline_dir, project_id)
     existing_ids = {d["decision_id"] for d in existing.get("decisions", [])}
     for decision in new_log.get("decisions", []):
         if decision.get("decision_id") not in existing_ids:
             existing["decisions"].append(decision)
 
-    _atomic_write_json(path, existing)
+    _atomic_write_json(_decision_log_path(pipeline_dir, project_id), existing)
 
 
 def write_checkpoint(
@@ -1367,6 +1440,12 @@ def write_checkpoint(
     # checkpoints from leaving half-accepted audit trails on disk.
     decision_log = artifacts.get("decision_log")
     if isinstance(decision_log, dict):
+        # Lifecycle invariants run BEFORE the checkpoint persists (round-6 #3): a history
+        # rewrite or a contradiction with an active decision must block the whole write,
+        # not surface after the carrying checkpoint is already on disk.
+        _validate_decision_log_merge(
+            _read_decision_log(pipeline_dir, project_id), decision_log
+        )
         log_ref = str(_decision_log_path(pipeline_dir, project_id))
 
         # Write decision_log_ref into proposal_packet and render_report

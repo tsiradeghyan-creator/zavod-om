@@ -973,3 +973,95 @@ def test_zero_anchor_report_fails_render_report_schema():
     rr = {**_RR_BASE, "continuity_reports": [{"clip": "o.mp4", "anchors": []}]}
     with pytest.raises(Exception):
         validate_artifact("render_report", rr)
+
+
+# ── Round 6 #3 (2026-07-06 external audit №11): decision lifecycle + conflict blocking ──
+# The decision log was append-only by id, but: a re-submitted id with DIFFERENT content was
+# silently dropped (a history-rewrite attempt vanished untraced), and two active decisions
+# on the same (category, subject) could contradict — "the current decision" was whichever
+# entry a consumer happened to read (day-4 Remotion vs day-18 FFmpeg, resume picks wrong).
+from lib.checkpoint import active_decisions, _validate_decision_log_merge  # noqa: E402
+
+
+def _decision(did, selected, *, category="render_runtime_selection",
+              subject="compose runtime", supersedes=None):
+    d = {"decision_id": did, "stage": "proposal", "category": category, "subject": subject,
+         "options_considered": [{"option_id": selected, "label": selected, "score": 1.0,
+                                 "reason": "fits the brief"}],
+         "selected": selected, "reason": "best fit"}
+    if supersedes:
+        d["supersedes"] = supersedes
+    return d
+
+
+def _log(*decisions, pid="p"):
+    return {"version": "1.0", "project_id": pid, "decisions": list(decisions)}
+
+
+def test_decision_id_resubmission_with_different_content_blocks(tmp_path):
+    write_checkpoint(tmp_path, "p", "idea", "in_progress",
+                     {"decision_log": _log(_decision("d-001", "remotion"))}, pipeline_type=None)
+    with pytest.raises(CheckpointValidationError, match="append-only"):
+        write_checkpoint(tmp_path, "p", "script", "in_progress",
+                         {"decision_log": _log(_decision("d-001", "ffmpeg"))}, pipeline_type=None)
+
+
+def test_identical_resubmission_is_idempotent(tmp_path):
+    for stage in ("idea", "script"):
+        write_checkpoint(tmp_path, "p", stage, "in_progress",
+                         {"decision_log": _log(_decision("d-001", "remotion"))}, pipeline_type=None)
+    log = _json.loads((tmp_path / "p" / "decision_log.json").read_text())
+    assert [d["decision_id"] for d in log["decisions"]] == ["d-001"]
+
+
+def test_contradicting_active_decision_blocks_without_supersedes(tmp_path):
+    write_checkpoint(tmp_path, "p", "idea", "in_progress",
+                     {"decision_log": _log(_decision("d-001", "remotion"))}, pipeline_type=None)
+    with pytest.raises(CheckpointValidationError, match="contradict"):
+        write_checkpoint(tmp_path, "p", "script", "in_progress",
+                         {"decision_log": _log(_decision("d-002", "ffmpeg"))}, pipeline_type=None)
+
+
+def test_supersedes_resolves_the_contradiction_and_history_survives(tmp_path):
+    write_checkpoint(tmp_path, "p", "idea", "in_progress",
+                     {"decision_log": _log(_decision("d-001", "remotion"))}, pipeline_type=None)
+    write_checkpoint(tmp_path, "p", "script", "in_progress",
+                     {"decision_log": _log(_decision("d-002", "ffmpeg", supersedes="d-001"))},
+                     pipeline_type=None)
+    log = _json.loads((tmp_path / "p" / "decision_log.json").read_text())
+    assert [d["decision_id"] for d in log["decisions"]] == ["d-001", "d-002"]  # append-only
+    act = active_decisions(log)
+    assert [d["decision_id"] for d in act] == ["d-002"]  # the answer is unambiguous
+    assert act[0]["selected"] == "ffmpeg"
+
+
+def test_supersedes_unknown_target_blocks(tmp_path):
+    with pytest.raises(CheckpointValidationError, match="unknown"):
+        write_checkpoint(tmp_path, "p", "idea", "in_progress",
+                         {"decision_log": _log(_decision("d-002", "ffmpeg", supersedes="d-404"))},
+                         pipeline_type=None)
+
+
+def test_double_supersede_is_forked_history_and_blocks():
+    existing = _log(_decision("d-001", "remotion"),
+                    _decision("d-002", "ffmpeg", supersedes="d-001"))
+    with pytest.raises(CheckpointValidationError, match="forked"):
+        _validate_decision_log_merge(
+            existing, _log(_decision("d-003", "hyperframes", supersedes="d-001")))
+
+
+def test_same_subject_same_selection_may_coexist():
+    # Re-affirming the same answer is not a conflict — only a DIFFERENT answer is.
+    _validate_decision_log_merge(
+        _log(_decision("d-001", "remotion")), _log(_decision("d-002", "remotion")))
+
+
+def test_blocked_decision_conflict_leaves_no_checkpoint(tmp_path):
+    # The lifecycle check fires pre-persist: a contradicting write must not leave the
+    # carrying checkpoint on disk (unlike a post-persist merge crash).
+    write_checkpoint(tmp_path, "p", "idea", "in_progress",
+                     {"decision_log": _log(_decision("d-001", "remotion"))}, pipeline_type=None)
+    with pytest.raises(CheckpointValidationError):
+        write_checkpoint(tmp_path, "p", "script", "in_progress",
+                         {"decision_log": _log(_decision("d-002", "ffmpeg"))}, pipeline_type=None)
+    assert not _checkpoint_path(tmp_path, "p", "script").exists()

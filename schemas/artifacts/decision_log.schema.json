@@ -4,15 +4,32 @@
   "title": "Decision Log",
   "description": "Audit trail of every meaningful choice made during production. Prevents hidden system behavior, enables reviewer inspection, and guards against context drift.",
   "type": "object",
-  "required": ["version", "project_id", "decisions"],
+  "required": [
+    "version",
+    "project_id",
+    "decisions"
+  ],
   "properties": {
-    "version": { "type": "string", "const": "1.0" },
-    "project_id": { "type": "string" },
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "project_id": {
+      "type": "string"
+    },
     "decisions": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["decision_id", "stage", "category", "subject", "options_considered", "selected", "reason"],
+        "required": [
+          "decision_id",
+          "stage",
+          "category",
+          "subject",
+          "options_considered",
+          "selected",
+          "reason"
+        ],
         "properties": {
           "decision_id": {
             "type": "string",
@@ -51,18 +68,34 @@
             "type": "array",
             "items": {
               "type": "object",
-              "required": ["option_id", "label", "score", "reason"],
+              "required": [
+                "option_id",
+                "label",
+                "score",
+                "reason"
+              ],
               "properties": {
-                "option_id": { "type": "string" },
-                "label": { "type": "string", "description": "Human-readable name" },
+                "option_id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string",
+                  "description": "Human-readable name"
+                },
                 "score": {
                   "type": "number",
                   "minimum": 0,
                   "maximum": 1,
                   "description": "Normalized score 0-1 (1 is best)"
                 },
-                "reason": { "type": "string", "description": "Why this option scored this way" },
-                "rejected_because": { "type": "string", "description": "If rejected, why" }
+                "reason": {
+                  "type": "string",
+                  "description": "Why this option scored this way"
+                },
+                "rejected_because": {
+                  "type": "string",
+                  "description": "If rejected, why"
+                }
               },
               "additionalProperties": false
             },
@@ -92,6 +125,14 @@
             "minimum": 0,
             "maximum": 1,
             "description": "Agent's confidence in this decision (0 = uncertain, 1 = certain)"
+          },
+          "supersedes": {
+            "type": "string",
+            "description": "decision_id this decision replaces. Mandatory when re-deciding a (category, subject) that already has an active decision — the old one stays in history, superseded (round-6 #3)."
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "ISO-8601 time the decision was made"
           }
         },
         "additionalProperties": false
