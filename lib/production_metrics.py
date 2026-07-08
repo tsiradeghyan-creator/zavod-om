@@ -58,6 +58,14 @@ def _blocks_path(project_dir: Path | str) -> Path:
     return Path(project_dir) / "gate_blocks.json"
 
 
+#  Classifications the reporting agent may NOT self-assign without owner sign-off
+#  (round-7.1 #3): both let a gate look worse than a real defect ever would, so an
+#  agent under pressure to "improve the metric" has a direct incentive to reach for
+#  them. real_defect carries no such incentive (it makes the gate look GOOD), so it
+#  is not gated the same way.
+_SELF_SERVING_CLASSIFICATIONS = frozenset({"blocked_formality", "false_block"})
+
+
 def record_gate_block(
     project_dir: Path | str,
     *,
@@ -69,9 +77,20 @@ def record_gate_block(
     resolution_action: str = "",
     duration_minutes: float = 0.0,
     would_have_reached_owner_preview: bool | None = None,
+    owner_confirmed: bool = False,
 ) -> dict[str, Any]:
     """Record one classified gate block for the project. Classification is a closed enum —
-    free-text-only reasons don't aggregate, and the whole point is comparability."""
+    free-text-only reasons don't aggregate, and the whole point is comparability.
+
+    Round-7.1 (re-audit №3): classification is otherwise pure self-report — nothing
+    stopped an agent from marking every one of its own blocks ``blocked_formality`` or
+    ``false_block`` to make the simplification-candidate metric say what it wants. Those
+    two classifications ALWAYS favor the reporter (fewer real defects on record), so when
+    ``classifier == "agent"`` they require ``owner_confirmed=True`` — an explicit,
+    separate sign-off, not just a field the same agent could set alongside the
+    classification. ``classifier == "owner"`` needs no separate confirmation: the owner
+    classifying their own block already IS the confirmation.
+    """
     if classification not in CLASSIFICATIONS:
         raise MetricsError(
             f"classification {classification!r} is not one of {CLASSIFICATIONS} — "
@@ -81,6 +100,13 @@ def record_gate_block(
         raise MetricsError(f"classifier {classifier!r} must be one of {CLASSIFIERS}.")
     if not str(evidence).strip():
         raise MetricsError("a gate block needs evidence — what exactly was blocked?")
+    if (classifier == "agent" and classification in _SELF_SERVING_CLASSIFICATIONS
+            and not owner_confirmed):
+        raise MetricsError(
+            f"classification {classification!r} by classifier='agent' requires "
+            "owner_confirmed=True — an agent cannot self-classify its own block as "
+            "formality or false without a separate owner sign-off."
+        )
     path = _blocks_path(project_dir)
     blocks: list[dict[str, Any]] = []
     if path.exists():
@@ -99,6 +125,7 @@ def record_gate_block(
         "evidence": evidence,
         "resolution_action": resolution_action,
         "would_have_reached_owner_preview": would_have_reached_owner_preview,
+        "owner_confirmed": owner_confirmed,
     }
     blocks.append(entry)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -129,9 +156,21 @@ def gate_block_summary(project_dir: Path | str) -> dict[str, Any]:
             "by_gate": by_gate}
 
 
-def gate_report(project_dirs: list[Path | str]) -> list[str]:
+MIN_SAMPLE_FOR_SIMPLIFICATION = 10  # round-7.1 #4: below this, one bad production swings 50%
+
+
+def gate_report(project_dirs: list[Path | str],
+                min_n: int = MIN_SAMPLE_FOR_SIMPLIFICATION) -> list[str]:
     """Simplification candidates across a window of productions: gates whose blocks are
-    >=50% blocked_formality (the agreed simplify-or-warn policy)."""
+    >=50% blocked_formality (the agreed simplify-or-warn policy).
+
+    Round-7.1 (re-audit №4): the raw 50% share was noise-prone at small N — 1 formality
+    block out of 2 total is already 50%, but that is one production's opinion, not a
+    trend. A gate only becomes an actionable "simplification candidate" once it has at
+    least ``min_n`` blocks in the window. Use ``gate_sample_sizes()`` alongside this to
+    see every gate's n and share regardless of threshold — the low-N cases are not
+    reported as candidates, but they are never hidden from inspection either.
+    """
     totals: dict[str, dict[str, int]] = {}
     for pd in project_dirs:
         for gate, counts in gate_block_summary(pd)["by_gate"].items():
@@ -141,9 +180,34 @@ def gate_report(project_dirs: list[Path | str]) -> list[str]:
     out = []
     for gate, t in sorted(totals.items()):
         n = sum(t.values())
-        if n and t["blocked_formality"] / n >= 0.5:
+        if n < min_n:
+            continue  # below the confidence floor — see gate_sample_sizes() for visibility
+        if t["blocked_formality"] / n >= 0.5:
             out.append(f"{gate}: {t['blocked_formality']}/{n} blocks were formality — "
                        "simplification candidate (move to warning or narrow the rule)")
+    return out
+
+
+def gate_sample_sizes(project_dirs: list[Path | str],
+                      min_n: int = MIN_SAMPLE_FOR_SIMPLIFICATION) -> dict[str, dict[str, Any]]:
+    """Every gate's n and formality share, regardless of the min_n threshold — the
+    transparency half of round-7.1 #4. gate_report() only ACTS on high-confidence gates;
+    this shows what every gate looks like, including "not enough signal yet"."""
+    totals: dict[str, dict[str, int]] = {}
+    for pd in project_dirs:
+        for gate, counts in gate_block_summary(pd)["by_gate"].items():
+            t = totals.setdefault(gate, {c: 0 for c in CLASSIFICATIONS})
+            for c in CLASSIFICATIONS:
+                t[c] += counts.get(c, 0)
+    out = {}
+    for gate, t in totals.items():
+        n = sum(t.values())
+        out[gate] = {
+            "n": n,
+            "min_n_met": n >= min_n,
+            "blocked_formality_share": round(t["blocked_formality"] / n, 2) if n else None,
+            "counts": dict(t),
+        }
     return out
 
 
