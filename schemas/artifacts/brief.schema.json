@@ -42,6 +42,27 @@
       "description": "2-3 angle options for user to choose from"
     },
     "selected_angle": { "type": "string" },
+    "risk_flags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Production risk categories this brief matches (e.g. paid_client_delivery, new_series_launch, legal_or_sensitive_topic). A fast-lane manifest's metadata.fast_lane.owner_override_required_if names the subset that requires owner_override to close idea (round-7.1 #5)."
+    },
+    "owner_override": {
+      "type": "object",
+      "description": "Structured owner sign-off required when risk_flags intersects the pipeline's owner_override_required_if list.",
+      "required": ["approved_by", "reason", "covers"],
+      "properties": {
+        "approved_by": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 },
+        "covers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Which risk_flags this override addresses."
+        }
+      },
+      "additionalProperties": false
+    },
     "metadata": { "type": "object" }
   },
   "additionalProperties": false

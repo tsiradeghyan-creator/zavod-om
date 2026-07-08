@@ -137,3 +137,89 @@ def test_passing_rubric_closes():
     r = run_bench_gates("idea", _idea_report(dict(_RUBRIC_OK)),
                         pipeline_type="zavod-reel-fast")
     assert r["ok"], r["violations"]
+
+
+# ── Round 7.1 (2026-07-08 re-audit №5, MERJEL): owner_override_required_if now enforced ──
+# The manifest documented risk categories that require owner override, but nothing read
+# the list — a paid_client_delivery reel under 45s sailed through unnoticed.
+def _brief_with(risk_flags=None, owner_override=None, duration=30):
+    b = {"version": "1.0", "title": "T", "hook": "H", "key_points": ["a"],
+         "tone": "warm", "style": "clean", "target_platform": "instagram",
+         "target_duration_seconds": duration}
+    if risk_flags is not None:
+        b["risk_flags"] = risk_flags
+    if owner_override is not None:
+        b["owner_override"] = owner_override
+    return b
+
+
+def test_flagged_risk_without_override_blocks(tmp_path):
+    with pytest.raises(CheckpointValidationError, match="owner_override"):
+        write_checkpoint(
+            tmp_path, "p", "idea", "completed",
+            {"brief": _brief_with(risk_flags=["paid_client_delivery"]),
+             "bench_report": {"stage": "idea", **_fast_bench(["story-hook", "brand-voice-guard"])},
+             "engine_lock": {"engine": "higgsfield", "compose_runtime": "ffmpeg"},
+             "run_mode": "automatic",
+             "decision_log": _concept_log("p")},
+            pipeline_type="zavod-reel-fast",
+        )
+
+
+def test_flagged_risk_with_partial_override_still_blocks(tmp_path):
+    with pytest.raises(CheckpointValidationError, match="owner_override"):
+        write_checkpoint(
+            tmp_path, "p", "idea", "completed",
+            {"brief": _brief_with(
+                risk_flags=["paid_client_delivery", "legal_or_sensitive_topic"],
+                owner_override={"approved_by": "ani", "reason": "client ok",
+                                "covers": ["paid_client_delivery"]}),  # legal_ flag not covered
+             "bench_report": {"stage": "idea", **_fast_bench(["story-hook", "brand-voice-guard"])},
+             "engine_lock": {"engine": "higgsfield", "compose_runtime": "ffmpeg"},
+             "run_mode": "automatic",
+             "decision_log": _concept_log("p")},
+            pipeline_type="zavod-reel-fast",
+        )
+
+
+def test_flagged_risk_with_full_override_passes(tmp_path):
+    p = write_checkpoint(
+        tmp_path, "p", "idea", "completed",
+        {"brief": _brief_with(
+            risk_flags=["paid_client_delivery"],
+            owner_override={"approved_by": "ani", "reason": "client approved fast-lane use",
+                            "covers": ["paid_client_delivery"]}),
+         "bench_report": {"stage": "idea", **_fast_bench(["story-hook", "brand-voice-guard"])},
+         "engine_lock": {"engine": "higgsfield", "compose_runtime": "ffmpeg"},
+         "run_mode": "automatic",
+         "decision_log": _concept_log("p")},
+        pipeline_type="zavod-reel-fast",
+    )
+    assert p.exists()
+
+
+def test_no_risk_flags_unaffected(tmp_path):
+    p = write_checkpoint(
+        tmp_path, "p", "idea", "completed",
+        {"brief": _brief_with(),  # no risk_flags at all
+         "bench_report": {"stage": "idea", **_fast_bench(["story-hook", "brand-voice-guard"])},
+         "engine_lock": {"engine": "higgsfield", "compose_runtime": "ffmpeg"},
+         "run_mode": "automatic",
+         "decision_log": _concept_log("p")},
+        pipeline_type="zavod-reel-fast",
+    )
+    assert p.exists()
+
+
+def test_unflagged_risk_category_ignored(tmp_path):
+    # A risk_flag NOT in the manifest's owner_override_required_if list doesn't gate.
+    p = write_checkpoint(
+        tmp_path, "p", "idea", "completed",
+        {"brief": _brief_with(risk_flags=["minor_stylistic_experiment"]),
+         "bench_report": {"stage": "idea", **_fast_bench(["story-hook", "brand-voice-guard"])},
+         "engine_lock": {"engine": "higgsfield", "compose_runtime": "ffmpeg"},
+         "run_mode": "automatic",
+         "decision_log": _concept_log("p")},
+        pipeline_type="zavod-reel-fast",
+    )
+    assert p.exists()

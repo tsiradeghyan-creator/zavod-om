@@ -1260,9 +1260,18 @@ def _enforce_concept_lock(checkpoint: dict[str, Any]) -> None:
 def _enforce_fast_lane_eligibility(checkpoint: dict[str, Any]) -> None:
     """The fast lane's own failure mode is 'run everything through the fast lane'.
 
-    A manifest that declares ``metadata.fast_lane.max_duration_seconds`` gets this guard:
-    the idea stage cannot close with a brief whose target duration exceeds the limit —
-    long-form work belongs in the standard pipeline with its full bench and ladder.
+    A manifest that declares ``metadata.fast_lane.max_duration_seconds`` gets a duration
+    guard: the idea stage cannot close with a brief whose target duration exceeds the
+    limit — long-form work belongs in the standard pipeline with its full bench and ladder.
+
+    Round-7.1 (re-audit №5, MERJEL — the original had no code for this): a manifest may
+    also declare ``metadata.fast_lane.owner_override_required_if``, a list of risk
+    categories (paid_client_delivery, new_series_launch, legal_or_sensitive_topic, …).
+    That list was documentation only — nothing read it. Now: if the brief's
+    ``risk_flags`` intersects that list, the idea stage cannot close without a structured
+    ``brief.owner_override`` whose ``covers`` includes every matched flag. A brief that
+    declares no risk_flags is unaffected — the guard only fires on what the brief itself
+    admits to.
     """
     ptype = checkpoint.get("pipeline_type") or ""
     if not _is_zavod_pipeline(ptype):
@@ -1274,16 +1283,30 @@ def _enforce_fast_lane_eligibility(checkpoint: dict[str, Any]) -> None:
         limits = (load_pipeline(ptype).get("metadata") or {}).get("fast_lane") or {}
     except Exception:
         return  # manifest problems are the manifest gates' job
-    max_s = limits.get("max_duration_seconds")
-    if not max_s:
+    if not limits:
         return
     brief = (checkpoint.get("artifacts") or {}).get("brief") or {}
+
+    max_s = limits.get("max_duration_seconds")
     want = brief.get("target_duration_seconds")
-    if isinstance(want, (int, float)) and want > max_s:
+    if max_s and isinstance(want, (int, float)) and want > max_s:
         raise CheckpointValidationError(
             f"Fast-lane eligibility: {ptype!r} allows at most {max_s}s, the brief asks "
             f"for {want}s — use the standard pipeline for long-form work."
         )
+
+    gated = set(limits.get("owner_override_required_if") or [])
+    flagged = {f for f in (brief.get("risk_flags") or []) if isinstance(f, str)}
+    matched = sorted(gated & flagged)
+    if matched:
+        override = brief.get("owner_override")
+        covers = set((override or {}).get("covers") or [])
+        if not isinstance(override, dict) or not set(matched).issubset(covers):
+            raise CheckpointValidationError(
+                f"Fast-lane eligibility: brief risk_flags {matched} require a structured "
+                "brief.owner_override whose 'covers' includes every matched flag — the "
+                "fast lane does not skip owner sign-off on flagged work."
+            )
 
 
 def enforce_zavod_write_contracts(
