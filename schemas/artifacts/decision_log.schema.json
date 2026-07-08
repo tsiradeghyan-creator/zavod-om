@@ -154,6 +154,10 @@
                 "signal": {
                   "type": "string",
                   "description": "e.g. high_saves | low_completion | comment_question"
+                },
+                "rationale": {
+                  "type": "string",
+                  "description": "Required for a ref NOT among the latest 3 performance briefs — why this older/other result still matters to this decision (round-7.1 #9)."
                 }
               },
               "additionalProperties": false
