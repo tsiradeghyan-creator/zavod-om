@@ -1413,3 +1413,50 @@ def test_untyped_project_stays_unrestricted(tmp_path):
     p = write_checkpoint(tmp_path, "p1", "script", "in_progress", {},
                          pipeline_type="screen-demo")  # first TYPED write locks from here on
     assert p.exists()
+
+
+# ── Round 7.1 (2026-07-08 re-audit №1/№2): identity lives in a canonical lock file ──
+# The original identity lock derived the project's type by scanning every checkpoint on
+# EVERY write (O(n), and only as trustworthy as those files staying intact — deleting the
+# one typed checkpoint silently un-locked the project). Identity now lives in its own
+# .pipeline_identity.json — one O(1) read on the common path. The checkpoint scan still
+# runs as a tamper-evidence fallback ONLY when the lock file is missing.
+from lib.checkpoint import _identity_lock_path  # noqa: E402
+
+
+def test_first_typed_write_creates_lock_file(tmp_path):
+    write_checkpoint(tmp_path, "p", "idea", "in_progress", {}, pipeline_type="zavod-reel")
+    lock = _json.loads(_identity_lock_path(tmp_path, "p").read_text())
+    assert lock["pipeline_type"] == "zavod-reel"
+
+
+def test_deleting_the_only_typed_checkpoint_does_not_unlock_project(tmp_path):
+    # The exact bypass re-audit №1 described: with the OLD scan-only approach, deleting
+    # the one typed checkpoint made the project look untyped again. The lock file survives.
+    write_checkpoint(tmp_path, "p", "idea", "in_progress", {}, pipeline_type="zavod-reel")
+    (tmp_path / "p" / "checkpoint_idea.json").unlink()
+    with pytest.raises(CheckpointValidationError, match="identity lock"):
+        write_checkpoint(tmp_path, "p", "script", "in_progress", {}, pipeline_type="animation")
+
+
+def test_corrupted_lock_file_blocks_rather_than_silently_passing(tmp_path):
+    write_checkpoint(tmp_path, "p", "idea", "in_progress", {}, pipeline_type="zavod-reel")
+    _identity_lock_path(tmp_path, "p").write_text("{not json")
+    with pytest.raises(CheckpointValidationError, match="unreadable"):
+        write_checkpoint(tmp_path, "p", "script", "in_progress", {}, pipeline_type="zavod-reel")
+
+
+def test_legacy_project_without_lock_file_self_heals(tmp_path):
+    # Pre-lock-file checkpoints on disk (raw, no lock file) — same-type write self-heals
+    # by writing the lock file from the reconstructed history, without needing a block.
+    pdir = tmp_path / "p"; pdir.mkdir()
+    seed_prior_stages(pdir, "zavod-reel", "script")
+    write_checkpoint(tmp_path, "p", "script", "in_progress", {}, pipeline_type="zavod-reel")
+    assert _identity_lock_path(tmp_path, "p").exists()
+
+
+def test_lock_file_deleted_but_reconstructable_history_still_blocks_mismatch(tmp_path):
+    write_checkpoint(tmp_path, "p", "idea", "in_progress", {}, pipeline_type="zavod-reel")
+    _identity_lock_path(tmp_path, "p").unlink()  # lock gone, but checkpoint_idea.json remains
+    with pytest.raises(CheckpointValidationError, match="typed checkpoint history"):
+        write_checkpoint(tmp_path, "p", "script", "in_progress", {}, pipeline_type="animation")

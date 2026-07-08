@@ -1568,38 +1568,99 @@ def _merge_decision_log(
     _atomic_write_json(_decision_log_path(pipeline_dir, project_id), existing)
 
 
+def _identity_lock_path(pipeline_dir: Path, project_id: str) -> Path:
+    return pipeline_dir / project_id / ".pipeline_identity.json"
+
+
 def _enforce_project_pipeline_identity(
     pipeline_dir: Path, project_id: str, pipeline_type: str | None
 ) -> None:
     """Pipeline identity is a PROJECT property, not a per-checkpoint field (round-7 #1,
-    external audit №8 — code-confirmed bypass).
+    external audit №8 — code-confirmed bypass; hardened round-7.1 per re-audit №1/№2).
 
     Every gate is keyed off the checkpoint's own pipeline_type, so a project that started
     as zavod-reel could close its next stage as 'animation' and silently shed bench,
     ladder, glyph, and engine-lane enforcement — a full governance bypass with one field.
-    The first TYPED checkpoint locks the project's identity: every later write must carry
-    the same canonical type (an untyped/'unknown' write after a typed one is a downgrade
-    and blocks too). Projects that were never typed stay unrestricted.
+
+    Round-7.1: the original version derived identity by scanning every checkpoint_*.json —
+    O(n) per write, and only as trustworthy as those files staying intact (deleting or
+    renaming the one typed checkpoint silently un-locked the project, re-audit №1). Identity
+    now lives in its own append-once file, ``.pipeline_identity.json`` — one O(1) read on the
+    common path. The checkpoint scan still runs, but only as a tamper-evidence fallback when
+    the lock file is missing: a project with typed checkpoint history but no lock file means
+    either a pre-lock-file legacy project (self-heals: the lock is written from that history)
+    or the lock file was deleted (still caught, because the reconstructed identity is then
+    compared against the incoming write exactly as before). A CORRUPTED lock file is never
+    silently trusted or silently ignored — it blocks until repaired, since a bad lock file is
+    itself tamper evidence.
     """
+    # No early return on a not-yet-existing project directory: that is exactly the FIRST
+    # write, which must reach the "first typed write" branch below and create the lock
+    # (_atomic_write_json creates the directory). Round-7.1: the earlier version returned
+    # here, so no project ever got a lock file until its SECOND write.
     project_dir = pipeline_dir / project_id
-    if not project_dir.exists():
-        return
     new = _canonical_pipeline_type(pipeline_type) or "unknown"
+    lock_path = _identity_lock_path(pipeline_dir, project_id)
+
+    if lock_path.exists():
+        try:
+            with open(lock_path) as f:
+                locked = json.load(f).get("pipeline_type")
+        except Exception as exc:
+            raise CheckpointValidationError(
+                f"Pipeline identity lock file for project {project_id!r} is unreadable "
+                f"({exc}) — a corrupted lock is treated as tamper evidence, not as absence; "
+                "repair or restore it before writing."
+            ) from exc
+        if not locked:
+            raise CheckpointValidationError(
+                f"Pipeline identity lock file for project {project_id!r} has no "
+                "pipeline_type — repair or restore it before writing."
+            )
+        # An untyped ('unknown') write into an already-typed project IS the downgrade —
+        # writing 'unknown' does not require gates, so it is not special-cased here.
+        if new != locked:
+            raise CheckpointValidationError(
+                f"Pipeline identity lock: project {project_id!r} is locked to "
+                f"{locked!r} (see {lock_path.name}); writing stage {new!r}-typed "
+                "checkpoints into it would shed that pipeline's gates. One project, "
+                "one pipeline."
+            )
+        return
+
+    # No lock file — tamper-evidence fallback: does typed checkpoint history exist anyway?
+    reconstructed: str | None = None
     for path in sorted(project_dir.glob("checkpoint_*.json")):
         try:
             with open(path) as f:
                 existing = json.load(f).get("pipeline_type") or "unknown"
         except Exception:
             continue
-        if existing == "unknown":
-            continue
-        if new != existing:
+        if existing != "unknown":
+            reconstructed = existing
+            break
+
+    if reconstructed is not None:
+        if new != reconstructed:
             raise CheckpointValidationError(
-                f"Pipeline identity lock: project {project_id!r} is a {existing!r} "
-                f"production (per {path.name}); writing stage {new!r}-typed checkpoints "
-                "into it would shed that pipeline's gates. One project, one pipeline."
+                f"Pipeline identity lock: project {project_id!r} has typed checkpoint "
+                f"history ({reconstructed!r}) but no lock file — writing "
+                f"{new!r}-typed checkpoints into it would shed that pipeline's gates. "
+                "One project, one pipeline."
             )
-        return  # locked and matching — no need to scan further
+        _write_identity_lock(lock_path, reconstructed)  # self-heal for legacy projects
+        return
+
+    if new != "unknown":
+        _write_identity_lock(lock_path, new)  # first typed write — lock it now
+
+
+def _write_identity_lock(lock_path: Path, pipeline_type: str) -> None:
+    _atomic_write_json(lock_path, {
+        "version": "1.0",
+        "pipeline_type": pipeline_type,
+        "locked_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    })
 
 
 def write_checkpoint(
