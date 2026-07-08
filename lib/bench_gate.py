@@ -95,18 +95,30 @@ def _hook_rubric_violation(rubric: Any) -> str | None:
     return None
 
 
+# Round-7.1 (re-audit №6): manifest-declared bench reduction is a PRIVILEGE, not a right
+# any manifest gets by writing metadata.bench_roles. Without this allowlist, a brand-new
+# manifest could declare e.g. {"compose": ["delivery-qc"]} and legitimately zero out
+# compose's full 6-role bench — the fast-lane mechanism becomes a bypass generator. Only
+# pipelines named here may have their bench_roles declaration honored; every other
+# pipeline's declaration (if any) is IGNORED and falls back to the full default bench.
+LIGHT_BENCH_ALLOWED = frozenset({"zavod-reel-fast"})
+
+
 def required_bench(stage: str, pipeline_type: str | None = None) -> list[str]:
     """The stage's required bench roles.
 
     A pipeline manifest may declare its own bench under ``metadata.bench_roles`` (keys =
     bench-stage names) — the fast-lane mechanism (2026-07-07 strategy audit): same
-    enforcement code, fewer and sharper roles declared per pipeline. No declaration (or
-    an unloadable manifest) falls back to the FULL default bench — the strict direction.
+    enforcement code, fewer and sharper roles declared per pipeline. The declaration is
+    honored ONLY for pipelines in ``LIGHT_BENCH_ALLOWED`` (round-7.1 #6). No declaration,
+    a non-allowlisted pipeline, or an unloadable manifest all fall back to the FULL
+    default bench — the strict direction, always.
     """
-    if pipeline_type:
+    canonical = (pipeline_type or "").strip().casefold()
+    if canonical in LIGHT_BENCH_ALLOWED:
         try:
             from lib.pipeline_loader import load_pipeline
-            declared = (load_pipeline(pipeline_type).get("metadata") or {}).get("bench_roles") or {}
+            declared = (load_pipeline(canonical).get("metadata") or {}).get("bench_roles") or {}
             roles = declared.get(stage)
             if isinstance(roles, list) and roles and all(isinstance(r, str) for r in roles):
                 return list(roles)

@@ -223,3 +223,30 @@ def test_unflagged_risk_category_ignored(tmp_path):
         pipeline_type="zavod-reel-fast",
     )
     assert p.exists()
+
+
+# ── Round 7.1 (2026-07-08 re-audit №6): bench reduction is allowlisted, not free ──
+# Any manifest could declare metadata.bench_roles and legitimately zero out a stage's
+# bench for ITSELF — the fast-lane mechanism becomes a bypass generator for anyone
+# willing to write a new manifest. Only LIGHT_BENCH_ALLOWED pipelines get the reduction.
+from lib.bench_gate import LIGHT_BENCH_ALLOWED  # noqa: E402
+
+
+def test_light_bench_allowlist_contains_only_fast_lane():
+    assert LIGHT_BENCH_ALLOWED == {"zavod-reel-fast"}
+
+
+def test_non_allowlisted_pipeline_bench_roles_declaration_is_ignored(tmp_path, monkeypatch):
+    # Simulate a rogue/new manifest that declares bench_roles for zavod-reel itself —
+    # its declaration must be ignored; zavod-reel keeps its full default bench.
+    import lib.pipeline_loader as _pl
+    real_load = _pl.load_pipeline
+    def _rogue_load(name, defs_dir=None):
+        m = real_load(name, defs_dir)
+        if name == "zavod-reel":
+            m = dict(m)
+            m["metadata"] = dict(m.get("metadata") or {})
+            m["metadata"]["bench_roles"] = {"compose": ["delivery-qc"]}  # tries to zero it out
+        return m
+    monkeypatch.setattr(_pl, "load_pipeline", _rogue_load)
+    assert required_bench("compose", "zavod-reel") == required_bench("compose")  # full, ignored
