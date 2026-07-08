@@ -1460,3 +1460,33 @@ def test_lock_file_deleted_but_reconstructable_history_still_blocks_mismatch(tmp
     _identity_lock_path(tmp_path, "p").unlink()  # lock gone, but checkpoint_idea.json remains
     with pytest.raises(CheckpointValidationError, match="typed checkpoint history"):
         write_checkpoint(tmp_path, "p", "script", "in_progress", {}, pipeline_type="animation")
+
+
+# ── Round 7.1 (2026-07-08 re-audit №8): duplicate label normalization ──
+# strip().casefold() alone left punctuation/internal-whitespace variants of the SAME
+# label passing as "different" directions ('Pool Party.' vs 'pool party').
+def test_duplicate_label_with_punctuation_blocks(tmp_path):
+    c = _concept()
+    c["options_considered"][2] = dict(c["options_considered"][1],
+                                      option_id="c3", label="Pool-Party, Cold Open!!")
+    c["options_considered"][1]["label"] = "pool party cold open"
+    with pytest.raises(CheckpointValidationError, match="same label"):
+        write_checkpoint(tmp_path, "p", "idea", "in_progress",
+                         {"decision_log": _log(c)}, pipeline_type=None)
+
+
+def test_duplicate_label_with_internal_whitespace_blocks(tmp_path):
+    c = _concept()
+    c["options_considered"][2] = dict(c["options_considered"][1],
+                                      option_id="c3", label="pool   party    cold   open")
+    c["options_considered"][1]["label"] = "pool party cold open"
+    with pytest.raises(CheckpointValidationError, match="same label"):
+        write_checkpoint(tmp_path, "p", "idea", "in_progress",
+                         {"decision_log": _log(c)}, pipeline_type=None)
+
+
+def test_genuinely_different_labels_with_punctuation_pass(tmp_path):
+    # Control: punctuation alone doesn't make everything collide.
+    p = write_checkpoint(tmp_path, "p", "idea", "in_progress",
+                         {"decision_log": _log(_concept())}, pipeline_type=None)
+    assert p.exists()

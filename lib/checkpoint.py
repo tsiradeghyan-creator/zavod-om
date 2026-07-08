@@ -12,6 +12,7 @@ import os
 import re
 import shutil
 import subprocess
+import unicodedata
 import uuid
 from functools import lru_cache
 from datetime import datetime, timezone
@@ -1412,6 +1413,24 @@ def active_decisions(log: dict[str, Any]) -> list[dict[str, Any]]:
     return [d for d in log.get("decisions", []) if d.get("decision_id") not in superseded]
 
 
+_LABEL_PUNCT = re.compile(r"[^\w\s]", flags=re.UNICODE)
+_LABEL_WS = re.compile(r"\s+")
+
+
+def _normalize_concept_label(label: Any) -> str:
+    """Canonical form for duplicate-label comparison (round-7.1 #8).
+
+    strip().casefold() alone let 'Pool Party.' and 'pool party' pass as "different"
+    directions — only casing/edge-whitespace was covered, not punctuation or internal
+    whitespace. NFKC first (width/compatibility forms), then drop all punctuation, then
+    collapse internal whitespace, then casefold.
+    """
+    s = unicodedata.normalize("NFKC", str(label or ""))
+    s = _LABEL_PUNCT.sub(" ", s)  # a space, not "" — "Pool-Party" must stay two words
+    s = _LABEL_WS.sub(" ", s).strip()
+    return s.casefold()
+
+
 def _validate_concept_selection(decision: dict[str, Any]) -> None:
     """Anti-mediocrity contract for a concept_selection decision (round-6 #4, audit №12).
 
@@ -1441,12 +1460,13 @@ def _validate_concept_selection(decision: dict[str, Any]) -> None:
     for i in range(len(opts)):
         for j in range(i + 1, len(opts)):
             a, b = opts[i], opts[j]
-            la = str(a.get("label") or "").strip().casefold()
-            lb = str(b.get("label") or "").strip().casefold()
-            if la == lb:
+            la = _normalize_concept_label(a.get("label"))
+            lb = _normalize_concept_label(b.get("label"))
+            if la and la == lb:
                 raise CheckpointValidationError(
                     f"decision_log: concept_selection {did!r} lists the same label "
-                    f"{a.get('label')!r} twice — one name is one direction."
+                    f"({a.get('label')!r} / {b.get('label')!r}) twice — punctuation and "
+                    "casing don't make it a different direction."
                 )
             ta = f"{a.get('label', '')} {a.get('reason', '')}"
             tb = f"{b.get('label', '')} {b.get('reason', '')}"
