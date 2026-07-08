@@ -77,17 +77,41 @@ HOOK_RUBRIC_CRITERIA = (
     "share_or_save_reason",      # is there a reason to save/share/comment?
 )
 HOOK_RUBRIC_PASS = 18  # of 25
+HOOK_RUBRIC_MIN_PER_CRITERION = 3  # round-7.1 #12: a gamed single criterion can't carry the total
+HOOK_RUBRIC_EVIDENCE_MIN = 8  # chars — "n/a" or "good" is not evidence
 
 
-def _hook_rubric_violation(rubric: Any) -> str | None:
+def _hook_rubric_violation(entry: dict[str, Any]) -> str | None:
+    """Validate the story-hook bench entry's rubric (round-7.1 #11/#12, strategy audit).
+
+    The rubric is still self-scored by the reviewer — code cannot and does not judge hook
+    strength. What code CAN demand: a short evidence string per criterion (so a lazy 4/5/5
+    across the board at least has to be justified in writing, raising the cost of rubber-
+    stamping), and a per-criterion floor (so one inflated criterion can't carry a mediocre
+    hook over the total threshold on its own).
+    """
+    rubric = entry.get("rubric")
     if not isinstance(rubric, dict):
         return ("missing hook rubric — the story-hook ruling must carry scores for "
                 f"{list(HOOK_RUBRIC_CRITERIA)} (1-5 each, pass >= {HOOK_RUBRIC_PASS}).")
+    evidence = entry.get("rubric_evidence")
+    if not isinstance(evidence, dict):
+        return ("missing rubric_evidence — each hook rubric criterion needs a short "
+                "written justification, not just a number.")
     total = 0
     for crit in HOOK_RUBRIC_CRITERIA:
         score = rubric.get(crit)
         if not isinstance(score, int) or not 1 <= score <= 5:
             return f"hook rubric criterion {crit!r} must be an integer 1-5 (got {score!r})."
+        if score < HOOK_RUBRIC_MIN_PER_CRITERION:
+            return (f"hook rubric criterion {crit!r} scored {score} < "
+                    f"{HOOK_RUBRIC_MIN_PER_CRITERION} — every criterion must clear the "
+                    "floor; a high total can't carry a criterion that fails outright.")
+        ev = str(evidence.get(crit) or "").strip()
+        if len(ev) < HOOK_RUBRIC_EVIDENCE_MIN:
+            return (f"hook rubric criterion {crit!r} has no real rubric_evidence "
+                    f"(need >= {HOOK_RUBRIC_EVIDENCE_MIN} chars) — a score without a "
+                    "reason is not a judgment.")
         total += score
     if total < HOOK_RUBRIC_PASS:
         return (f"hook rubric total {total} < {HOOK_RUBRIC_PASS} — the hook is not strong "
@@ -185,7 +209,7 @@ def run_bench_gates(stage: str, report: dict[str, Any],
         # only demands that the judgment is STRUCTURED — five named criteria, 1-5 each,
         # and a passing total. Code never pretends to measure hook strength itself.
         if role == "story-hook":
-            rubric_violation = _hook_rubric_violation(entry.get("rubric"))
+            rubric_violation = _hook_rubric_violation(entry)
             if rubric_violation:
                 violations.append(f"bench.{role}: {rubric_violation}")
                 continue

@@ -40,6 +40,13 @@ def test_fast_lane_has_no_ladder_rungs():
 
 _RUBRIC_OK = {"first_3_seconds_promise": 4, "brand_specificity": 4,
               "emotional_charge": 4, "clarity": 4, "share_or_save_reason": 4}
+_RUBRIC_EVIDENCE_OK = {
+    "first_3_seconds_promise": "opens on the unanswered question, not a title card",
+    "brand_specificity": "only Maghakian's archive voice could frame it this way",
+    "emotional_charge": "carries real longing in the first line",
+    "clarity": "viewer knows exactly what the payoff is by second 5",
+    "share_or_save_reason": "ends on a quotable, screenshot-worthy line",
+}
 
 
 def _fast_bench(stage_roles):
@@ -50,6 +57,7 @@ def _fast_bench(stage_roles):
                  "verdict": "approve"}
         if r == "story-hook":
             entry["rubric"] = dict(_RUBRIC_OK)
+            entry["rubric_evidence"] = dict(_RUBRIC_EVIDENCE_OK)
         bench[r] = entry
     return {"bench": bench}
 
@@ -104,12 +112,14 @@ def test_fast_lane_missing_bench_role_still_blocks(tmp_path):
 from lib.bench_gate import run_bench_gates  # noqa: E402
 
 
-def _idea_report(rubric):
+def _idea_report(rubric, evidence=_RUBRIC_EVIDENCE_OK):
     entry = {"ruling": "The story-hook reviewer weighed the opening promise, tension and "
                        "save-worthiness of this hook against the brand pack in detail.",
              "verdict": "approve"}
     if rubric is not None:
         entry["rubric"] = rubric
+    if evidence is not None:
+        entry["rubric_evidence"] = evidence
     other = {"ruling": "The brand-voice-guard checked register, vocabulary and visual "
                        "identity against the loaded brand pack and found them consistent.",
              "verdict": "approve"}
@@ -122,7 +132,9 @@ def test_story_hook_without_rubric_blocks():
 
 
 def test_low_rubric_total_blocks():
-    weak = dict(_RUBRIC_OK, first_3_seconds_promise=1, emotional_charge=1, clarity=1)  # 14
+    # Round-7.1 #12: every criterion at the floor (3) still totals 15 < 18 — tests the
+    # TOTAL threshold in isolation from the per-criterion floor.
+    weak = {k: 3 for k in _RUBRIC_OK}
     r = run_bench_gates("idea", _idea_report(weak), pipeline_type="zavod-reel-fast")
     assert not r["ok"] and any("not strong enough" in v for v in r["violations"])
 
@@ -137,6 +149,30 @@ def test_passing_rubric_closes():
     r = run_bench_gates("idea", _idea_report(dict(_RUBRIC_OK)),
                         pipeline_type="zavod-reel-fast")
     assert r["ok"], r["violations"]
+
+
+# ── Round 7.1 (2026-07-08 re-audit №11/№12): evidence field + per-criterion floor ──
+def test_missing_rubric_evidence_blocks():
+    r = run_bench_gates("idea", _idea_report(dict(_RUBRIC_OK), evidence=None),
+                        pipeline_type="zavod-reel-fast")
+    assert not r["ok"] and any("rubric_evidence" in v for v in r["violations"])
+
+
+def test_thin_rubric_evidence_blocks():
+    thin = dict(_RUBRIC_EVIDENCE_OK, clarity="ok")  # under HOOK_RUBRIC_EVIDENCE_MIN chars
+    r = run_bench_gates("idea", _idea_report(dict(_RUBRIC_OK), evidence=thin),
+                        pipeline_type="zavod-reel-fast")
+    assert not r["ok"] and any("no real rubric_evidence" in v for v in r["violations"])
+
+
+def test_single_inflated_criterion_cannot_carry_a_failing_one():
+    # Round-7.1 #12: one criterion at the floor-breaking 2, others maxed — total is 22
+    # (>=18) but the per-criterion floor must still block it.
+    skewed = dict(brand_specificity=5, emotional_charge=5, clarity=5,
+                  share_or_save_reason=5, first_3_seconds_promise=2)
+    r = run_bench_gates("idea", _idea_report(skewed), pipeline_type="zavod-reel-fast")
+    assert not r["ok"] and any("first_3_seconds_promise" in v and "floor" in v
+                              for v in r["violations"])
 
 
 # ── Round 7.1 (2026-07-08 re-audit №5, MERJEL): owner_override_required_if now enforced ──
