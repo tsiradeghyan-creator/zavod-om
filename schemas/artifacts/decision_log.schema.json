@@ -162,6 +162,13 @@
               },
               "additionalProperties": false
             }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Non-blocking structural signals attached at merge time (e.g. concept-similarity signal, round-7.1 #7) — machine-readable, survives independent of any log stream."
           }
         },
         "additionalProperties": false

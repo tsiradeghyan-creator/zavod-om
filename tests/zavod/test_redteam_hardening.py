@@ -1490,3 +1490,41 @@ def test_genuinely_different_labels_with_punctuation_pass(tmp_path):
     p = write_checkpoint(tmp_path, "p", "idea", "in_progress",
                          {"decision_log": _log(_concept())}, pipeline_type=None)
     assert p.exists()
+
+
+# ── Round 7.1 (2026-07-08 re-audit №7): similarity warning is structured, not just a log line ──
+def test_similarity_warning_lands_on_the_persisted_decision(tmp_path):
+    c = _concept()
+    c["options_considered"][2] = dict(
+        c["options_considered"][0], option_id="c3",
+        label="desert dawn confession, retold", rejected_because="weaker variant")
+    write_checkpoint(tmp_path, "p", "idea", "in_progress",
+                     {"decision_log": _log(c)}, pipeline_type=None)
+    log = _json.loads((tmp_path / "p" / "decision_log.json").read_text())
+    d = log["decisions"][0]
+    assert d.get("warnings") and "same direction" in d["warnings"][0]
+
+
+def test_identical_concept_resubmission_with_warning_is_still_idempotent(tmp_path):
+    # The mutation (attaching a warning) must be deterministic across resubmissions of
+    # the SAME content, or an identical resubmit would false-fire "different content".
+    def _c():
+        c = _concept()
+        c["options_considered"][2] = dict(
+            c["options_considered"][0], option_id="c3",
+            label="desert dawn confession, retold", rejected_because="weaker variant")
+        return c
+    write_checkpoint(tmp_path, "p", "idea", "in_progress",
+                     {"decision_log": _log(_c())}, pipeline_type=None)
+    p = write_checkpoint(tmp_path, "p", "script", "in_progress",
+                         {"decision_log": _log(_c())}, pipeline_type=None)  # must not raise
+    assert p.exists()
+    log = _json.loads((tmp_path / "p" / "decision_log.json").read_text())
+    assert len(log["decisions"]) == 1  # de-duped, not appended twice
+
+
+def test_no_similarity_no_warning_field(tmp_path):
+    write_checkpoint(tmp_path, "p", "idea", "in_progress",
+                     {"decision_log": _log(_concept())}, pipeline_type=None)
+    log = _json.loads((tmp_path / "p" / "decision_log.json").read_text())
+    assert "warnings" not in log["decisions"][0]

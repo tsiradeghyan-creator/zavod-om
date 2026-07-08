@@ -1471,12 +1471,19 @@ def _validate_concept_selection(decision: dict[str, Any]) -> None:
             ta = f"{a.get('label', '')} {a.get('reason', '')}"
             tb = f"{b.get('label', '')} {b.get('reason', '')}"
             if _similarity(ta, tb) >= 0.85:
-                logging.getLogger(__name__).warning(
-                    "concept_selection %s: options %s and %s read as the same direction "
-                    "in different words (similarity signal) — reviewer should confirm "
-                    "they differ in mechanism, not phrasing.",
-                    did, a.get("option_id"), b.get("option_id"),
+                msg = (
+                    f"options {a.get('option_id')!r} and {b.get('option_id')!r} read as "
+                    "the same direction in different words (similarity signal) — "
+                    "reviewer should confirm they differ in mechanism, not phrasing."
                 )
+                logging.getLogger(__name__).warning("concept_selection %s: %s", did, msg)
+                # Round-7.1 (re-audit №7): a log line is not an audit trail — a rotated
+                # log or an unwatched stdout makes the signal disappear. Attach it to the
+                # decision ITSELF (mutates the same dict object that gets persisted into
+                # decision_log.json), so it survives independent of any log stream.
+                decision.setdefault("warnings", [])
+                if msg not in decision["warnings"]:
+                    decision["warnings"].append(msg)
     for o in opts:
         if o.get("option_id") != decision.get("selected") and not str(o.get("rejected_because") or "").strip():
             raise CheckpointValidationError(
@@ -1503,6 +1510,21 @@ def _validate_decision_log_merge(
          ``selected`` requires ``supersedes`` on the newcomer — an explicit re-decision,
          never a silent contradiction.
     """
+    # Concept validation/mutation (structural checks + the similarity-warning attachment)
+    # runs BEFORE the equality check below, not after: the warning attachment mutates the
+    # decision dict deterministically from its own content, so an identical resubmission
+    # gets the identical mutation on both calls and the equality check still sees matching
+    # dicts. Running it after would compare an unmutated resubmission against an
+    # already-mutated persisted copy and false-fire "re-submitted with different content"
+    # (round-7.1 #7 follow-through).
+    for d in new_log.get("decisions", []):
+        if d.get("category") == "concept_selection":
+            _validate_concept_selection(d)
+            from lib.performance_loop import concept_refs_violation
+            viol = concept_refs_violation(d)
+            if viol:
+                raise CheckpointValidationError(f"decision_log: {viol}")
+
     combined: dict[str, dict[str, Any]] = {}
     for d in existing.get("decisions", []):
         combined[d["decision_id"]] = d
@@ -1549,21 +1571,18 @@ def _validate_decision_log_merge(
         active_by_subject.setdefault(key, d)
 
     # Round-6 #4 (audit №12): concept contract + forbidden directions.
-    for d in new_log.get("decisions", []):
-        if d.get("category") == "concept_selection":
-            _validate_concept_selection(d)
-            # Performance loop (strategy audit №9): once >=3 briefs are published, a new
-            # concept decision must reference the latest 3 results — dormant before that.
-            from lib.performance_loop import concept_refs_violation
-            viol = concept_refs_violation(d)
-            if viol:
-                raise CheckpointValidationError(f"decision_log: {viol}")
+    # (Concept structural validation + performance-refs check already ran above, BEFORE
+    # the equality check — see the round-7.1 #7 note.)
+    #
     # A direction an ACTIVE decision explicitly rejected must not return by name in a new
     # decision of the same category — reopening it requires superseding the decision that
     # rejected it, so the rejection (and its rationale) leaves history explicitly.
+    # Label matching uses the same punctuation/whitespace-aware normalization as the
+    # duplicate-label check (round-7.1 #8) — a reworded-punctuation label must not bypass
+    # this either.
     for d in new_log.get("decisions", []):
         sel_label = next(
-            (str(o.get("label") or "").strip().casefold()
+            (_normalize_concept_label(o.get("label"))
              for o in d.get("options_considered") or [] if isinstance(o, dict)
              and o.get("option_id") == d.get("selected")),
             "",
@@ -1578,7 +1597,7 @@ def _validate_decision_log_merge(
             if other.get("category") != d.get("category"):
                 continue
             rejected_labels = {
-                str(o.get("label") or "").strip().casefold()
+                _normalize_concept_label(o.get("label"))
                 for o in other.get("options_considered") or [] if isinstance(o, dict)
                 and o.get("option_id") != other.get("selected")
             }
