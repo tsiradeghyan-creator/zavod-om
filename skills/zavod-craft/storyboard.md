@@ -95,6 +95,7 @@ For each frame, the board carries this card — the world's-best annotation set:
 | **Color gradient / grade** | palette + gradient direction + show-LUT note (`color-craft.md`) |
 | **Subtext object** | the ECU symbol in frame — anchor, cigarette, laundry line (`art-department.md`) |
 | **Action (verbs only)** | behaviour, never stated emotion: «fingers tighten on the cup» |
+| **Pose / body blocking** | explicit body position per frame (Katalist-posing parity): posture · weight · hand placement · head turn / look-away · breath. In no-faces registers the pose IS the performance — script the reaction beat (what the hands do, not the face) |
 | **Sound / audio bed** | ambience + sync FX + the silence beat (`sound-craft.md`) |
 | **Continuity** | eyeline · screen-direction (L→R/R→L) · wardrobe/prop (`production-team.md`) |
 | **Duration / fps** | seconds + 24/25fps (120fps overcrank only for the object insert) |
@@ -196,6 +197,14 @@ AI engines misread space and light when given only words. Ground them with a rea
 - **Lean version (80% of the value, near-zero cost):** a single CineTracer/Blender still as the
   start frame beats a full UE5 pipeline — phase the heavy 3D only for complex hero scenes.
 
+## Timing pass — the board's Duration column is executable (animatic gate)
+The per-frame **Duration/fps** fields are not notes; they are the cut. String the accepted
+panels into a timed animatic (`animatic-editor.md`) BEFORE any expensive final render — the
+same job Katalist's Premiere-timeline export does, but ours runs through the pacing gate:
+hook lands? turn holds? any panel over/under? Adjusted durations flow BACK into the board's
+cards, so the board and the animatic never disagree. No final motion render until the
+animatic locks the tempo.
+
 ## Two ways to output the board
 - **One-shot AI board** (fast): `nano_banana_pro` can render the WHOLE A3 bible — header, subject
   ref, environment + top-down plan w/ camera map, the 5 caption-lined panels, lighting/mood — in a
@@ -214,7 +223,10 @@ AI engines misread space and light when given only words. Ground them with a rea
       environment plan; the sheet's anchors match every panel.
 - [ ] Top-down set plan drawn; camera numbers C1…Cn match the panel cuts; every path physically possible.
 - [ ] Look bible locked (palette/gradient, contrast ratio, lens set, grain, default move).
-- [ ] Every frame carries the full card — incl. lens(mm)+reason, lighting recipe, color gradient.
+- [ ] Every frame carries the full card — incl. lens(mm)+reason, lighting recipe, color gradient,
+      pose/body blocking (the no-faces performance line).
+- [ ] Timing pass run: Duration fields strung into the animatic (`animatic-editor.md`); tempo
+      locked before any final motion render; adjusted durations written back into the cards.
 - [ ] Each cut has a distinct function along the register's cut-arc (drama establishment→payoff, or
       product reveal→beauty payoff); continuity readable WITHOUT the captions.
 - [ ] Coverage minimum present; cliffhanger object planted early; turn's CU boarded.

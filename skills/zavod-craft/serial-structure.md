@@ -62,8 +62,40 @@ different number.
 - **Hook ≤3–5s**, conflict immediately; ep-1 first 15s = built-in trailer.
 - **Micro-cliff every episode**; a **mini-arc every 3 episodes**.
 - **Paywall-grade turn at eps 8–12** — the strongest cliffhanger of act one IS the
-  purchase (`director-craft.md` gives those eps double prep).
+  purchase (`director-craft.md` gives those eps double prep). The threshold episode POSES
+  the question; the answer + the biggest revelations land **1–2 eps AFTER the paywall**
+  (the free tier makes the complete emotional argument; the paid tier pays it off).
 - **60–100 (up to 120) episodes** per season standard (`producer-craft.md` economics).
+- **Thread cap (vertical only):** 2–3 central characters, one engine thread + at most one
+  shadow thread. The A/B/C braiding grid above is the DAILY-SERIAL instrument — in a 60s
+  episode an ensemble untracks; braid across the SEASON, not inside an episode.
+
+### The episode timestamp skeleton (per-episode Beat Engine — write to the clock)
+Each 60–120s episode is written against a timestamp grid, not a feeling of pace:
+1. **Hook 0–15s** — detonate, don't ease in (mid-action, conflict visible).
+2. **Friction 15–60s** — pressure IN frame, physical or verbal; every line advances
+   conflict or reveals character under pressure — no setup lines, no small talk.
+3. **Spike 60–90s** — the jolt: evidence shift, reveal, perspective flip (the turn).
+4. **Button, last 5–10s** — unresolved; **cut on the question, not the answer**; the
+   freeze/hold lands at ~55–58s of a 60s episode. Type it from the cliffhanger menu above.
+Her restraint survives inside the grid: hold the FRAME, hit the TIMESTAMP — stillness is
+legal only while the information inside it escalates (`director-craft.md`).
+
+### Season macro-arc (60–100 eps — place the phases before writing)
+- **Eps 1–10:** premise established + **2–3 emotional peaks before the paywall decision**.
+- **Eps 11–40:** escalation/complication — the central conflict deepens.
+- **Eps 41–70:** the **dark middle** — situation worsens, characters furthest from resolution.
+- **Eps 71–end:** resolve threads in **REVERSE order of introduction** — last-opened closes
+  first, the central arc lands LAST (the finale-recontextualization tentpole above).
+- **Dramatic-irony gap:** open the audience-knows-more gap by **ep 2–3**, then maintain it —
+  let the character approach the truth and pull back (feeds cliffhanger type 3).
+
+### 2026 market facts (currency check — update when they age)
+In-app micro-series revenue ~$3.8B (2025) → forecast **$7.8B (2026)** (Deloitte); short-drama
+IAP grew ~115% YoY into 2025; ReelShort averages **35.7 min/day** per user (beats Netflix
+mobile's 24.8); **>50% of engaged users convert** past the free threshold. Romance = 70%+ of
+top-grossing titles, but **psychological thriller is growing ~2× faster** — her A6 register
+(«Ճերմակ շապիկ» DNA) is the rising lane, not the crowded one.
 
 ## Tension curve (the retention = money tool, vertical)
 
@@ -105,5 +137,9 @@ silent edit.
 - [ ] A/B/C tempo assigned; energy directions matched at the joins.
 - [ ] Five tentpoles pre-placed, including the finale recontextualization.
 - [ ] Cliffhanger types logged per thread — no repeat back-to-back.
-- [ ] Vertical: hook ≤5s, paywall turn at eps 8–12, season length 60–100.
+- [ ] Vertical: hook ≤5s, paywall turn at eps 8–12, season length 60–100; each episode
+      written to the timestamp skeleton (hook/friction/spike/button); button cut on the
+      question; thread cap 2–3 characters; revelations land 1–2 eps after the paywall.
+- [ ] Season phases placed (1–10 peaks / 11–40 escalation / 41–70 dark middle / reverse-order
+      resolution); irony gap opened by ep 2–3.
 - [ ] `bible-<slug>.md` live: want/wound/secret, knows-table, plant/payoff registry.

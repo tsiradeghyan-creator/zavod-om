@@ -93,9 +93,16 @@ realization (slow, ≤10%); never zoom for emotion in drama registers.
   **no recap** — re-orientation happens via the first frame's composition, not dialogue.
 - **Hook math:** conflict inside the first 5 seconds; ep-1's first 15s is the "explosion
   point" — consider dropping the season's most cinematic beat there as a built-in trailer.
-- **Beat cadence:** a reversal or sharpened dilemma every 10–15 seconds. Reconciled with
-  her restraint: **hold the frame, not the beat** — stillness is allowed ONLY when the
-  information inside it is escalating.
+- **Beat cadence:** a reversal or sharpened dilemma every 10–15 seconds — executed against
+  the per-episode timestamp skeleton (hook 0–15s / friction 15–60s / spike 60–90s / button
+  last 5–10s, `serial-structure.md`). Reconciled with her restraint: **hold the frame, not
+  the beat** — stillness is allowed ONLY when the information inside it is escalating.
+- **Button discipline:** the last shot cuts **on the question, not the answer** — frame the
+  unresolved image (door ajar, hand frozen mid-reach) and hold it; never a resolved ending.
+- **Script the reaction beat:** in 9:16 the processing IS the content — write what the eyes
+  do, hand placement, the look-away as explicit action lines. In no-faces AI registers the
+  same rule lands on the body: knuckles, shoulders dropping, breath, the half-turn — the
+  reaction beat must be boarded (`storyboard.md` pose/body-blocking field), never implied.
 - **Paywall (eps 8–12):** these get double prep time and the strongest cliffhanger of
   act one — that cliffhanger is the purchase. See `serial-structure.md` for placement.
 - **Face-time ratio governs** (not wide-duration): 60–80% of shots are CU/MCU of faces

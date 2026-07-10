@@ -96,7 +96,23 @@ emotion / off-universe / flattened scope / over-explained). The bank teaches fas
   `,,,`, the Yerevan dialect and «»-punctuation do NOT transfer to EN/RU** as-is; the in-voice
   equivalents live in `localization.md` (em-dash trailing for EN, «…» for RU, register-matched slang).
 
+## X-Ray pass (mechanical violation scan — run BEFORE the taste gate)
+The Jasper-Brand-IQ move, done sharper: before judging the draft, SCAN it span-by-span
+against the never-list and flag every hit **with its on-voice fix inline** — never a silent
+rewrite, never a vague "make it warmer":
+1. **Hype scan:** exclamation storms, "amazing / must-see / don't miss" and their AM/RU
+   equivalents («բաց մի՛ թողեք», «անպայման դիտեք») → replace with the earned image.
+2. **Stated-emotion scan:** feeling-verbs about ourselves ("we are passionate/proud…") →
+   replace with the behaviour or the specific moment.
+3. **Scope-flattening scan:** any single-title framing of the career → aggregate numbers.
+4. **Script scan (ours alone):** transliteration, mixed Latin/Armenian script, wrong
+   punctuation (`«»` `։` `՝` ` — `) → glyph gate; Jasper enforces terminology, it cannot
+   enforce Eastern Armenian Unicode — this is the moat axis.
+Output = the flag list (span → rule broken → fix), then the corrected draft. Every rejected
+span feeds the anti-example bank above.
+
 ## Quality gate (any external piece)
+- [ ] X-Ray pass run — zero unresolved flags (hype / stated emotion / flattening / script).
 - [ ] Sounds cinematic·warm·confident·nostalgic·precise — not corporate, not hype.
 - [ ] Emotion shown through image/behaviour, not stated.
 - [ ] Proper Eastern Armenian Unicode; precise word choice.
