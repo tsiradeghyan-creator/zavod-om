@@ -98,6 +98,14 @@ This is the creative-production map underneath the gates:
 3. The system **freezes** and waits. It does NOT render, publish, spend, or hand off.
 4. The owner gives ONE of three commands. Nothing moves until then.
 
+**Mode interaction (removes the Mode-2 contradiction).** The freeze law above describes
+**Mode 1 (default)**. In **Mode 2 («Ավտոմատ լրիվ սևագրային վազք»)** the per-sub-stage freeze is
+*deferred, not cancelled*: the agent still emits every Agent Report, but appends them to a run log
+and continues to the next sub-stage without waiting. Only the **hard stops always freeze in both
+modes** — publishing, spending money, rights/likeness/location commitments, prompt-approved
+generation calls (Promo preflight law), and final delivery. At the end of a Mode-2 run the full
+report log is presented as one batch for the owner's levers.
+
 ## The three levers (owner's command after every report)
 - **«Անցիր առաջ» (Approved).** The agent hands the project to the next gate.
 - **«Փոխիր այս դետալը» (Veto).** The agent goes back and fixes exactly what was named
@@ -111,8 +119,8 @@ Each gate = a freeze point with its own report.
 
 | # | Agent (gate) | Stations | Locks before passing |
 |---|---|---|---|
-| 1 | **ԻԴԵԱ · ՍՑԵՆԱՐ · ԿԱՌՈՒՑՎԱԾՔ · ՌԱՍԿԱԴՐՈՎԿԱ** | idea-lab · serial-structure · style-profile · director-craft · storyboard | logline/turns, beats, shot cards, look bible |
-| 2 | **ԳԵՂԱՐՎԵՍՏ · ՔԱՍԹԻՆԳ · ԻԴԵՆՏԻՏԵՏ** | art-department · production-team · identity-guard · ai-pipeline(identity-lock) | locations, props/subtext objects, character DESIGN + identity refs, costume/silhouette |
+| 1 | **ԻԴԵԱ · ՍՑԵՆԱՐ · ԿԱՌՈՒՑՎԱԾՔ** | idea-lab · serial-structure · style-profile · director-craft | logline/turns, beats, look bible |
+| 2 | **ԳԵՂԱՐՎԵՍՏ · ՔԱՍԹԻՆԳ · ԻԴԵՆՏԻՏԵՏ · ՌԱՍԿԱԴՐՈՎԿԱ** | art-department · production-team · identity-guard · ai-pipeline(identity-lock) · storyboard | locations, props/subtext objects, character DESIGN + identity refs, costume/silhouette, shot cards (storyboard-ը ՊԱՀԱՆՋՈՒՄ է art-department-ի լոկացիա/props/կերպար-դիզայնը որպես մուտք, դրա համար է այս դարպասում) |
 | 3 | **ՕՊԵՐԱՏՈՐ · AI ՌԵՆԴԵՐ** | cinematography · color-craft · ai-pipeline | engine choice, prompts, bake-off, consistency, render QC |
 | 4 | **ՓՈՍՏ · ՁԱՅՆ · ՏԻՊՈԳՐԱՖԻԿԱ** | post-production · sound-craft · motion-design · localization | cut, grade, 4-layer sound, captions+glyph, subtitles |
 | 5 | **ՊՐՈԴՅՈՒՍԻՆԳ · ԻՐԱՎՈՒՆՔ** | producer-craft · business-affairs | budget, rights/consent, C2PA, deliverables |
@@ -121,6 +129,8 @@ Each gate = a freeze point with its own report.
 ## Agent Report template (every freeze emits this)
 ```
 📋 ԱԳԵՆՏ <#>. <ԲԱԺԻՆ> | ՀԱՇՎԵՏՎՈՒԹՅՈՒՆ
+Փուլ․ <stage>.<sub_stage>   ← պարտադիր (Specialist-chain law, կանոն 1)
+QC-Continuity: PASS/FAIL (ledger կցված)   ← պարտադիր frame/shot արտադրող փուլերում (qc-continuity-gate.md)
 - <item>: <value> [ԼՈՒԾՎԱԾ Է | ❓ ՔՈ ՈՐՈՇՈՒՄԸ ՊԵՏՔ Է]
 - …
 Սեփականատիրոջ հրամանին սպասող կարգավիճակ․ Անցնե՞նք <հաջորդ դարպաս>-ին։

@@ -1,50 +1,40 @@
-# fal.ai Engine — One-Step Setup (Station 2 upgrade)
+# fal.ai Engine — Setup (Station 2 upgrade)
 
 fal.ai is the single engine that exposes **Seedance · Kling · Veo · Nano Banana** together
 (matches the Jack-vs-AI workflow). It needs one API key tied to the user's fal.ai account.
 
-## What the user does (one step, plain language)
-1. Go to **fal.ai**, sign in (Google login is fine).
-2. Open the **Keys / API Keys** page, click **Create key**, copy it.
-3. Paste the key to Claude: "aha fal բանալին: <key>".
+## Official setup (recommended) — hosted MCP
+fal-ի պաշտոնական MCP-ն hosted սերվեր է՝ `https://mcp.fal.ai/mcp`; բանալին ուղարկվում է
+per-request `Authorization` header-ով և ոչ մի տեղ չի պահվում սերվերի կողմից։
+([fal docs → Setting up MCP](https://fal.ai/docs/documentation/setting-up/mcp))
 
-## What Claude does when the key arrives
-Safely add the server to `~/.claude.json` (back up first), preserving all existing servers
-(`filesystem`, `fetch`, `chrome-devtools`). Insert under `mcpServers`:
-
-```json
-"fal-ai": {
-  "command": "npx",
-  "args": ["-y", "fal-ai-mcp-server"],
-  "env": { "FAL_KEY": "<PASTED_KEY>" }
-}
-```
-
-Safe edit (do not hand-edit JSON blindly):
+1. Սեփականատերը fal.ai dashboard-ից ստեղծում է API key։
+2. **Բանալին ՉԻ ուղարկվում չատով** (չատի պատմությունը log/cache է լինում)։ Փոխարենը՝
+   սեփականատերն ինքն է վազեցնում terminal-ում.
 ```bash
-python3 - "$FAL_KEY" <<'PY'
-import json, os, sys, shutil
-p = os.path.expanduser('~/.claude.json')
-shutil.copy(p, p + '.bak')
-d = json.load(open(p))
-d.setdefault('mcpServers', {})['fal-ai'] = {
-    "command": "npx", "args": ["-y", "fal-ai-mcp-server"],
-    "env": {"FAL_KEY": sys.argv[1]}
-}
-json.dump(d, open(p, 'w'), indent=2, ensure_ascii=False)
-print("added fal-ai")
-PY
+claude mcp add --transport http fal-ai \
+  https://mcp.fal.ai/mcp \
+  --header "Authorization: Bearer YOUR_FAL_KEY"
 ```
-Then tell the user to restart Claude Code so the engine loads. After that the `fal-ai-media`
-skill's tools (`search`/`find`/`generate`/`result`) are live.
+3. Restart Claude Code։ Պաշտոնական գործիքները՝ `search_models` · `get_model_schema` ·
+   `get_pricing` · `search_docs` · `run_model` · `submit_job` · `check_job` ·
+   `upload_file` · `recommend_model`։
 
-## Until the key is added — fallback engines (already live, no setup)
+## Current install on this machine (legacy, works)
+Հիմա `~/.claude.json`-ում դրված է **երրորդ կողմի** `fal-ai-mcp-server` npm փաթեթը
+(`npx -y fal-ai-mcp-server`, `FAL_KEY` env-ով)։ Այն աշխատում է և `fal-ai-media` skill-ի
+գործիքներն էլ (`search`/`find`/`generate`/`result`) դրանից են։ Սա պաշտոնական սերվերը ՉԷ —
+supply-chain ռիսկը սեփականատիրոջ գիտակցված ընտրությունն է։ Migration official hosted-ին՝
+վերևի մեկ հրամանով; անելուց հետո `fal-ai-media` skill-ի գործիքների անունները թարմացնել։
+
+## Fallback engines (no fal key needed)
 - **Canva** + **Adobe Firefly** MCP for photo/carousel backgrounds.
 - **Adobe Firefly** has Kling inside for short video.
-So the zavod is fully operational for photos/carousels today; fal.ai is the video/quality upgrade.
+So the zavod is fully operational for photos/carousels without fal; fal.ai is the
+video/quality upgrade.
 
-Status: ✅ CONFIGURED (FAL_KEY added 2026-06-05). Restart Claude Code to load `fal-ai`,
-then the `fal-ai-media` tools (`search`/`find`/`generate`/`result`) are live.
+Status: ✅ CONFIGURED via legacy npm server (FAL_KEY added 2026-06-05)։ Official hosted
+migration՝ pending owner decision։
 
 > **This file is setup only.** The 2026 engine lineup (which model per need), the
 > Armenian-text protocol, the consistency/seed/cost workflow and render QC all live in

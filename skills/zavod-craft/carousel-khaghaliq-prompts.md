@@ -10,8 +10,8 @@ Angle: love → deception → false identity → "I was the toy." Source: `show-
   ⚠️ AI garbles Armenian — check EVERY glyph against the TEXT line (watch for Cyrillic/Latin
   lookalike letters), regenerate wrong words. Use only when speed beats polish.
 
-Shared style block (both routes): Vertical 4:5 portrait 1080×1350, cinematic photorealistic
-editorial still, 4K. Luxurious dark Armenian love-drama mood. Palette: black #0D0D0D, gold
+Shared style block (both routes): Vertical 4:5 portrait 1080×1350, photorealistic editorial
+still, full-frame 35mm look, shallow depth of field, 4K. Luxurious dark Armenian love-drama mood. Palette: black #0D0D0D, gold
 marble veining #C9A24B, warm beige drapery, hot-pink/coral accent. Low-key warm lighting,
 deep shadows, no human faces. Use the attached «Խաղալիք» poster as style/color/lighting reference.
 
@@ -48,7 +48,7 @@ SCENE: [shared style block] Close-up of one elegant hand holding a wooden marion
 
 SLIDE 05 — Facts (save-worthy)
 TEXT: «ԽԱՂԱԼԻՔ» / «2021 · 24 սերիա · USArmenia · դրամա» / «Սցենար՝ Անի Մաղաքյան»
-SCENE: Vertical 4:5 portrait 1080×1350, cinematic photorealistic editorial still, 4K. Luxurious dark Armenian love-drama mood. Palette: black #0D0D0D, gold marble veining #C9A24B, soft studio light, no human faces. Use the attached «Խաղալիք» poster as style/color reference. Minimal elegant background: a polished black marble slab with a single flowing gold vein, soft top-down studio light, a large clean center area.
+SCENE: Vertical 4:5 portrait 1080×1350, photorealistic editorial still, full-frame 35mm look, shallow depth of field, 4K. Luxurious dark Armenian love-drama mood. Palette: black #0D0D0D, gold marble veining #C9A24B, soft studio light, no human faces. Use the attached «Խաղալիք» poster as style/color reference. Minimal elegant background: a polished black marble slab with a single flowing gold vein, soft top-down studio light, a large clean center area.
 - PROMPT B (default): SCENE + "The large center area stays empty for typography. No text anywhere in the image."
 - PROMPT A (exception): SCENE + "Render this Armenian text exactly, centered, elegant serif: «ԽԱՂԱԼԻՔ» large, below it «2021 · 24 սերիա · USArmenia · դրամա», below it «Սցենար՝ Անի Մաղաքյան»։"
 

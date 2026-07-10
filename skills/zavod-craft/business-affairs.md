@@ -24,18 +24,24 @@ legal advice — it's the producer's checklist of what a lawyer must paper.
 - **Verify each engine's commercial-use + indemnity terms** (Veo / Kling / Seedance /
   Nano Banana / fal-ai) before delivering paid work on its output.
 
-## Content Credentials & fingerprint stamping (C2PA — the IP-sale moat)
+## Content Credentials & fingerprint stamping (C2PA — the provenance trail)
 
 Don't just LOG provenance — EMBED it. Every final deliverable (frame, audio, script page)
-ships with a signed manifest so ownership is indisputable when selling the catalog globally:
+ships with a signed manifest as durable provenance EVIDENCE when selling the catalog globally:
 - **Sign C2PA Content Credentials** into each export (c2patool / Adobe CAI) — author = Ani
   Maghakyan, the creative-contribution note, and the AI model/prompt provenance, cryptographically
   bound to the file. (This is the substance; "blockchain" is marketing — C2PA signing + an
   invisible watermark is what actually holds up.)
+- **Ինչ C2PA-ն ՉԻ անում (legal reality):** C2PA-ն հաստատում է ծագման ՄԵՏԱԴԱՏԱՆ
+  ամբողջականությունը — ով/ինչ գործիքով/երբ է ստորագրել։ Այն իրավական սեփականություն ՉԻ
+  սահմանում և ownership-ը «անվիճելի» ՉԻ դարձնում ([C2PA Explainer](https://c2pa.org/specifications/specifications/2.2/explainer/Explainer.html))։
+  Սեփականությունը որոշում են chain of title-ը, պայմանագրերը և հեղինակային իրավունքի օրենքը
+  (վերևի բաժինները) — C2PA-ն դրանց ապացուցողական հենարանն է, ոչ փոխարինողը։
 - **Invisible watermark + digital fingerprint** (IMATAG-class) for leak-tracing and proof of
   origin independent of metadata stripping.
-- Doubles as the platform **AI-label** (TikTok C2PA, `playbook.md`) — one stamp serves disclosure
-  AND ownership.
+- Doubles as ONE route to the platform **AI-label** (TikTok reads C2PA for auto-labeling;
+  manual disclosure toggle is equally valid — `playbook.md`) — one stamp can serve disclosure
+  AND provenance.
 - Ties to the rights ledger: every stamped asset gets its Asset ID row (`world-benchmark.md`).
 
 ## Likeness & voice (consent before capture)

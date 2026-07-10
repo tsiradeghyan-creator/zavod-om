@@ -17,7 +17,7 @@ lessons into Maghakian decisions.
   the Maghakian filter: restraint, behaviour over statement, subtext object, Armenian Unicode,
   no actor faces in AI output.
 
-## Public source map (verified live 2026-06-13)
+## Public source map (SNAPSHOT 2026-06-13 — մի՛ մեջբերիր այս թվերը, դրանք հնանում են)
 
 | Source | Public count | Use in zavod |
 |---|---:|---|
@@ -28,7 +28,8 @@ lessons into Maghakian decisions.
 | [The Tuesday Drop](https://community.shotdeck.com/tuesday-drops/) ([API](https://community.shotdeck.com/wp-json/wp/v2/tuesday-drops)) | 150 | new reference-batch radar, trends, title discovery |
 | [Recreations Contest](https://community.shotdeck.com/recreations-contest/) ([API](https://community.shotdeck.com/wp-json/wp/v2/winner)) | 237 | training drills: lighting/blocking/PD recreation |
 
-Counts confirmed via `X-WP-Total` headers on 2026-06-13. Treat the site as a **live source**:
+Counts above are a one-day snapshot via `X-WP-Total` (2026-06-13) and drift weekly — ALWAYS
+re-read the live headers before using any number. Treat the site as a **live source**:
 read `X-WP-Total` / `X-WP-TotalPages`, page with `per_page=100&page=N`, store only `id, date,
 link, title, excerpt` + taxonomy. Full bodies, images, stills, contest media stay on ShotDeck.
 

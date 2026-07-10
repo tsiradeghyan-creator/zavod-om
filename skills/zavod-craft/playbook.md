@@ -1,7 +1,7 @@
 # Playbook — Posting, Captions & Algorithm (2026)
 
-Distilled from the agency's `long-term-memory.md` research. Apply at Stations 3–4.
-Re-check long-term-memory periodically; algorithms shift.
+Distilled from the agency's research log at `~/.memory/long-term-memory.md`. Apply at Stations 3–4.
+Re-check that file periodically; algorithms shift.
 
 ## Format strategy
 - **Reels = REACH** (3–5× reach via Explore/Reels feed) → stranger discovery.
@@ -35,8 +35,11 @@ Output: top-3 hooks, one sentence each on WHY. Ties into Trial-Reels A/B engine 
 - Length: Reels target 30–60s; Shorts ≤3 min; TikTok target 21–34s (`post-production.md` specs).
 - **Ani's face-to-camera leads; AI footage = b-roll/teaser support.** This is on MERIT, not
   a penalty: Meta says creation method doesn't change distribution; human-fronted simply
-  performs better. **Label AI video** — TikTok requires C2PA labels (unlabeled realistic AI
-  is a strike risk; ~5–8% reach dip when labeled).
+  performs better. **Label AI video** — TikTok-ը պահանջում է realistic AI նյութի disclosure
+  (unlabeled realistic AI = strike risk)։ C2PA Content Credentials-ը ավտոմատ պիտակավորման
+  եղանակներից մեկն է, ոչ միակը — ձեռքով toggle-ը նույնքան օրինական է։ TikTok-ի պաշտոնական
+  դիրքորոշումը՝ պիտակը ՉԻ իջեցնում տարածումը, եթե նյութը կանոններ չի խախտում (հին «5–8%
+  reach dip» պնդումը հանված է՝ աղբյուրով չհաստատված)։
 - **No other-app watermarks** (TikTok logo demotes the whole Reel on IG).
 - For "retention loop" Shorts: end cliffhanger flows back into the opening visual.
 
@@ -59,8 +62,8 @@ Output: top-3 hooks, one sentence each on WHY. Ties into Trial-Reels A/B engine 
 - **Action on every drop:** immediately DM/share the link to a close circle (8–12 people /
   a Telegram private group) to spike first-hour velocity.
 - **DM sends + saves + shares >> likes** as ranking signals.
-- **Diaspora gold window (Yerevan time): 19:00–21:00** = 08:00–10:00 LA + 18:00–20:00 Moscow —
-  serves both diaspora hubs at once. Consistency + audience-active windows beat clock
+- **Diaspora gold window (Yerevan time): 19:00–21:00** = 18:00–20:00 Moscow (միշտ −1 ժամ Երևանից) +
+  LA՝ 08:00–10:00 ամռանը (PDT) / **07:00–09:00 ձմռանը (PST)** — serves both diaspora hubs at once. Consistency + audience-active windows beat clock
   superstition; validate per post (`growth-analytics.md`).
 
 ## Growth surfaces (open these — details in `growth-analytics.md`)

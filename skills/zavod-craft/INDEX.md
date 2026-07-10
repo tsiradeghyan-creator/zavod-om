@@ -2,6 +2,9 @@
 
 > The zavod's brain (taste / voice / craft) lives here as 51 craft files (+ `SKILL.md` and this
 > `INDEX.md` = 53 top-level `.md` files). `style-library/` adds the matured style cards.
+> `commercial-prompt-library/` adds 5 Seedance 2.0 commercial-format cards (viral-hook,
+> saas-launch, luxury-aesthetic, before-after, testimonial-story; source:
+> `rediumvex/ai-video-generator-claude`, ingested 2026-07-09 by scout).
 > This index WIRES each
 > one to the OpenMontage spine: which pipeline **stage/role** consults it and which **gate** it
 > feeds. Director skills (`skills/pipelines/<pipeline>/<role>-director.md`) MUST cite the craft
@@ -12,13 +15,13 @@
 |---|---|---|
 | **idea-director** | `idea-lab.md`, `serial-structure.md`, `research-accuracy-consultant.md` | brief schema + reviewer `review_focus` |
 | **script-director** | `style-profile.md` [HY voice], `brand-voice.md`, `voice-extractor.md`, `corpus-notes.md` | script schema + `brand_voice_check` + glyph gate [HY] |
-| **scene-director** | `director-craft.md`, `cinematography.md`, `storyboard.md`, `prompt-axes.md`, `art-department.md`, `shotdeck-reference-lab.md`, `color-craft.md`, `style-rider.md` (owner canon) + `style-radar.md` + `style-library/` (cinema_dp + color_luts cards) | **scene_plan schema** (`shot_language`, `staging`, `text_policy`) + variation_checker |
-| **asset-director** | `ai-pipeline.md`, `prompt-axes.md`, `motion-design.md`, `identity-guard.md`, `background-environment-artist.md`, `carousel-template.md`, `fal-setup.md`, `style-rider.md` (owner canon) + `style-radar.md` + `style-library/` (design_styles cards), `providers/higgsfield-capabilities.md` | asset_manifest schema + glyph gate on text assets |
+| **scene-director** | `director-craft.md`, `cinematography.md`, `storyboard.md`, `prompt-axes.md`, `art-department.md`, `shotdeck-reference-lab.md`, `color-craft.md`, `style-rider.md` (owner canon) + `style-radar.md` + `style-library/` (cinema_dp + color_luts cards) + `commercial-prompt-library/` (commercial/ad formats, when the brief is promo/ad/social-commercial) | **scene_plan schema** (`shot_language`, `staging`, `text_policy`) + variation_checker |
+| **asset-director** | `ai-pipeline.md`, `prompt-axes.md`, `motion-design.md`, `identity-guard.md`, `background-environment-artist.md`, `carousel-template.md`, `fal-setup.md`, `style-rider.md` (owner canon) + `style-radar.md` + `style-library/` (design_styles cards), `providers/higgsfield-capabilities.md`, `commercial-prompt-library/` (Seedance 2.0 commercial prompt formulas) + the standalone `higgsfield` skill (`~/.claude/skills/higgsfield/`, OSideMedia v3.20.1) for MCSLA prompts, model specs & failure modes when generating via Higgsfield | asset_manifest schema + glyph gate on text assets |
 | **edit-director** | `post-production.md`, `editor-final-catch.md`, `animatic-editor.md`, `trailer-editor.md`, `compositor.md`, `style-rider.md` (owner canon) + `style-radar.md` + `style-library/` (montage cards) | edit_decisions schema + reviewer |
 | **compose-director** | `sound-craft.md`, `voice-director.md`, `composer-music-supervisor.md`, `final-mixer.md`, `mastering-delivery-qc.md`, `localization.md`, `vfx-render-supervisor.md` | render_report + **continuity_checker** + ffprobe gate; delivery_promise is reviewer-invoked until it enters the checkpoint seam |
 | **publish-director** | `playbook.md`, `growth-analytics.md` | publish_log schema |
 | **executive-producer / orchestrator** | `production-protocol.md`, `bench-roster.md`, `production-manager-orchestrator.md`, `production-team.md`, `producer-craft.md`, `business-affairs.md`, `pre-advance-council.md`, `world-benchmark.md` | checkpoint gates + budget cap |
-| **continuity / QC (reviewer)** | `continuity-qc-supervisor.md`, `qc-continuity-gate.md`, `auto-verification-loop.md`, `media-asset-manager.md` | **reviewer + continuity_checker + glyph gate** |
+| **continuity / QC (reviewer)** | `continuity-qc-supervisor.md`, `qc-continuity-gate.md`, `no-duplicate-character-empty-plate.md`, `auto-verification-loop.md`, `media-asset-manager.md` | **reviewer + continuity_checker + glyph gate** |
 
 ## Project knowledge (not core; loaded per project)
 `show-khaghaliq.md`, `carousel-khaghaliq-prompts.md`, `filmography.md` → Maghakian project packs.

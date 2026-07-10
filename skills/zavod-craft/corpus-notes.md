@@ -1,7 +1,11 @@
 # Corpus Reading Notes (working file)
 
-Running observations from a full read-through of every script (2026-06-02/03), distilled into
-`style-profile.md` at the end. Per-series: characters, premise, devices, voice specifics.
+Running observations from an ONGOING read-through of the script corpus (started 2026-06-02/03),
+distilled into `style-profile.md` as sections complete. Per-series: characters, premise, devices,
+voice specifics. **Կարգավիճակի source of truth-ը ամեն սերիայի վերնագրի «read/pending» նշումն է**,
+ոչ թե այս տողը — «ամեն ինչ կարդացված է» պնդում ՉԿԱ, քանի դեռ pending ցուցակը դատարկ չէ։
+(Անունների նշում. EN վերլուծական տեքստում անունները տրվում են լատինատառ; ցանկացած ՀԱՅԵՐԵՆ
+արտադրանքում գործում է բացարձակ կանոնը՝ միայն հայերեն Unicode, կանոնական ուղղագրությամբ։)
 
 ## Already deep-read
 - **«դու» 1** — Armen (paralyzed war-vet ballet dancer) refuses life; mother Saten, nurse Lilia,

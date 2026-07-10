@@ -9,11 +9,13 @@
 
 ## Checklist (ամեն deliverable-ի)
 1. **Ռեզ./aspect/fps** — 1080×1350 (4:5) post · 9:16 Reels · 16:9 YouTube; ճիշտ կադրաչափ։
-2. **Կոդեկ/контейнер/bitrate** — H.264/H.265, mp4, պլատֆորմ-համապատաս.; ֆայլ-ամբողջականություն (corrupt չէ)։
+2. **Կոդեկ/կոնտեյներ/bitrate** — H.264/H.265, mp4, պլատֆորմ-համապատաս.; ֆայլ-ամբողջականություն (corrupt չէ)։
 3. **Բարձրաձայնություն (LUFS)** — YouTube ~-14, IG/TikTok ~-14, broadcast -23; True Peak ≤ -1 dBTP; clipping չկա։
 4. **Գույն** — sRGB/Rec.709, ոչ գերհագեցում/banding; HDR policy (`color-craft.md`)։
 5. **Ենթագիր/captions** — ճշտություն, timing, ≤17 CPS, ուղղագրություն (հայերեն Unicode)։
-6. **AI-պիտակ / C2PA** — TikTok-ի համար պարտադիր; ուր պետք՝ disclosure։
+6. **AI-պիտակ** — TikTok-ում AI-գեներացված ռեալիստիկ նյութի disclosure-ը ՊԱՐՏԱԴԻՐ է (ձեռքով
+   toggle-ով կամ ավտոմատ)։ C2PA Content Credentials-ը ավտոմատ պիտակավորման եղանակներից ՄԵԿն է,
+   ոչ միակ ուղին։ Պիտակը տարածման վրա չի ազդում, եթե նյութը կանոններ չի խախտում (TikTok official)։
 7. **Metadata** — վերնագիր, նկարագ., թեգ, thumbnail, փոստ-ժամ (`playbook.md`)։
 8. **Հայերեն Unicode** ողջ տեքստում՝ խառը-գիր չկա (homoglyph ստուգում)։
 
@@ -22,5 +24,6 @@
 ALL-PASS → «ready to publish», հանձնում Distribution/Growth-ին։
 
 ## Ինտեգրացիա
-Շղթայի վերջն է՝ … → [[editor-final-catch]] → **Mastering/Delivery QC** → հրապարակում (`playbook.md`)։
+Շղթայի վերջն է՝ … → [[editor-final-catch]] → [[final-mixer]] (ձայն ունեցող deliverable) →
+**Mastering/Delivery QC** → հրապարակում (`playbook.md`)։
 Մաս՝ [[auto-verification-loop]] կոշտ դարպասի։

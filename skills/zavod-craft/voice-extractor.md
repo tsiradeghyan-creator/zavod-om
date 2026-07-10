@@ -36,9 +36,13 @@ scripts.
 Glyph-gate every extracted Armenian string before writing the delta (no homoglyphs).
 
 ## How it runs
-- **Cadence:** weekly. Implemented as a `python-docx` scan; runnable by the `zavod-scout`
-  loop or its own cron (mirror the launchd pattern of `zavod-scout`). It only WRITES the delta
-  file — accepting into the canon stays a human step.
+- **Status: SPEC ONLY — Python սքրիպտը ԴԵՌ ԳՐՎԱԾ ՉԷ.** Նախատեսված իրականացումը՝
+  `scripts/voice_extractor.py` (`python-docx` scan)։ Մինչ այդ extraction-ը արվում է ձեռքով՝
+  այս ֆայլի spec-ով (agent-ը կարդում է նոր .docx-երը ու գրում delta-ն նույն ձևաչափով)։
+  `voice-deltas/` թղթապանակը և `seen.json`-ը ստեղծվում են առաջին վազքին։
+- **Cadence:** weekly; runnable by the `zavod-scout` loop or its own cron (mirror the launchd
+  pattern of `zavod-scout`). It only WRITES the delta file — accepting into the canon stays a
+  human step.
 - **No invention:** it reports what's in the scripts; it never fabricates a character or
   aphorism. Empty week → empty delta, that's fine.
 

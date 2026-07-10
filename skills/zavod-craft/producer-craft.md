@@ -95,9 +95,10 @@ Her scripts already flag «ՓԼԵՅՍՄԵՆԹ» scenes inline — productize it:
 
 - **TV (the day job):** local channels + USArmenia — deliverables per their specs.
 - **Vertical micro-drama (the bet) — corrected economics (2026):** seasons run
-  **60–100 (up to 120) episodes × 1–2 min** (~120–140 min total); free **5–10 episodes**,
+  **60–100 (up to 120) episodes × 1–2 min** (typically ~100–200 min total); free **5–10 episodes**,
   then ~$0.30–0.50/episode coin unlocks or ~$17–20/week subs. A series costs **$150–300K**
-  ($1.5–3.5K/min), **but user acquisition is up to ~90% of platform spend** — so the
+  (≈$0.8–3K/min at 100–200 min — do the division per project, don't quote a flat rate),
+  **but user acquisition is up to ~90% of platform spend** — so the
   binding constraint is NOT per-episode cost, it's marketing. **The indie play is selling
   TO a platform (flat fee / rev-share), not self-distributing.** Market: ~$3.8B (2025) →
   ~$7.8B forecast 2026; ReelShort ~$1.2B gross 2025. The «Վանը»/«Ախրիման» universe is the

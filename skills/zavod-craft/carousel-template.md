@@ -37,7 +37,9 @@ For 13–15 serial version: split slides 03–06 into "Part 1/5… 5/5" beats, e
   generous white space, bold sans + serif mix, numbered slides ("01 / 08 ●"), geometric
   colour blocks, thin/thick dividers.
 - **Subject:** object / symbol / poster-as-prop photography. **No actor faces, no copyrighted
-  stills.**
+  stills** — բացառություն՝ licensed/owned poster-as-prop-ը (օր. «Խաղալիք» պաստառը), որտեղ
+  պաստառի սեփական դեմքերը մնում են անփոփոխ (`ai-pipeline.md` Identity-lock; AI-ն նոր դեմք
+  երբեք չի ստեղծում)։
 - **Palette:** pick a per-topic palette (poster colors of the show). Keep the agency wordmark
   bottom-corner + `@maghakianscripts`. Brand purple `#6450D2` is the house accent when no
   topic palette dominates.
@@ -56,8 +58,12 @@ or GHEA) with safe-zone-aware placement + an in-code glyph gate (refuses any hom
 one command = a publish-ready slide, not a semi-finished file. Use Canva only for bespoke
 art-direction; for templated slides, automate.
 ```bash
-python3 scripts/carousel_text.py --bg slide-bg.png --spec slide.json --out exports/<slug>/slide-01.png
+# from the canonical working dir ~/zavod-om/
+python3 skills/zavod-craft/scripts/carousel_text.py --bg slide-bg.png --spec slide.json --out exports/<slug>/slide-01.png
 ```
+The script also enforces layout in code: blocks in the same zone stack (no overlap), any block
+leaving the safe area or a word wider than `max_width` fails the render, `rotate` is applied,
+and a font-coverage gate rejects Latin/Cyrillic text sent to an Armenian-only font (tofu guard).
 
 Each slide gets two prompt options in the working file:
 - **Prompt A** (with text) — only if a quick rough is fine; expect to fix text in Canva.

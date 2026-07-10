@@ -11,7 +11,8 @@
 1. **Status Board** — ամեն ասսեթ՝ վիճակ (todo · in-progress · QC · retake · accepted · final · blocked)։
 2. **Dependency graph** — ի՞նչը ումից է կախված (օր.՝ empty-plate → start-frames → motion → mix → master)։
 3. **Auto-routing** գծով՝
-   `Pre-Advance Council → Render/գործողություն → Continuity QC → Editor Final-Catch → Mastering QC → Accepted`։
+   `Pre-Advance Council → Render/գործողություն → Continuity QC → Editor Final-Catch → Final Mixer
+   (ձայն ունեցող deliverable) → Mastering QC → Accepted`։
    FAIL որևէ դարպասում → retake loop; 2 ձախողում → escalate owner։
 4. **Throughput/budget watch** — տեմպ, ծախս, պաշար; alert երբ բյուջեն/բալանսը սպառվում է (օր.՝ fal $0)։
 5. **Backlog & priority** — ինչ անել հաջորդը; parallelize անկախ ասսեթները։
@@ -23,4 +24,4 @@ Block կամ owner-decision (face/rights/budget) → ՍԱՌԵՑՈՒՄ + Agent Re
 
 ## Ինտեգրացիա
 Կանչում/համակարգում է բոլոր մյուս ագենտներին; տիրապետում է [[pre-advance-council]] →
-[[continuity-qc-supervisor]] → [[editor-final-catch]] → [[mastering-delivery-qc]] շղթային։
+[[continuity-qc-supervisor]] → [[editor-final-catch]] → [[final-mixer]] → [[mastering-delivery-qc]] շղթային։

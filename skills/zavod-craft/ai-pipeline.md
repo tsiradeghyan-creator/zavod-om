@@ -58,7 +58,10 @@ data than CJK/Arabic, so never trust it blind:
 - **Start/end-frame chaining** for episode continuity: last frame of shot N = first frame
   of shot N+1 (the director locks entry/exit frames — `director-craft.md`).
 - Optional **FLUX LoRA fine-tune** on fal for the editorial look when a series needs it.
-- **No faces, ever** — hands/backs/objects/reflections-without-identity (brand rule).
+- **No faces by default** — hands/backs/objects/reflections-without-identity (brand rule).
+  ՄԻԱԿ բացառությունը՝ licensed/owned դեմքերը Identity-lock դարպասով (§ ներքևում) և licensed
+  poster-as-prop outpaint-ը, որտեղ պաստառի սեփական դեմքերը մնում են 100% անփոփոխ
+  (`carousel-khaghaliq-prompts.md`)։ Նոր դեմք AI-ով չի ստեղծվում երբեք։
 
 ## Seedance @tag & sealed-prompt discipline (absorbed from Higgsfield `seedance-clean`, 2026-07-04)
 

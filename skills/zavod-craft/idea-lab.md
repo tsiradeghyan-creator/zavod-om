@@ -44,6 +44,11 @@ Then refine the survivors with four craft tests:
 - **Trope-subversion map:** name the 3 nearest clichés, mark which one she inverts. Her
   formula = **invert WHO CARRIES THE SECRET.**
 - **Comp triangulation:** "X meets Y, but Z" — one comp local, one global (K-drama / dizi).
+- **Structural-tension test (vertical/serial routes):** conflict must be **pre-loaded in the
+  premise, not manufactured scene-by-scene** — name which tension frame carries it
+  (enemies-to-lovers · forbidden proximity · power imbalance · forced circumstance). If every
+  episode has to invent a new reason to fight, the premise is flat. Her layer on top: the
+  frame is the chassis, **who carries the secret** is the engine inside it.
 - **Character-engine test (serial routes only):** does the central relationship regenerate
   conflict for 100 episodes WITHOUT the premise resolving? (Armen⟂Anais passes; most
   what-ifs won't.) Fail = it's a film/Reel, not a serial.
@@ -51,10 +56,11 @@ Then refine the survivors with four craft tests:
 ## Scoring matrix (pick by numbers, not mood)
 
 **Weight by route — a perfect single post must not be punished for not being a serial:**
-- **Single post / Reel / carousel:** score /40 on hook strength (**×2**) · brand fit ·
-  production cost (inverted) · platform fit. **≥32/40 = produce now; 24–31 = park; <24 = kill.**
+- **Single post / Reel / carousel:** score /50 on hook strength (**×2**, so 2–20) · brand fit ·
+  production cost (inverted) · platform fit. **≥40/50 = produce now; 30–39 = park; <30 = kill.**
 - **Serial / micro-drama / TV:** add **seriality** (character-engine + 100-ep test) as a
-  5th axis → score /50. **≥40/50 = produce now; 30–39 = park; <30 = kill.**
+  5th axis → score /60. **≥48/60 = produce now; 36–47 = park; <36 = kill.**
+  (Thresholds are 80% = produce, 60% = park on both routes.)
 
 Score each axis 1–10. Big bets (a new series, a pitch to a channel) → run `llm-council`.
 
@@ -84,7 +90,8 @@ G1 logline + **controlling idea/counter-idea** locked → G2 one-pager (world, 3
 season arc, comps) → G3 pilot beats (the first 3 turns) — each beat must chain by
 **"but / therefore," never "and then"** (Parker/Stone causality test) → G4 proof-of-concept
 (AI-prototyped teaser via `cinematography.md` prompt tables + fal-ai) → greenlight. Never
-skip G4 for big bets: a $0 AI sizzle kills or proves an idea in a day. Structure work
+skip G4 for big bets: a near-zero-cost AI sizzle (render credits only, not $0) kills or
+proves an idea in a day. Structure work
 (season grid, cliffhanger menu, plant/payoff bible) lives in `serial-structure.md`.
 
 ## Ethics gate (non-negotiable)
