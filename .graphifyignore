@@ -1,0 +1,16 @@
+# What the knowledge graph is *about*: this zavod's own code, craft brain, schemas,
+# pipelines and tests. Everything below is vendored third-party reference material —
+# it made up 51% of the graph (13k of 25k nodes) and out-competed the zavod's own
+# craft cards (3%) in every query. It stays reachable through the Skill tool; it just
+# does not belong in the architecture graph.
+
+.agents/skills/
+.claude/skills/
+
+# Build / runtime artifacts
+.venv/
+.pytest_cache/
+__pycache__/
+node_modules/
+output/
+pipeline/
