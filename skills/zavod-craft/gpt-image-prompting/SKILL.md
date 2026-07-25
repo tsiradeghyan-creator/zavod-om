@@ -8,11 +8,14 @@ description: >-
   image-gen or image-editing workflow, or asks how to get better results
   (photorealism, in-image text, infographics, logos, ads, UI mockups, style
   transfer, virtual try-on, compositing, object removal, lighting/weather
-  changes, product mockups, character consistency). Trigger it even when the
-  user doesn't name the model explicitly — e.g. "make an image of...",
-  "generate a logo for...", "edit this photo to...", "why does the text in my
-  generated image come out garbled", or "help me write a prompt for an
-  infographic". Prefer this skill over ad-hoc prompting for any gpt-image work.
+  changes, product mockups, character consistency). Prefer this skill over
+  ad-hoc prompting for any gpt-image work.
+  SCOPE GATE — this skill is OpenAI-specific. Trigger it only when an OpenAI /
+  gpt-image model is named or is the established target of the current workflow.
+  A bare "make an image of…" / "generate a logo for…" is NOT enough: route those
+  to `content-zavod` (which owns image production and picks the engine), to
+  `fal-ai-media` for Nano Banana / fal models, or to `higgsfield` for the
+  configured platform.
 ---
 
 # GPT Image Prompting
