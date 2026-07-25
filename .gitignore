@@ -44,6 +44,17 @@ library/style_radar.log
 library/style_radar.err
 library/style_memo_*.md
 library/style_inbox.json
+# Authorial-voice runtime scan state/deltas (the pinned aggregate profile is source).
+library/authorial_voice/.seen.json
+library/authorial_voice/deltas/
+
+# graphify knowledge graph — generated artifact, not source.
+# Decision (2026-07-25): NOT committed. The post-commit hook rebuilds graph.json
+# after every commit, so tracking it would put a ~12 MB churn blob in each commit.
+# Rebuild cost is ~80s at zero API cost: `graphify update .`
+# (.gitattributes keeps the graphify merge driver registered in case this is
+#  ever reversed for a multi-machine setup — it is inert while this rule stands.)
+graphify-out/
 
 # Environment & credentials
 .env
