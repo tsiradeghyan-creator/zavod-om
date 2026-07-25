@@ -20,6 +20,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import time
 from pathlib import Path
 from typing import Any, Optional
@@ -49,7 +50,7 @@ _AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac"}
 
 class HyperFramesCompose(BaseTool):
     name = "hyperframes_compose"
-    version = "0.1.0"
+    version = "0.1.2"
     tier = ToolTier.CORE
     capability = "video_post"
     provider = "hyperframes"
@@ -1136,7 +1137,7 @@ class HyperFramesCompose(BaseTool):
             if resolved:
                 cmd[0] = resolved
         try:
-            return subprocess.run(
+            proc = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
@@ -1144,6 +1145,53 @@ class HyperFramesCompose(BaseTool):
                 cwd=str(cwd) if cwd else None,
                 check=False,
             )
+
+            # HyperFrames prefers its managed chrome-headless-shell cache.
+            # A newly published browser can require OS symbols that are not
+            # present on an otherwise supported host (for example, a newer
+            # VideoToolbox symbol on macOS Monterey). In that narrow case,
+            # retry with an installed Chromium-compatible browser. Respect an
+            # explicitly configured HYPERFRAMES_BROWSER_PATH and never change
+            # render engines or bypass a genuine composition validation error.
+            if (
+                proc.returncode != 0
+                and not os.environ.get("HYPERFRAMES_BROWSER_PATH")
+                and self._is_browser_launch_failure(proc)
+            ):
+                browser_path = self._system_chromium_path()
+                if browser_path:
+                    retry_env = os.environ.copy()
+                    retry_env["HYPERFRAMES_BROWSER_PATH"] = browser_path
+                    log.warning(
+                        "Managed HyperFrames browser could not launch; retrying "
+                        "with system Chromium-compatible browser at %s",
+                        browser_path,
+                    )
+                    retry_proc = subprocess.run(
+                        cmd,
+                        capture_output=True,
+                        text=True,
+                        timeout=timeout,
+                        cwd=str(cwd) if cwd else None,
+                        check=False,
+                        env=retry_env,
+                    )
+                    provenance = {
+                        "event": "hyperframes_browser_fallback",
+                        "browser_path": browser_path,
+                        "managed_returncode": proc.returncode,
+                        "managed_stdout_tail": str(proc.stdout or "")[-1000:],
+                        "managed_stderr_tail": str(proc.stderr or "")[-1000:],
+                    }
+                    proc = subprocess.CompletedProcess(
+                        args=retry_proc.args,
+                        returncode=retry_proc.returncode,
+                        stdout=retry_proc.stdout,
+                        stderr=(retry_proc.stderr or "")
+                        + "\n[openmontage-provenance]"
+                        + json.dumps(provenance, ensure_ascii=False, sort_keys=True),
+                    )
+            return proc
         except subprocess.TimeoutExpired as e:
             # Surface timeouts as a failed CompletedProcess so callers get a
             # uniform shape. The stderr tail will say timeout.
@@ -1153,6 +1201,57 @@ class HyperFramesCompose(BaseTool):
                 stdout=e.stdout or "",
                 stderr=(e.stderr or "") + f"\n[timeout after {timeout}s]",
             )
+
+    @staticmethod
+    def _is_browser_launch_failure(proc: subprocess.CompletedProcess) -> bool:
+        """Return True only for runtime launch failures, not content errors."""
+        output = f"{proc.stdout or ''}\n{proc.stderr or ''}".lower()
+        if "failed to launch the browser process" in output:
+            return True
+        browser_runtime_markers = (
+            "chrome",
+            "chromium",
+            "chrome-headless-shell",
+            "headless_shell",
+            "videotoolbox",
+        )
+        return (
+            "dyld[" in output
+            and "symbol not found" in output
+            and any(marker in output for marker in browser_runtime_markers)
+        )
+
+    @staticmethod
+    def _system_chromium_path() -> Optional[str]:
+        """Find a local Chromium-compatible browser without mutating PATH."""
+        candidates: list[str] = []
+        if sys.platform == "darwin":
+            candidates.extend(
+                [
+                    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+                    "/Applications/Chromium.app/Contents/MacOS/Chromium",
+                    "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+                ]
+            )
+        elif os.name == "nt":
+            for root_var in ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA"):
+                root = os.environ.get(root_var)
+                if not root:
+                    continue
+                candidates.extend(
+                    [
+                        str(Path(root) / "Google/Chrome/Application/chrome.exe"),
+                        str(Path(root) / "Chromium/Application/chrome.exe"),
+                        str(Path(root) / "Microsoft/Edge/Application/msedge.exe"),
+                    ]
+                )
+
+        for binary in ("google-chrome", "chromium", "chromium-browser", "microsoft-edge"):
+            resolved = shutil.which(binary)
+            if resolved:
+                candidates.append(resolved)
+
+        return next((path for path in candidates if Path(path).is_file()), None)
 
     @staticmethod
     def _parse_json_output(stdout: str) -> Optional[Any]:

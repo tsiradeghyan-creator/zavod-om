@@ -28,6 +28,24 @@
         "stage_order": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
       }
     },
+    "checkpoint_chain": {
+      "type": "object",
+      "description": "Tamper-evident link to the exact previous Zavod checkpoint. This is a SHA-256 integrity chain, not a cryptographic signature.",
+      "required": ["position"],
+      "properties": {
+        "position": { "type": "integer", "minimum": 0 },
+        "previous_stage": { "type": "string" },
+        "previous_checkpoint_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "legacy_anchor": { "type": "boolean" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "position": { "minimum": 1 } } },
+          "then": { "required": ["previous_stage", "previous_checkpoint_sha256"] }
+        }
+      ],
+      "additionalProperties": false
+    },
     "style_playbook": { "type": "string" },
     "checkpoint_policy": { "type": "string", "enum": ["guided", "manual_all", "auto_noncreative"] },
     "human_approval_required": { "type": "boolean" },

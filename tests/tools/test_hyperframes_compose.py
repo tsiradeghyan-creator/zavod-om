@@ -46,6 +46,181 @@ def test_hyperframes_get_info_reports_runtime():
     }
 
 
+def test_hyperframes_retries_managed_browser_launch_failure(monkeypatch, tmp_path):
+    """A broken managed browser may retry with local Chromium, not another engine."""
+    import subprocess
+    import tools.video.hyperframes_compose as hyperframes_module
+
+    calls: list[dict[str, Any]] = []
+
+    def fake_run(*args, **kwargs):
+        calls.append(kwargs)
+        if len(calls) == 1:
+            return subprocess.CompletedProcess(
+                args=args[0],
+                returncode=1,
+                stdout='{"ok":false,"error":"Failed to launch the browser process"}',
+                stderr="dyld[1]: Symbol not found",
+            )
+        return subprocess.CompletedProcess(
+            args=args[0], returncode=0, stdout='{"ok":true}', stderr=""
+        )
+
+    monkeypatch.delenv("HYPERFRAMES_BROWSER_PATH", raising=False)
+    monkeypatch.setattr(hyperframes_module.subprocess, "run", fake_run)
+    monkeypatch.setattr(
+        HyperFramesCompose,
+        "_system_chromium_path",
+        staticmethod(lambda: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
+    )
+
+    result = HyperFramesCompose()._run_hf(
+        ["validate", "--json"], cwd=tmp_path, timeout=30, check=False
+    )
+
+    assert result.returncode == 0
+    assert len(calls) == 2
+    assert "env" not in calls[0]
+    assert calls[1]["env"]["HYPERFRAMES_BROWSER_PATH"].endswith("Google Chrome")
+
+
+def test_hyperframes_does_not_override_explicit_browser_path(monkeypatch, tmp_path):
+    """An explicit browser choice is owner configuration and must remain locked."""
+    import subprocess
+    import tools.video.hyperframes_compose as hyperframes_module
+
+    calls: list[dict[str, Any]] = []
+
+    def fake_run(*args, **kwargs):
+        calls.append(kwargs)
+        return subprocess.CompletedProcess(
+            args=args[0],
+            returncode=1,
+            stdout='{"ok":false,"error":"Failed to launch the browser process"}',
+            stderr="",
+        )
+
+    monkeypatch.setenv("HYPERFRAMES_BROWSER_PATH", "/owner/browser")
+    monkeypatch.setattr(hyperframes_module.subprocess, "run", fake_run)
+    monkeypatch.setattr(
+        HyperFramesCompose,
+        "_system_chromium_path",
+        staticmethod(lambda: pytest.fail("explicit browser path must not be replaced")),
+    )
+
+    result = HyperFramesCompose()._run_hf(
+        ["validate", "--json"], cwd=tmp_path, timeout=30, check=False
+    )
+
+    assert result.returncode == 1
+    assert len(calls) == 1
+
+
+def test_hyperframes_does_not_retry_unrelated_node_dyld_failure(monkeypatch, tmp_path):
+    """A generic Node loader failure is not evidence that Chromium is broken."""
+    import subprocess
+    import tools.video.hyperframes_compose as hyperframes_module
+
+    calls = []
+
+    def fake_run(*args, **kwargs):
+        calls.append(kwargs)
+        return subprocess.CompletedProcess(
+            args=args[0],
+            returncode=1,
+            stdout="node startup failed",
+            stderr="dyld[42]: Symbol not found: _unrelated_node_symbol",
+        )
+
+    monkeypatch.delenv("HYPERFRAMES_BROWSER_PATH", raising=False)
+    monkeypatch.setattr(hyperframes_module.subprocess, "run", fake_run)
+    monkeypatch.setattr(
+        HyperFramesCompose,
+        "_system_chromium_path",
+        staticmethod(lambda: pytest.fail("unrelated dyld errors must not retry a browser")),
+    )
+
+    result = HyperFramesCompose()._run_hf(
+        ["validate", "--json"], cwd=tmp_path, timeout=30, check=False
+    )
+    assert result.returncode == 1
+    assert len(calls) == 1
+
+
+def test_hyperframes_does_not_retry_composition_validation_error(monkeypatch, tmp_path):
+    """Invalid composition content must fail unchanged, never switch browser paths."""
+    import subprocess
+    import tools.video.hyperframes_compose as hyperframes_module
+
+    calls = []
+
+    def fake_run(*args, **kwargs):
+        calls.append(kwargs)
+        return subprocess.CompletedProcess(
+            args=args[0],
+            returncode=1,
+            stdout='{"ok":false,"error":"clip is missing data-duration"}',
+            stderr="composition validation failed",
+        )
+
+    monkeypatch.delenv("HYPERFRAMES_BROWSER_PATH", raising=False)
+    monkeypatch.setattr(hyperframes_module.subprocess, "run", fake_run)
+    monkeypatch.setattr(
+        HyperFramesCompose,
+        "_system_chromium_path",
+        staticmethod(lambda: pytest.fail("composition errors must not retry a browser")),
+    )
+
+    result = HyperFramesCompose()._run_hf(
+        ["validate", "--json"], cwd=tmp_path, timeout=30, check=False
+    )
+    assert result.returncode == 1
+    assert len(calls) == 1
+
+
+def test_hyperframes_failed_browser_retry_preserves_machine_readable_provenance(
+    monkeypatch, tmp_path
+):
+    import subprocess
+    import tools.video.hyperframes_compose as hyperframes_module
+
+    calls = []
+
+    def fake_run(*args, **kwargs):
+        calls.append(kwargs)
+        if len(calls) == 1:
+            return subprocess.CompletedProcess(
+                args=args[0],
+                returncode=19,
+                stdout="",
+                stderr="dyld[1]: chrome-headless-shell Symbol not found: VideoToolbox",
+            )
+        return subprocess.CompletedProcess(
+            args=args[0], returncode=23, stdout="", stderr="system browser also failed"
+        )
+
+    browser = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+    monkeypatch.delenv("HYPERFRAMES_BROWSER_PATH", raising=False)
+    monkeypatch.setattr(hyperframes_module.subprocess, "run", fake_run)
+    monkeypatch.setattr(
+        HyperFramesCompose,
+        "_system_chromium_path",
+        staticmethod(lambda: browser),
+    )
+
+    result = HyperFramesCompose()._run_hf(
+        ["validate", "--json"], cwd=tmp_path, timeout=30, check=False
+    )
+    assert result.returncode == 23
+    marker, payload = result.stderr.split("[openmontage-provenance]", 1)
+    assert "system browser also failed" in marker
+    provenance = json.loads(payload)
+    assert provenance["event"] == "hyperframes_browser_fallback"
+    assert provenance["browser_path"] == browser
+    assert provenance["managed_returncode"] == 19
+    assert "VideoToolbox" in provenance["managed_stderr_tail"]
+
+
 def test_hyperframes_layer2_skill_names_correct_package():
     """Regression: skills/core/hyperframes.md previously claimed HyperFrames
     was 'consumable via `npx @hyperframes/cli`' which is the 404-ing name.
