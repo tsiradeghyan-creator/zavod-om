@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "zavodom/agents/activation_plan",
+  "title": "ZavodOM Agent Activation Plan",
+  "type": "object",
+  "required": [
+    "version", "request_id", "request_hash", "registry_version", "registry_hash",
+    "routing_status", "supersedes_plan_hash", "replan_reason", "signals", "selected_agents", "rejected_agents", "tasks",
+    "waves", "owner_gates", "unmatched_capabilities", "policy"
+  ],
+  "properties": {
+    "version": {"const": "1.0"},
+    "request_id": {"type": "string"},
+    "request_hash": {"$ref": "#/$defs/hash"},
+    "registry_version": {"type": "string"},
+    "registry_hash": {"$ref": "#/$defs/hash"},
+    "routing_status": {"type": "string", "enum": ["ready", "owner_input_required", "blocked"]},
+    "supersedes_plan_hash": {
+      "oneOf": [{"$ref": "#/$defs/hash"}, {"type": "null"}]
+    },
+    "replan_reason": {"type": ["string", "null"]},
+    "signals": {"type": "object"},
+    "selected_agents": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/selection"},
+      "minItems": 1
+    },
+    "rejected_agents": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/selection"}
+    },
+    "tasks": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/task"},
+      "minItems": 2
+    },
+    "waves": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["wave", "task_ids", "parallel"],
+        "properties": {
+          "wave": {"type": "integer", "minimum": 0},
+          "task_ids": {
+            "type": "array",
+            "items": {"type": "string"},
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "parallel": {"type": "boolean"}
+        },
+        "additionalProperties": false
+      },
+      "minItems": 2
+    },
+    "owner_gates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["gate_id", "reason", "action_hash_required", "binding_task_id", "binding_source"],
+        "properties": {
+          "gate_id": {"type": "string"},
+          "reason": {"type": "string", "minLength": 8},
+          "action_hash_required": {"const": true},
+          "binding_task_id": {"type": "string"},
+          "binding_source": {
+            "type": "string",
+            "enum": ["idempotency_key", "output_hash"]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "unmatched_capabilities": {"$ref": "#/$defs/stringList"},
+    "policy": {
+      "type": "object",
+      "required": [
+        "max_parallel", "max_agents", "max_depth", "max_retries",
+        "max_wall_time_seconds", "preserve_dissent"
+      ],
+      "properties": {
+        "max_parallel": {"type": "integer", "minimum": 1},
+        "max_agents": {"type": "integer", "minimum": 2},
+        "max_depth": {"type": "integer", "minimum": 1},
+        "max_retries": {"type": "integer", "minimum": 0},
+        "max_wall_time_seconds": {"type": "integer", "minimum": 30},
+        "preserve_dissent": {"const": true}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "stringList": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "selection": {
+      "type": "object",
+      "required": ["agent_id", "score", "reasons", "required"],
+      "properties": {
+        "agent_id": {"type": "string"},
+        "score": {"type": "number"},
+        "reasons": {"$ref": "#/$defs/stringList"},
+        "required": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+    "task": {
+      "type": "object",
+      "required": [
+        "task_id", "agent_id", "phase", "wave", "depends_on", "required", "objective",
+        "input_hash", "input_artifacts", "instruction_hashes", "platform_adapter_hashes", "output_artifact",
+        "allowed_tools", "evidence_required", "stop_conditions", "budget",
+        "prompt_version", "lineage", "idempotency_key", "failure_policy", "fallback_agent", "external_side_effects",
+        "approval_gate", "approval_binding", "fallback_for_task"
+      ],
+      "properties": {
+        "task_id": {"type": "string", "pattern": "^[A-Za-z0-9._:-]+$"},
+        "agent_id": {"type": "string"},
+        "phase": {"type": "string", "enum": ["route", "specialist", "synthesize", "owner_gate", "verify"]},
+        "wave": {"type": "integer", "minimum": 0},
+        "depends_on": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "required": {"type": "boolean"},
+        "objective": {"type": "string", "minLength": 20},
+        "input_hash": {"$ref": "#/$defs/hash"},
+        "input_artifacts": {"$ref": "#/$defs/stringList"},
+        "instruction_hashes": {
+          "type": "object",
+          "propertyNames": {"pattern": "^skills/.+\\.md$"},
+          "additionalProperties": {"$ref": "#/$defs/hash"},
+          "minProperties": 1
+        },
+        "platform_adapter_hashes": {
+          "type": "object",
+          "propertyNames": {"pattern": "^\\.claude/agents/.+\\.md$"},
+          "additionalProperties": {"$ref": "#/$defs/hash"}
+        },
+        "output_artifact": {"type": "string"},
+        "allowed_tools": {"$ref": "#/$defs/stringList"},
+        "evidence_required": {"$ref": "#/$defs/stringList"},
+        "stop_conditions": {"$ref": "#/$defs/stringList"},
+        "budget": {
+          "type": "object",
+          "required": ["max_turns", "max_seconds"],
+          "properties": {
+            "max_turns": {"type": "integer", "minimum": 1},
+            "max_seconds": {"type": "integer", "minimum": 10}
+          },
+          "additionalProperties": false
+        },
+        "prompt_version": {"type": "string", "minLength": 1},
+        "lineage": {
+          "oneOf": [
+            {"type": "null"},
+            {
+              "type": "object",
+              "required": ["supersedes_plan_hash"],
+              "properties": {
+                "supersedes_plan_hash": {"$ref": "#/$defs/hash"},
+                "primary_task": {"type": "string", "minLength": 1}
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "idempotency_key": {"$ref": "#/$defs/hash"},
+        "failure_policy": {
+          "type": "string",
+          "enum": ["fail_closed", "fallback", "degrade_with_warning"]
+        },
+        "fallback_agent": {"type": ["string", "null"]},
+        "external_side_effects": {
+          "type": "string",
+          "enum": ["forbidden", "approval_required", "allowed"]
+        },
+        "approval_gate": {"type": ["string", "null"]}
+        ,
+        "approval_binding": {
+          "type": ["string", "null"],
+          "enum": [null, "idempotency_key", "dependency_output_hash"]
+        },
+        "fallback_for_task": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    }
+  }
+}

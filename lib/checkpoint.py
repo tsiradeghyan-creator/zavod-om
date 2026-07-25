@@ -166,6 +166,7 @@ ZAVOD_PIPELINE_TYPES = frozenset({
     "zavod-reel-fast",
     "zavod-carousel",
     "zavod-promo",
+    "zavod-content",
 })
 
 
@@ -385,6 +386,12 @@ def _enforce_zavod_gates(checkpoint: dict[str, Any]) -> None:
 
     stage = checkpoint.get("stage")
     artifacts = checkpoint.get("artifacts") or {}
+    creative_identity = artifacts.get("creative_identity") or {}
+    authorial_voice = creative_identity.get("authorial_voice") or {}
+    strict_authorial_voice = (
+        stage == "script"
+        and authorial_voice.get("mode") == "strict"
+    )
 
     # Glyph gate on EVERY text surface of EVERY artifact, not just the stage-specific fields
     # (#8, 2026-07-05). An invisible/zero-width or homoglyph character hiding in a
@@ -393,11 +400,19 @@ def _enforce_zavod_gates(checkpoint: dict[str, Any]) -> None:
     # other surfaces open. The gate is a no-op on pure-ASCII/single-script strings (paths,
     # ids, enums), so sweeping every string leaf is safe and closes the gap.
     from lib.armenian_glyph_gate import gate as _glyph_gate
+    if strict_authorial_voice:
+        # Ani's screenplay registers intentionally contain genuine Russian code-switching.
+        # Keep mixed-token/transliteration/invisible-character failures, but do not mistake
+        # every whole Russian word for an Armenian homoglyph attack.
+        from lib.authorial_voice import authorial_glyph_gate as _authorial_glyph_gate
+    else:
+        _authorial_glyph_gate = None
     for _name, _art in artifacts.items():
         # Check the artifact NAME (top-level key) too, not only its contents — a poisoned
         # artifact name rode along unchecked otherwise (2026-07-06 dry re-probe).
         _viol = list(_glyph_gate(_name)["violations"]) if isinstance(_name, str) else []
-        _viol += _glyph_gate(_art)["violations"]  # walks keys AND values of the whole artifact
+        _gate = _authorial_glyph_gate if _authorial_glyph_gate else _glyph_gate
+        _viol += _gate(_art)["violations"]  # walks keys AND values of the whole artifact
         if _viol:
             _detail = "; ".join(x["reason"] for x in _viol)
             raise CheckpointValidationError(
@@ -413,6 +428,7 @@ def _enforce_zavod_gates(checkpoint: dict[str, Any]) -> None:
         run_scene_plan_gates,
         run_edit_gates,
         run_compose_gates,
+        run_rights_gates,
     )
 
     # Owner standing order (2026-07-03): every Zavod stage closes only after
@@ -436,7 +452,14 @@ def _enforce_zavod_gates(checkpoint: dict[str, Any]) -> None:
     result: dict[str, Any] | None = None
     if stage == "script":
         story_bible = artifacts.get("story_bible")
-        if checkpoint.get("status") == "completed" and not isinstance(story_bible, dict):
+        content_spec = artifacts.get("content_spec") if ptype == "zavod-content" else None
+        narrative_content = (
+            isinstance(content_spec, dict)
+            and content_spec.get("content_format") in {"screenplay", "series_episode", "stageplay"}
+        )
+        story_bible_required = ptype != "zavod-content" or narrative_content
+        if (checkpoint.get("status") == "completed" and story_bible_required
+                and not isinstance(story_bible, dict)):
             raise CheckpointValidationError(
                 f"Gate block at stage {stage!r} ({ptype}): missing artifacts.story_bible — "
                 "a Zavod script stage cannot close without the dramaturgy story bible."
@@ -446,7 +469,33 @@ def _enforce_zavod_gates(checkpoint: dict[str, Any]) -> None:
         if result is not None and not result.get("ok"):
             pass
         elif "script" in artifacts:
-            result = run_script_gates("\n".join(_all_strings(artifacts["script"])))
+            result = run_script_gates(
+                "\n".join(_all_strings(artifacts["script"])),
+                allow_cyrillic_code_switch=strict_authorial_voice,
+            )
+        if (result is None or result.get("ok")) and strict_authorial_voice:
+            report = artifacts.get("authorial_voice_report")
+            if not isinstance(report, dict):
+                raise CheckpointValidationError(
+                    f"Gate block at stage {stage!r} ({ptype}): strict authorial voice is locked "
+                    "but artifacts.authorial_voice_report is missing."
+                )
+            from lib.authorial_voice import (
+                load_profile, profile_path, validate_voice_report,
+            )
+            try:
+                profile = load_profile(profile_path(authorial_voice.get("profile_id", "")))
+                result = validate_voice_report(
+                    artifacts["script"], report,
+                    profile=profile,
+                    register=str(authorial_voice.get("register")),
+                    minimum_score=float(authorial_voice.get("minimum_score", 0.8)),
+                )
+            except (OSError, ValueError, TypeError) as exc:
+                raise CheckpointValidationError(
+                    f"Gate block at stage {stage!r} ({ptype}): authorial voice profile/report "
+                    f"cannot be verified ({exc})."
+                ) from exc
     elif stage == "scene_plan" and "scene_plan" in artifacts:
         result = run_scene_plan_gates(artifacts["scene_plan"])
     elif stage == "edit" and "edit_decisions" in artifacts:
@@ -498,6 +547,20 @@ def _enforce_zavod_gates(checkpoint: dict[str, Any]) -> None:
         reports = _continuity_reports(artifacts)
         if reports:
             result = run_compose_gates(reports)
+    elif stage == "publish":
+        publish_log = artifacts.get("publish_log") or {}
+        final_entries = [
+            entry for entry in publish_log.get("entries") or []
+            if isinstance(entry, dict) and entry.get("status") in {"published", "exported"}
+        ]
+        if final_entries:
+            rights_manifest = artifacts.get("rights_manifest")
+            if not isinstance(rights_manifest, dict):
+                raise CheckpointValidationError(
+                    f"Gate block at stage {stage!r} ({ptype}): final publish/export requires "
+                    "artifacts.rights_manifest; draft and pending-review runs may omit it."
+                )
+            result = run_rights_gates(rights_manifest, publish_log)
 
     if result is None or result.get("ok"):
         return
@@ -595,8 +658,9 @@ def _enforce_production_ladder(checkpoint: dict[str, Any]) -> None:
 
 # Two mutually-exclusive production lanes. The EP asks Remotion vs Higgsfield at the
 # idea stage; the lock is carried in artifacts.engine_lock and the lanes never mix.
-VALID_ENGINES = {"remotion", "higgsfield"}
+VALID_ENGINES = {"none", "remotion", "higgsfield"}
 LANE_COMPOSE_RUNTIMES = {
+    "none": {"none"},                    # written content: no media-generation lane
     "remotion": {"remotion", "hyperframes"},  # programmatic build, zero AI footage
     "higgsfield": {"ffmpeg"},                  # AI footage + ffmpeg overlay, zero Remotion
 }
@@ -638,12 +702,13 @@ def _enforce_engine_lane(checkpoint: dict[str, Any]) -> None:
     artifacts = checkpoint.get("artifacts") or {}
     lock = artifacts.get("engine_lock") or {}
     engine = lock.get("engine")
+    allowed_engines = {"none"} if ptype == "zavod-content" else {"remotion", "higgsfield"}
 
-    if engine not in VALID_ENGINES:
+    if engine not in allowed_engines:
         raise CheckpointValidationError(
             f"Engine lane not locked at stage {stage!r} ({ptype}): artifacts.engine_lock.engine "
-            f"must be one of {sorted(VALID_ENGINES)}. The Executive Producer asks Remotion vs "
-            f"Higgsfield at the idea stage and carries the lock forward. Got {engine!r}."
+            f"must be one of {sorted(allowed_engines)}. Written content locks the no-render lane; "
+            f"media pipelines ask Remotion vs Higgsfield and carry the lock forward. Got {engine!r}."
         )
 
     if stage == "assets" and engine == "remotion":
@@ -722,6 +787,287 @@ def _enforce_run_mode(checkpoint: dict[str, Any]) -> None:
                 f"{not_approved}. In supervised mode every owner-gated sub-stage freezes for the owner; "
                 f"record owner_approved: true once approved (or switch run_mode to automatic)."
             )
+
+
+def _stage_artifact(
+    project_dir: Path | str | None, stage: str, name: str,
+) -> Any:
+    if project_dir is None:
+        return None
+    path = Path(project_dir) / f"checkpoint_{stage}.json"
+    if not path.exists():
+        return None
+    try:
+        with open(path, encoding="utf-8") as handle:
+            checkpoint = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        return None
+    return (checkpoint.get("artifacts") or {}).get(name)
+
+
+def _idea_artifact(project_dir: Path | str | None, name: str) -> Any:
+    return _stage_artifact(project_dir, "idea", name)
+
+
+def _enforce_creative_identity(
+    checkpoint: dict[str, Any], project_dir: Path | str | None,
+) -> None:
+    """Lock authorial handwriting separately from optional visual branding.
+
+    New Zavod runs must choose an identity at idea.  The script stage must carry the exact
+    same lock, so a strict Maghakian profile cannot be silently omitted to bypass its report.
+    Legacy projects whose old idea checkpoint predates this artifact remain resumable.
+    """
+    ptype = checkpoint.get("pipeline_type") or ""
+    if not _is_zavod_pipeline(ptype) or checkpoint.get("status") != "completed":
+        return
+    stage = checkpoint.get("stage")
+    artifacts = checkpoint.get("artifacts") or {}
+    current = artifacts.get("creative_identity")
+
+    if stage == "idea":
+        if not isinstance(current, dict):
+            if ptype == "zavod-content":
+                raise CheckpointValidationError(
+                    f"Creative identity not locked at idea ({ptype}): add "
+                    "artifacts.creative_identity. Authorial handwriting and visual branding "
+                    "must be explicit, even when both are neutral."
+                )
+            return  # existing media pipelines opt in; backward-compatible
+        voice = current.get("authorial_voice") or {}
+        if voice.get("mode") in {"reference", "strict"}:
+            from lib.authorial_voice import load_profile, profile_path
+            try:
+                path = profile_path(str(voice.get("profile_id") or ""))
+            except ValueError as exc:
+                raise CheckpointValidationError(str(exc)) from exc
+            if not path.exists():
+                raise CheckpointValidationError(
+                    f"Creative identity references missing authorial profile {path.name!r}."
+                )
+            if voice.get("mode") == "strict":
+                profile = load_profile(path)
+                register = str(voice.get("register") or "")
+                register_profile = (profile.get("registers") or {}).get(register)
+                if not isinstance(register_profile, dict):
+                    raise CheckpointValidationError(
+                        f"Strict authorial register {register!r} is absent from profile {path.name!r}."
+                    )
+                if register_profile.get("status") != "active":
+                    raise CheckpointValidationError(
+                        f"Strict authorial register {register!r} is quarantined until a glyph-clean "
+                        "owner source is reviewed; reference mode remains available."
+                    )
+        return
+
+    if stage != "script":
+        return
+    locked = _idea_artifact(project_dir, "creative_identity")
+    if locked is None:
+        return  # backward-compatible legacy run
+    if not isinstance(current, dict):
+        raise CheckpointValidationError(
+            f"Script stage ({ptype}) dropped the idea-stage creative_identity lock; "
+            "carry it unchanged so strict authorial voice cannot be bypassed."
+        )
+    if _canonical_json_for_lock(current) != _canonical_json_for_lock(locked):
+        raise CheckpointValidationError(
+            f"Script stage ({ptype}) changed the locked creative_identity. Supersede the "
+            "idea decision explicitly instead of drifting the authorial profile mid-run."
+        )
+
+
+def _canonical_json_for_lock(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def _canonical_artifact_sha256(value: Any) -> str:
+    return hashlib.sha256(_canonical_json_for_lock(value).encode("utf-8")).hexdigest()
+
+
+def _enforce_universal_content_contract(
+    checkpoint: dict[str, Any], project_dir: Path | str | None,
+) -> None:
+    """Contracts specific to the format-neutral ``zavod-content`` route."""
+    if checkpoint.get("pipeline_type") != "zavod-content":
+        return
+    if checkpoint.get("status") != "completed":
+        return
+    stage = checkpoint.get("stage")
+    artifacts = checkpoint.get("artifacts") or {}
+
+    if stage == "idea":
+        spec = artifacts.get("content_spec")
+        if not isinstance(spec, dict):
+            raise CheckpointValidationError(
+                "zavod-content idea must carry artifacts.content_spec; a universal claim "
+                "without a typed format/modality/deliverable contract is not routable."
+            )
+        from lib.content_router import ContentRoutingError, route_content
+        try:
+            route = route_content(spec)
+        except ContentRoutingError as exc:
+            raise CheckpointValidationError(f"content_spec route failed: {exc}") from exc
+        if route.primary_pipeline != "zavod-content":
+            raise CheckpointValidationError(
+                f"content_spec format {spec.get('content_format')!r} routes to "
+                f"{route.primary_pipeline!r}, not 'zavod-content'. Use the audited route."
+            )
+        if spec.get("automation_mode") != artifacts.get("run_mode"):
+            raise CheckpointValidationError(
+                "content_spec.automation_mode must equal the locked artifacts.run_mode."
+            )
+        return
+
+    if stage == "script":
+        locked = _idea_artifact(project_dir, "content_spec")
+        current = artifacts.get("content_spec")
+        if locked is not None and _canonical_json_for_lock(current) != _canonical_json_for_lock(locked):
+            raise CheckpointValidationError(
+                "zavod-content script changed or dropped the idea-stage content_spec; "
+                "deliverable scope must be superseded explicitly, not drift mid-run."
+            )
+        script = artifacts.get("script") or {}
+        if isinstance(locked, dict):
+            expected = locked.get("deliverables") or []
+            package = script.get("deliverables")
+            if isinstance(package, list):
+                expected_by_id = {item.get("id"): item for item in expected}
+                actual_by_id = {item.get("deliverable_id"): item for item in package}
+                if len(actual_by_id) != len(package) or set(actual_by_id) != set(expected_by_id):
+                    raise CheckpointValidationError(
+                        "zavod-content script deliverable ids must cover the locked content_spec "
+                        "exactly once."
+                    )
+                for deliverable_id, item in actual_by_id.items():
+                    spec_item = expected_by_id[deliverable_id]
+                    if item.get("kind") != spec_item.get("kind"):
+                        raise CheckpointValidationError(
+                            f"zavod-content script deliverable {deliverable_id!r} changed its locked kind."
+                        )
+                    if item.get("language") != locked.get("language"):
+                        raise CheckpointValidationError(
+                            f"zavod-content script deliverable {deliverable_id!r} changed its locked language."
+                        )
+            else:
+                if len(expected) != 1:
+                    raise CheckpointValidationError(
+                        "A multi-deliverable content_spec requires script.deliverables; one flat "
+                        "draft cannot prove coverage of several promised outputs."
+                    )
+                if script.get("content_format") != locked.get("content_format"):
+                    raise CheckpointValidationError(
+                        "zavod-content script.content_format does not match the locked "
+                        "content_spec.content_format."
+                    )
+                if script.get("language") != locked.get("language"):
+                    raise CheckpointValidationError(
+                        "zavod-content script.language does not match the locked "
+                        "content_spec.language."
+                    )
+        bakeoff = artifacts.get("candidate_bakeoff")
+        if not isinstance(bakeoff, dict):
+            raise CheckpointValidationError(
+                "zavod-content script cannot close without artifacts.candidate_bakeoff; "
+                "the three-draft comparison must be evidence, not a checked box."
+            )
+        from lib.candidate_bakeoff import validate_candidate_bakeoff
+        bakeoff_result = validate_candidate_bakeoff(script, bakeoff)
+        if not bakeoff_result.get("ok"):
+            raise CheckpointValidationError(
+                f"zavod-content candidate bakeoff failed: "
+                f"{bakeoff_result.get('violations') or bakeoff_result}"
+            )
+        return
+
+    if stage == "quality":
+        report = artifacts.get("content_quality_report") or {}
+        spec = _idea_artifact(project_dir, "content_spec") or {}
+        script = _stage_artifact(project_dir, "script", "script")
+        if not isinstance(script, dict):
+            raise CheckpointValidationError(
+                "zavod-content quality cannot bind its evidence: the script checkpoint is missing."
+            )
+        expected_ids = [item.get("id") for item in spec.get("deliverables") or []]
+        results = report.get("deliverables") or []
+        actual_ids = [item.get("deliverable_id") for item in results if isinstance(item, dict)]
+        if len(actual_ids) != len(set(actual_ids)) or set(actual_ids) != set(expected_ids):
+            raise CheckpointValidationError(
+                "content_quality_report must cover every locked deliverable exactly once."
+            )
+        script_package = script.get("deliverables")
+        if isinstance(script_package, list):
+            payloads = {item.get("deliverable_id"): item for item in script_package}
+        elif len(expected_ids) == 1:
+            payloads = {expected_ids[0]: script}
+        else:
+            payloads = {}
+        required_checks = {
+            "structure", "accuracy", "authorial_voice", "language",
+            "channel_fit", "rights", "accessibility", "delivery",
+        }
+        violations: list[str] = []
+        for item in results:
+            deliverable_id = item.get("deliverable_id")
+            checks = item.get("checks") or []
+            names = [check.get("name") for check in checks if isinstance(check, dict)]
+            if len(names) != len(set(names)) or set(names) != required_checks:
+                violations.append(f"{deliverable_id}: incomplete or duplicate quality checks")
+            failed = [
+                check.get("name") for check in checks
+                if isinstance(check, dict) and check.get("status") == "revise"
+            ]
+            if item.get("verdict") != "pass" or item.get("open_issues") or failed:
+                violations.append(f"{deliverable_id}: unresolved quality result")
+            payload = payloads.get(deliverable_id)
+            expected_sha = _canonical_artifact_sha256(payload) if payload is not None else None
+            if item.get("artifact_sha256") != expected_sha:
+                violations.append(f"{deliverable_id}: quality evidence is bound to the wrong draft hash")
+        if report.get("verdict") != "pass" or report.get("open_issues") or violations:
+            raise CheckpointValidationError(
+                f"zavod-content quality stage cannot close: verdict={report.get('verdict')!r}, "
+                f"open={report.get('open_issues') or []}, violations={violations}."
+            )
+
+
+def _enforce_final_provenance(
+    checkpoint: dict[str, Any], project_dir: Path | str | None,
+) -> None:
+    """Verify that the exact final payload is file-backed and hash-covered.
+
+    ``run_rights_gates`` closes the declarations plane.  This structural gate closes the
+    evidence plane: the final local payload must still exist, its SHA-256 must match the
+    approved rights row, and a claimed C2PA manifest must itself be hash-verifiable.
+    """
+    ptype = checkpoint.get("pipeline_type") or ""
+    if not _is_zavod_pipeline(ptype):
+        return
+    if checkpoint.get("stage") != "publish" or checkpoint.get("status") != "completed":
+        return
+    artifacts = checkpoint.get("artifacts") or {}
+    publish_log = artifacts.get("publish_log") or {}
+    final_entries = [
+        item for item in publish_log.get("entries") or []
+        if isinstance(item, dict) and item.get("status") in {"published", "exported"}
+    ]
+    if not final_entries:
+        return
+    if project_dir is None:
+        raise CheckpointValidationError(
+            "Final publish/export provenance cannot be verified without a project directory."
+        )
+    rights_manifest = artifacts.get("rights_manifest")
+    if not isinstance(rights_manifest, dict):
+        # The content gate normally catches this first; keep the structural seam fail-closed.
+        raise CheckpointValidationError(
+            "Final publish/export provenance requires artifacts.rights_manifest."
+        )
+    from lib.provenance import verify_rights_files
+    result = verify_rights_files(rights_manifest, publish_log, project_dir)
+    if not result.get("ok"):
+        raise CheckpointValidationError(
+            f"Final provenance block at publish ({ptype}): {result.get('violations') or result}"
+        )
 
 
 def validate_checkpoint(checkpoint: dict[str, Any]) -> None:
@@ -1322,15 +1668,20 @@ def enforce_zavod_write_contracts(
     checkpoint written before these rules existed must NOT be retroactively rejected —
     `read_checkpoint` runs `validate_checkpoint` (schema + content gates) but not these.
     """
+    _enforce_no_history_rewrite(checkpoint, project_dir)  # approved history is append-only
     _enforce_production_ladder(checkpoint)   # specialist ladder is non-collapsible
     _enforce_engine_lane(checkpoint)         # Remotion and Higgsfield lanes stay separate
     _enforce_run_mode(checkpoint)            # supervised vs automatic stay separated
+    _enforce_creative_identity(checkpoint, project_dir)  # authorial voice cannot disappear
+    _enforce_universal_content_contract(checkpoint, project_dir)  # typed any-content route
+    _enforce_final_provenance(checkpoint, project_dir)  # exact final payload is hash-covered
     _enforce_concept_lock(checkpoint)        # idea closes only with a recorded concept choice (r6 #4)
     _enforce_fast_lane_eligibility(checkpoint)  # fast lane stays short-form (strategy audit)
     _enforce_canon_guard(checkpoint, project_dir)  # mid-pipeline canon drift requires revalidation
     _enforce_artifact_path_existence(checkpoint, project_dir)  # manifests must point at real files
     _enforce_referential_integrity(checkpoint, project_dir)  # cross-artifact links must resolve (#7)
     _enforce_stage_order(checkpoint, project_dir)  # completed stages follow manifest order (#7)
+    _enforce_checkpoint_chain(checkpoint, project_dir)  # prior approvals remain byte-identical
 
 
 def _enforce_resume_contracts(checkpoint: dict[str, Any], project_dir: Path | str | None) -> None:
@@ -1347,10 +1698,14 @@ def _enforce_resume_contracts(checkpoint: dict[str, Any], project_dir: Path | st
     _enforce_production_ladder(checkpoint)          # specialist ladder still non-collapsed
     _enforce_engine_lane(checkpoint)                # engine lane still consistent
     _enforce_run_mode(checkpoint)                   # run mode still consistent
+    _enforce_creative_identity(checkpoint, project_dir)  # identity lock still present
+    _enforce_universal_content_contract(checkpoint, project_dir)  # deliverables still match
+    _enforce_final_provenance(checkpoint, project_dir)  # final bytes still match approval
     _enforce_concept_lock(checkpoint)               # concept choice still recorded (r6 #4)
     _check_canon_guard_readonly(checkpoint, project_dir)      # canon drift — read-only
     _enforce_artifact_path_existence(checkpoint, project_dir)  # files real + valid media (#5)
     _enforce_referential_integrity(checkpoint, project_dir)   # cross-artifact links still resolve (#7)
+    _enforce_checkpoint_chain(checkpoint, project_dir)        # prior checkpoints did not drift
 
 
 def _checkpoint_path(pipeline_dir: Path, project_id: str, stage: str) -> Path:
@@ -1359,6 +1714,162 @@ def _checkpoint_path(pipeline_dir: Path, project_id: str, stage: str) -> Path:
 
 def _decision_log_path(pipeline_dir: Path, project_id: str) -> Path:
     return pipeline_dir / project_id / "decision_log.json"
+
+
+def _checkpoint_file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _attach_checkpoint_chain(checkpoint: dict[str, Any], project_dir: Path) -> None:
+    """Attach the exact previous-checkpoint hash to new Zavod writes.
+
+    Legacy checkpoints remain resumable. The first newly written stage after a legacy checkpoint
+    records ``legacy_anchor`` and pins that exact file; all later new checkpoints form a complete
+    recursive chain back to that anchor.
+    """
+    if not _is_zavod_pipeline(checkpoint.get("pipeline_type") or ""):
+        return
+    order = get_pipeline_stages(checkpoint.get("pipeline_type"))
+    stage = checkpoint.get("stage")
+    if stage not in order:
+        return
+    position = order.index(stage)
+    if position == 0:
+        checkpoint["checkpoint_chain"] = {"position": 0}
+        return
+    previous_stage = order[position - 1]
+    previous_path = project_dir / f"checkpoint_{previous_stage}.json"
+    if not previous_path.is_file():
+        return  # the existing stage-order gate emits the canonical failure
+    try:
+        with open(previous_path, encoding="utf-8") as handle:
+            previous = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        previous = {}
+    checkpoint["checkpoint_chain"] = {
+        "position": position,
+        "previous_stage": previous_stage,
+        "previous_checkpoint_sha256": _checkpoint_file_sha256(previous_path),
+        "legacy_anchor": not isinstance(previous.get("checkpoint_chain"), dict),
+    }
+
+
+def _enforce_checkpoint_chain(
+    checkpoint: dict[str, Any], project_dir: Path | str | None,
+) -> None:
+    """Recursively verify a new Zavod checkpoint's immutable history links.
+
+    This detects accidental/manual changes after approval. It deliberately does not claim to
+    resist an attacker who can rewrite every file and recompute hashes; signed attestations are a
+    separate future capability.
+    """
+    if not _is_zavod_pipeline(checkpoint.get("pipeline_type") or ""):
+        return
+    chain = checkpoint.get("checkpoint_chain")
+    if not isinstance(chain, dict):
+        return  # pre-chain checkpoint: backward-compatible legacy read/resume
+    if project_dir is None:
+        raise CheckpointValidationError("Checkpoint integrity chain requires a project directory.")
+
+    order = get_pipeline_stages(checkpoint.get("pipeline_type"))
+    current = checkpoint
+    current_stage = current.get("stage")
+    if current_stage not in order:
+        return
+    expected_position = order.index(current_stage)
+    project_dir = Path(project_dir)
+
+    while True:
+        current_chain = current.get("checkpoint_chain")
+        if not isinstance(current_chain, dict):
+            raise CheckpointValidationError(
+                f"Checkpoint integrity chain breaks at stage {current.get('stage')!r}."
+            )
+        if current_chain.get("position") != expected_position:
+            raise CheckpointValidationError(
+                f"Checkpoint integrity chain position mismatch at stage {current.get('stage')!r}."
+            )
+        if expected_position == 0:
+            if current_chain.get("previous_stage") or current_chain.get("previous_checkpoint_sha256"):
+                raise CheckpointValidationError(
+                    "Checkpoint integrity genesis must not claim a previous checkpoint."
+                )
+            return
+
+        previous_stage = order[expected_position - 1]
+        if current_chain.get("previous_stage") != previous_stage:
+            raise CheckpointValidationError(
+                f"Checkpoint integrity chain expected previous stage {previous_stage!r}."
+            )
+        previous_path = project_dir / f"checkpoint_{previous_stage}.json"
+        if not previous_path.is_file():
+            raise CheckpointValidationError(
+                f"Checkpoint integrity chain is missing {previous_path.name}."
+            )
+        actual_sha = _checkpoint_file_sha256(previous_path)
+        if current_chain.get("previous_checkpoint_sha256") != actual_sha:
+            raise CheckpointValidationError(
+                f"Checkpoint integrity chain hash mismatch for {previous_path.name}; "
+                "an approved earlier checkpoint changed after the next stage was linked."
+            )
+        try:
+            with open(previous_path, encoding="utf-8") as handle:
+                previous = json.load(handle)
+            jsonschema.validate(instance=previous, schema=_load_checkpoint_schema())
+        except (OSError, json.JSONDecodeError, jsonschema.ValidationError) as exc:
+            raise CheckpointValidationError(
+                f"Checkpoint integrity chain cannot validate {previous_path.name}: {exc}"
+            ) from exc
+        if (
+            previous.get("project_id") != checkpoint.get("project_id")
+            or _canonical_pipeline_type(previous.get("pipeline_type"))
+            != _canonical_pipeline_type(checkpoint.get("pipeline_type"))
+            or previous.get("stage") != previous_stage
+        ):
+            raise CheckpointValidationError(
+                f"Checkpoint integrity chain points to the wrong run at {previous_path.name}."
+            )
+        previous_has_chain = isinstance(previous.get("checkpoint_chain"), dict)
+        if current_chain.get("legacy_anchor"):
+            if previous_has_chain:
+                raise CheckpointValidationError(
+                    "Checkpoint integrity chain falsely marks a chained checkpoint as legacy."
+                )
+            return
+        if not previous_has_chain:
+            raise CheckpointValidationError(
+                f"Checkpoint integrity chain silently drops history at {previous_stage!r}."
+            )
+        current = previous
+        expected_position -= 1
+
+
+def _enforce_no_history_rewrite(
+    checkpoint: dict[str, Any], project_dir: Path | str | None,
+) -> None:
+    """Do not replace an approved stage while later checkpoints depend on it."""
+    if not _is_zavod_pipeline(checkpoint.get("pipeline_type") or ""):
+        return
+    if checkpoint.get("status") != "completed" or project_dir is None:
+        return
+    order = get_pipeline_stages(checkpoint.get("pipeline_type"))
+    stage = checkpoint.get("stage")
+    if stage not in order:
+        return
+    root = Path(project_dir)
+    later = [
+        name for name in order[order.index(stage) + 1:]
+        if (root / f"checkpoint_{name}.json").is_file()
+    ]
+    if later:
+        raise CheckpointValidationError(
+            f"Checkpoint history rewrite blocked: stage {stage!r} already has later linked "
+            f"checkpoint(s) {later}. Fork/supersede the run instead of replacing approved history."
+        )
 
 
 def _atomic_write_json(path: Path, data: Any) -> None:
@@ -1743,6 +2254,15 @@ def write_checkpoint(
     metadata: Optional[dict] = None,
 ) -> Path:
     """Write a checkpoint file for a pipeline stage."""
+    if status == "awaiting_human":
+        # A pause is an owner gate by definition. Normalize legacy callers so the persisted
+        # checkpoint cannot claim it is awaiting a human while approval is not required.
+        human_approval_required = True
+        human_approved = False
+    if status == "completed" and human_approval_required and not human_approved:
+        raise CheckpointValidationError(
+            f"Stage {stage!r} requires human approval and cannot close unapproved."
+        )
     # Canonicalize at the source so a stray-cased / whitespace-padded zavod type is never
     # persisted raw — every downstream consumer then sees the canonical id (#11).
     pipeline_type = _canonical_pipeline_type(pipeline_type)
@@ -1772,6 +2292,7 @@ def write_checkpoint(
     pin = _manifest_pin(pipeline_type)
     if pin is not None:
         checkpoint["manifest_pin"] = pin
+    _attach_checkpoint_chain(checkpoint, pipeline_dir / project_id)
     if style_playbook is not None:
         checkpoint["style_playbook"] = style_playbook
     if review is not None:

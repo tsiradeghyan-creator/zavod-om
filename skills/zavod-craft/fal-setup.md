@@ -23,7 +23,9 @@ claude mcp add --transport http fal-ai \
 ## Current install on this machine (legacy, works)
 Հիմա `~/.claude.json`-ում դրված է **երրորդ կողմի** `fal-ai-mcp-server` npm փաթեթը
 (`npx -y fal-ai-mcp-server`, `FAL_KEY` env-ով)։ Այն աշխատում է և `fal-ai-media` skill-ի
-գործիքներն էլ (`search`/`find`/`generate`/`result`) դրանից են։ Սա պաշտոնական սերվերը ՉԷ —
+գործիքներն էլ դրանից են — 2026-07 դրությամբ 12 գործիք՝ `search` · `find` · `models` ·
+`generate` · `result` · `status` · `cancel` · `upload` · `pricing` · `estimate_cost` ·
+`usage` · `analytics`։ Սա պաշտոնական սերվերը ՉԷ —
 supply-chain ռիսկը սեփականատիրոջ գիտակցված ընտրությունն է։ Migration official hosted-ին՝
 վերևի մեկ հրամանով; անելուց հետո `fal-ai-media` skill-ի գործիքների անունները թարմացնել։
 

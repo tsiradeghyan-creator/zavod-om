@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openmontage/artifacts/authorial_voice_report",
+  "title": "Authorial Voice Evidence Report",
+  "description": "Evidence-backed review of a draft against a named authorial profile. Code verifies hashes, coverage, excerpts, score math, and corpus references; the reviewer supplies creative judgment.",
+  "type": "object",
+  "required": [
+    "version",
+    "profile_id",
+    "register",
+    "draft_sha256",
+    "profile_sha256",
+    "objective",
+    "criteria",
+    "overall_score",
+    "verdict"
+  ],
+  "properties": {
+    "version": { "type": "string", "const": "1.0" },
+    "profile_id": { "type": "string", "minLength": 1 },
+    "register": { "type": "string", "enum": ["A1", "A2", "A3", "A4", "A5", "A6", "B", "C", "external_brand", "neutral"] },
+    "draft_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "profile_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "objective": {
+      "type": "object",
+      "required": ["glyph_pass", "generic_trope_pass", "format_signal", "register_signal"],
+      "properties": {
+        "glyph_pass": { "type": "boolean" },
+        "generic_trope_pass": { "type": "boolean" },
+        "format_signal": { "type": "number", "minimum": 0, "maximum": 1 },
+        "register_signal": { "type": "number", "minimum": 0, "maximum": 1 },
+        "notes": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "criteria": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "type": "object",
+        "required": ["criterion", "score", "evidence"],
+        "properties": {
+          "criterion": {
+            "type": "string",
+            "enum": [
+              "behaviour_over_statement",
+              "subtext",
+              "register_fidelity",
+              "dialogue_naturalness",
+              "structure",
+              "format_fidelity",
+              "symbol_and_aphorism_discipline"
+            ]
+          },
+          "score": { "type": "integer", "minimum": 1, "maximum": 5 },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["draft_excerpt", "rationale", "corpus_ref"],
+              "properties": {
+                "draft_excerpt": { "type": "string", "minLength": 1 },
+                "rationale": { "type": "string", "minLength": 12 },
+                "corpus_ref": { "type": "string", "minLength": 1 }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "overall_score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "verdict": { "type": "string", "enum": ["pass", "revise"] },
+    "blocking_issues": { "type": "array", "items": { "type": "string" } },
+    "reviewed_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

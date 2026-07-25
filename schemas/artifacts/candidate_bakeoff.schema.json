@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openmontage/artifacts/candidate_bakeoff",
+  "title": "Blind Candidate Bakeoff",
+  "description": "Evidence that materially different complete drafts were compared without revealing system preference or generator identity.",
+  "type": "object",
+  "required": ["version", "blind_review", "candidates", "selection"],
+  "properties": {
+    "version": { "type": "string", "const": "1.0" },
+    "blind_review": {
+      "type": "object",
+      "required": ["labels_hidden", "system_preference_hidden"],
+      "properties": {
+        "labels_hidden": { "const": true },
+        "system_preference_hidden": { "const": true },
+        "reviewer": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "required": ["candidate_id", "draft", "draft_sha256", "difference_axes", "differentiator", "scores"],
+        "properties": {
+          "candidate_id": { "type": "string", "minLength": 1 },
+          "draft": { "type": "object" },
+          "draft_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "difference_axes": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "enum": ["structure", "opening", "perspective", "timeline", "scene_engine", "argument", "narrator", "ending", "channel_mechanism"]
+            }
+          },
+          "differentiator": { "type": "string", "minLength": 20 },
+          "scores": {
+            "type": "object",
+            "required": ["brief_fit", "authorial_voice_fit", "structure", "originality", "accuracy_confidence"],
+            "properties": {
+              "brief_fit": { "type": "integer", "minimum": 1, "maximum": 10 },
+              "authorial_voice_fit": { "type": "integer", "minimum": 1, "maximum": 10 },
+              "structure": { "type": "integer", "minimum": 1, "maximum": 10 },
+              "originality": { "type": "integer", "minimum": 1, "maximum": 10 },
+              "accuracy_confidence": { "type": "integer", "minimum": 1, "maximum": 10 }
+            },
+            "additionalProperties": false
+          },
+          "review_notes": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "selection": {
+      "type": "object",
+      "required": ["selected_candidate_id", "reason", "rejected"],
+      "properties": {
+        "selected_candidate_id": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 20 },
+        "rejected": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "required": ["candidate_id", "rejected_because"],
+            "properties": {
+              "candidate_id": { "type": "string", "minLength": 1 },
+              "rejected_because": { "type": "string", "minLength": 20 }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

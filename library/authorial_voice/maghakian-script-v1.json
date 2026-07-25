@@ -1,0 +1,474 @@
+{
+  "criteria": [
+    "behaviour_over_statement",
+    "subtext",
+    "register_fidelity",
+    "dialogue_naturalness",
+    "structure",
+    "format_fidelity",
+    "symbol_and_aphorism_discipline"
+  ],
+  "description": "Անի Մաղաքյան authorial screenplay/prose fingerprint; visual branding is intentionally separate.",
+  "language": "hy-AM",
+  "profile_id": "maghakian-script-v1",
+  "registers": {
+    "A1": {
+      "feature_ranges": {
+        "armenian_letter_ratio": {
+          "max": 1.0,
+          "median": 1.0,
+          "min": 0.999882,
+          "p10": 0.999929,
+          "p90": 1.0
+        },
+        "code_switch_tokens_per_1k": {
+          "max": 0.279252,
+          "median": 0.0,
+          "min": 0.0,
+          "p10": 0.0,
+          "p90": 0.167551
+        },
+        "colloquial_markers_per_10k_chars": {
+          "max": 41.695927,
+          "median": 33.998587,
+          "min": 30.766405,
+          "p10": 31.792559,
+          "p90": 39.702095
+        },
+        "scene_markers_per_1k_lines": {
+          "max": 34.759358,
+          "median": 27.190332,
+          "min": 24.967148,
+          "p10": 25.8065,
+          "p90": 32.637647
+        },
+        "triple_comma_per_10k_chars": {
+          "max": 133.168021,
+          "median": 119.901856,
+          "min": 114.800424,
+          "p10": 115.779711,
+          "p90": 128.531431
+        }
+      },
+      "files": [
+        "84 ամառ 10 փոխված.txt",
+        "դու1.txt",
+        "դու2.txt",
+        "դու3.txt",
+        "դու4.txt"
+      ],
+      "minimum_signal": 0.62,
+      "sample_count": 5,
+      "status": "active"
+    },
+    "A2": {
+      "feature_ranges": {
+        "armenian_letter_ratio": {
+          "max": 1.0,
+          "median": 0.99994,
+          "min": 0.998203,
+          "p10": 0.998475,
+          "p90": 1.0
+        },
+        "code_switch_tokens_per_1k": {
+          "max": 1.684211,
+          "median": 0.133654,
+          "min": 0.0,
+          "p10": 0.0,
+          "p90": 1.539293
+        },
+        "colloquial_markers_per_10k_chars": {
+          "max": 58.432142,
+          "median": 52.120361,
+          "min": 47.421969,
+          "p10": 47.927343,
+          "p90": 56.248943
+        },
+        "scene_markers_per_1k_lines": {
+          "max": 36.458333,
+          "median": 28.81567,
+          "min": 23.224044,
+          "p10": 25.556245,
+          "p90": 33.460954
+        },
+        "triple_comma_per_10k_chars": {
+          "max": 41.798175,
+          "median": 28.457685,
+          "min": 18.598616,
+          "p10": 20.939246,
+          "p90": 38.216023
+        }
+      },
+      "files": [
+        "քեզանից հետո 10.txt",
+        "քեզանից հետո 2.txt",
+        "քեզանից հետո 3.txt",
+        "քեզանից հետո 4.txt",
+        "քեզանից հետո 8.txt",
+        "քեզանից հետո 9.txt"
+      ],
+      "minimum_signal": 0.62,
+      "sample_count": 6,
+      "status": "active"
+    },
+    "A3": {
+      "feature_ranges": {
+        "armenian_letter_ratio": {
+          "max": 1.0,
+          "median": 0.999566,
+          "min": 0.995171,
+          "p10": 0.996732,
+          "p90": 0.999964
+        },
+        "code_switch_tokens_per_1k": {
+          "max": 6.49759,
+          "median": 0.37886,
+          "min": 0.0,
+          "p10": 0.081883,
+          "p90": 4.226624
+        },
+        "colloquial_markers_per_10k_chars": {
+          "max": 53.968254,
+          "median": 51.594383,
+          "min": 40.924325,
+          "p10": 44.673295,
+          "p90": 53.477714
+        },
+        "scene_markers_per_1k_lines": {
+          "max": 26.589595,
+          "median": 23.529412,
+          "min": 20.27027,
+          "p10": 20.404586,
+          "p90": 26.049911
+        },
+        "triple_comma_per_10k_chars": {
+          "max": 16.292963,
+          "median": 10.47619,
+          "min": 6.350326,
+          "p10": 7.297437,
+          "p90": 15.996618
+        }
+      },
+      "files": [
+        "Սոսկալի 2 նոր.txt",
+        "Սոսկալի 3 (1).txt",
+        "Սոսկալի 4.txt",
+        "Սոսկալի 5.txt",
+        "Սոսկալի 6.txt"
+      ],
+      "minimum_signal": 0.62,
+      "sample_count": 5,
+      "status": "active"
+    },
+    "A4": {
+      "feature_ranges": {
+        "armenian_letter_ratio": {
+          "max": 1.0,
+          "median": 1.0,
+          "min": 1.0,
+          "p10": 1.0,
+          "p90": 1.0
+        },
+        "code_switch_tokens_per_1k": {
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "p10": 0.0,
+          "p90": 0.0
+        },
+        "colloquial_markers_per_10k_chars": {
+          "max": 95.921189,
+          "median": 46.822975,
+          "min": 31.672751,
+          "p10": 35.877484,
+          "p90": 81.532059
+        },
+        "scene_markers_per_1k_lines": {
+          "max": 4.878049,
+          "median": 1.435894,
+          "min": 0.953289,
+          "p10": 0.95632,
+          "p90": 3.987153
+        },
+        "triple_comma_per_10k_chars": {
+          "max": 9.662873,
+          "median": 1.784957,
+          "min": 0.0,
+          "p10": 0.456885,
+          "p90": 7.3781
+        }
+      },
+      "files": [
+        "Հատուկ Դասարան 3— 10.txt",
+        "Հատուկ Դասարան 3—7.txt",
+        "Հատուկ Դասարան 3—8.txt",
+        "Հատուկ Դասարան 3—9.txt"
+      ],
+      "minimum_signal": 0.62,
+      "sample_count": 4,
+      "status": "active"
+    },
+    "A5": {
+      "feature_ranges": {
+        "armenian_letter_ratio": {
+          "max": 0.999856,
+          "median": 0.999302,
+          "min": 0.998268,
+          "p10": 0.998504,
+          "p90": 0.999764
+        },
+        "code_switch_tokens_per_1k": {
+          "max": 2.241734,
+          "median": 0.712374,
+          "min": 0.232883,
+          "p10": 0.304728,
+          "p90": 1.854928
+        },
+        "colloquial_markers_per_10k_chars": {
+          "max": 45.53548,
+          "median": 42.144749,
+          "min": 39.929665,
+          "p10": 40.083202,
+          "p90": 45.029249
+        },
+        "scene_markers_per_1k_lines": {
+          "max": 41.720991,
+          "median": 37.508026,
+          "min": 17.54386,
+          "p10": 22.54062,
+          "p90": 41.449592
+        },
+        "triple_comma_per_10k_chars": {
+          "max": 44.976945,
+          "median": 20.81926,
+          "min": 10.623489,
+          "p10": 11.98999,
+          "p90": 39.421869
+        }
+      },
+      "files": [
+        "source-filename-sha256-6685771b23d1f7f847c854367c21d680beb7182bd9e9a8962088af108863e7de",
+        "source-filename-sha256-de0928c8500195ec2a8bc649456441f199c350443343a7342dda1590b717805a",
+        "source-filename-sha256-ec6357026d0eb72bdacc105b84b9b613f9b1120f1cd9665dc6968a7425283a5e",
+        "source-filename-sha256-fc4c4550837859d05a280561c30a4ab6c7055535d639cae45ba0449ba9eb1b39"
+      ],
+      "minimum_signal": 0.62,
+      "sample_count": 4,
+      "status": "active"
+    },
+    "A6": {
+      "feature_ranges": {
+        "armenian_letter_ratio": {
+          "max": 1.0,
+          "median": 1.0,
+          "min": 1.0,
+          "p10": 1.0,
+          "p90": 1.0
+        },
+        "code_switch_tokens_per_1k": {
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "p10": 0.0,
+          "p90": 0.0
+        },
+        "colloquial_markers_per_10k_chars": {
+          "max": 30.842314,
+          "median": 30.842314,
+          "min": 30.842314,
+          "p10": 30.842314,
+          "p90": 30.842314
+        },
+        "scene_markers_per_1k_lines": {
+          "max": 36.834925,
+          "median": 36.834925,
+          "min": 36.834925,
+          "p10": 36.834925,
+          "p90": 36.834925
+        },
+        "triple_comma_per_10k_chars": {
+          "max": 9.926262,
+          "median": 9.926262,
+          "min": 9.926262,
+          "p10": 9.926262,
+          "p90": 9.926262
+        }
+      },
+      "files": [
+        "Ճերմակ 2.txt"
+      ],
+      "minimum_signal": 0.62,
+      "sample_count": 1,
+      "status": "active"
+    },
+    "B": {
+      "feature_ranges": {
+        "armenian_letter_ratio": {
+          "max": 1.0,
+          "median": 1.0,
+          "min": 1.0,
+          "p10": 1.0,
+          "p90": 1.0
+        },
+        "code_switch_tokens_per_1k": {
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "p10": 0.0,
+          "p90": 0.0
+        },
+        "colloquial_markers_per_10k_chars": {
+          "max": 2.503756,
+          "median": 0.0,
+          "min": 0.0,
+          "p10": 0.0,
+          "p90": 2.329464
+        },
+        "scene_markers_per_1k_lines": {
+          "max": 62.5,
+          "median": 29.513889,
+          "min": 20.20202,
+          "p10": 22.921523,
+          "p90": 51.52027
+        },
+        "triple_comma_per_10k_chars": {
+          "max": 2.455796,
+          "median": 0.0,
+          "min": 0.0,
+          "p10": 0.0,
+          "p90": 2.305484
+        }
+      },
+      "files": [
+        "Մայրենի 1+Նվարդ.txt",
+        "Մայրենի 2+Նվարդ.txt",
+        "Մայրենի 3+Նվարդ.txt",
+        "Մայրենի 4+Նվարդ.txt",
+        "Մայրենի 5+Նվարդ.txt",
+        "Մայրենի 6+Նվարդ.txt"
+      ],
+      "minimum_signal": 0.35,
+      "sample_count": 6,
+      "status": "active"
+    },
+    "C": {
+      "feature_ranges": {},
+      "files": [],
+      "minimum_signal": 1.0,
+      "sample_count": 0,
+      "status": "quarantined_no_clean_sources"
+    },
+    "unclassified": {
+      "feature_ranges": {
+        "armenian_letter_ratio": {
+          "max": 1.0,
+          "median": 1.0,
+          "min": 0.998252,
+          "p10": 0.999138,
+          "p90": 1.0
+        },
+        "code_switch_tokens_per_1k": {
+          "max": 2.898551,
+          "median": 0.0,
+          "min": 0.0,
+          "p10": 0.0,
+          "p90": 2.624439
+        },
+        "colloquial_markers_per_10k_chars": {
+          "max": 58.513751,
+          "median": 2.078138,
+          "min": 0.0,
+          "p10": 0.241344,
+          "p90": 33.781484
+        },
+        "scene_markers_per_1k_lines": {
+          "max": 43.478261,
+          "median": 0.0,
+          "min": 0.0,
+          "p10": 0.0,
+          "p90": 31.684158
+        },
+        "triple_comma_per_10k_chars": {
+          "max": 109.091856,
+          "median": 0.0,
+          "min": 0.0,
+          "p10": 0.0,
+          "p90": 44.227334
+        }
+      },
+      "files": [
+        "source-filename-sha256-710674a2fa72b5bbd2cabe43c93a510f5d581ae0288500de461aa5b86d51f118",
+        "Անուշ-Արշակ.txt",
+        "Մի գեղեցիկ օր 1.txt",
+        "Պետրոս Հովհաննիսյան.txt",
+        "Վարդան Քոչարյան (3).txt",
+        "Տարիքդ ասեմ 1.txt",
+        "կարեն .txt",
+        "մի գեղեցիկ օր պերսոնաժներ.txt",
+        "սինոփսիս.txt"
+      ],
+      "minimum_signal": 0.35,
+      "sample_count": 9,
+      "status": "active"
+    }
+  },
+  "sources": {
+    "corpus_kind": "private_owner_supplied",
+    "excluded_files": [
+      "content-glyph-failure-sha256-12364174100b93467de63410219347b33f1e476d88814666618ece823d9a5171",
+      "unsafe-filename-sha256-3b97b999e26ff23df6b78b39959d37425c818d88065b23e506c6228a62b87614",
+      "content-glyph-failure-sha256-f1415b9af74e70400e1cb93a29834c987366c801eeb50f095f19604bd6471838",
+      "content-glyph-failure-sha256-9f7612cf94201a92ac0d9e9e836c720c9ee19064c467ac90f3e5faa438d2ac5a",
+      "content-glyph-failure-sha256-5bf5d56a9bf9d8b02042081b12651350a95a7bb28af2cab1b846a67fa71b30dc",
+      "content-glyph-failure-sha256-af2f21a55b0a0806656e733bfac63a9adc5445def128452b55f794888a183740",
+      "content-glyph-failure-sha256-d3afec68d0bcdf9b22d2a9da0d41fe35e695f8ae460a8d023d981c01ea25388b",
+      "content-glyph-failure-sha256-8f34a0128c183a8732345e671f78efa16dda513bb07ae9f1289a6adfb2d4516b",
+      "content-glyph-failure-sha256-6036422aeb4087fd1348b6a16127beb1adec1cb9b50218204e2d945d272d3a30"
+    ],
+    "file_count": 40,
+    "files": [
+      "84 ամառ 10 փոխված.txt",
+      "source-filename-sha256-710674a2fa72b5bbd2cabe43c93a510f5d581ae0288500de461aa5b86d51f118",
+      "source-filename-sha256-de0928c8500195ec2a8bc649456441f199c350443343a7342dda1590b717805a",
+      "source-filename-sha256-6685771b23d1f7f847c854367c21d680beb7182bd9e9a8962088af108863e7de",
+      "source-filename-sha256-ec6357026d0eb72bdacc105b84b9b613f9b1120f1cd9665dc6968a7425283a5e",
+      "source-filename-sha256-fc4c4550837859d05a280561c30a4ab6c7055535d639cae45ba0449ba9eb1b39",
+      "Անուշ-Արշակ.txt",
+      "դու1.txt",
+      "դու2.txt",
+      "դու3.txt",
+      "դու4.txt",
+      "կարեն .txt",
+      "Հատուկ Դասարան 3— 10.txt",
+      "Հատուկ Դասարան 3—7.txt",
+      "Հատուկ Դասարան 3—8.txt",
+      "Հատուկ Դասարան 3—9.txt",
+      "Ճերմակ 2.txt",
+      "Մայրենի 1+Նվարդ.txt",
+      "Մայրենի 2+Նվարդ.txt",
+      "Մայրենի 3+Նվարդ.txt",
+      "Մայրենի 4+Նվարդ.txt",
+      "Մայրենի 5+Նվարդ.txt",
+      "Մայրենի 6+Նվարդ.txt",
+      "Մի գեղեցիկ օր 1.txt",
+      "մի գեղեցիկ օր պերսոնաժներ.txt",
+      "Պետրոս Հովհաննիսյան.txt",
+      "սինոփսիս.txt",
+      "Սոսկալի 2 նոր.txt",
+      "Սոսկալի 3 (1).txt",
+      "Սոսկալի 4.txt",
+      "Սոսկալի 5.txt",
+      "Սոսկալի 6.txt",
+      "Վարդան Քոչարյան (3).txt",
+      "Տարիքդ ասեմ 1.txt",
+      "քեզանից հետո 10.txt",
+      "քեզանից հետո 2.txt",
+      "քեզանից հետո 3.txt",
+      "քեզանից հետո 4.txt",
+      "քեզանից հետո 8.txt",
+      "քեզանից հետո 9.txt"
+    ],
+    "snapshot_sha256": "89e4320ca212c253f1d2793a919c44c93efb3be22aac49ab7ba08eb8d1dc44cf"
+  },
+  "version": "1.0"
+}

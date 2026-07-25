@@ -17,10 +17,15 @@ legal advice — it's the producer's checklist of what a lawyer must paper.
 
 ## AI rights (2026 reality — must be papered)
 
-- **AI-only renders are NOT copyrightable** (US Copyright Office human-authorship rule).
-  Document the **human creative contribution** per project — script, prompts-as-direction,
-  edit decisions — and **archive model + prompt provenance** (the seed/prompt registry in
-  `ai-pipeline.md` is the evidence trail).
+- **AI-only renders are NOT copyrightable** (US Copyright Office human-authorship rule —
+  now settled at the top: SCOTUS denied cert in *Thaler v. Perlmutter*, March 2026, leaving
+  human authorship as the law). **AI-ASSISTED works with documented human creative control DO
+  register** — the Office has registered hundreds; the Zarya-of-the-Dawn split is the model
+  (human text + arrangement protected; raw AI images not). Document the **human creative
+  contribution** per project — script, prompts-as-direction, edit decisions — and **archive
+  model + prompt provenance** (the seed/prompt registry in `ai-pipeline.md` is the evidence
+  trail). Her 54-script authorship + the zavod's logged human gates are exactly the record
+  that wins registration.
 - **Verify each engine's commercial-use + indemnity terms** (Veo / Kling / Seedance /
   Nano Banana / fal-ai) before delivering paid work on its output.
 

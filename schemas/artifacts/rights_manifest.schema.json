@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openmontage/artifacts/rights_manifest",
+  "title": "Rights and Provenance Manifest",
+  "description": "Final-delivery evidence plane. Unknown or blocked rights can remain in a draft run but cannot be published or exported as final.",
+  "type": "object",
+  "required": ["version", "project_id", "entries", "ai_disclosure"],
+  "properties": {
+    "version": { "type": "string", "const": "1.0" },
+    "project_id": { "type": "string", "minLength": 1 },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["asset_id", "asset_type", "status", "source", "evidence"],
+        "properties": {
+          "asset_id": { "type": "string", "minLength": 1 },
+          "asset_type": { "type": "string", "enum": ["text", "image", "video", "audio", "music", "voice", "likeness", "location", "font", "data", "other"] },
+          "status": { "type": "string", "enum": ["controlled", "limited", "unknown", "blocked", "legal_review"] },
+          "source": { "type": "string", "minLength": 1 },
+          "owner_or_licensor": { "type": "string" },
+          "license_or_basis": { "type": "string" },
+          "territory": { "type": "string" },
+          "term": { "type": "string" },
+          "media": { "type": "array", "items": { "type": "string" } },
+          "likeness_consent_id": { "type": "string" },
+          "voice_consent_id": { "type": "string" },
+          "model": { "type": "string" },
+          "model_terms_url": { "type": "string" },
+          "model_terms_snapshot_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "artifact_path": { "type": "string", "description": "Project-relative or absolute path when this row governs a local deliverable." },
+          "artifact_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "constraints": { "type": "array", "items": { "type": "string" } },
+          "evidence": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "ai_disclosure": {
+      "type": "object",
+      "required": ["required", "decision"],
+      "properties": {
+        "required": { "type": "boolean" },
+        "decision": { "type": "string", "enum": ["label", "not_required", "pending"] },
+        "label_text": { "type": "string" },
+        "reason": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "c2pa": {
+      "type": "object",
+      "properties": {
+        "status": { "type": "string", "enum": ["signed", "verified", "not_available", "pending"] },
+        "manifest_path": { "type": "string" },
+        "manifest_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      },
+      "required": ["status"],
+      "additionalProperties": false
+    },
+    "approved_by": { "type": "string" },
+    "approved_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

@@ -79,9 +79,20 @@ _EXCLUDED_PIPELINES = {
 }
 
 
+def _reaches_compose(path: Path) -> bool:
+    """The runtime-choice law applies only when the manifest actually renders."""
+    return any(stage.get("name") == "compose" for stage in _load_manifest(path).get("stages", []))
+
+
+RUNTIME_MANIFESTS = [
+    path for path in ALL_MANIFESTS
+    if path.stem not in _EXCLUDED_PIPELINES and _reaches_compose(path)
+]
+
+
 @pytest.mark.parametrize(
     "manifest_path",
-    [p for p in ALL_MANIFESTS if p.stem not in _EXCLUDED_PIPELINES],
+    RUNTIME_MANIFESTS,
     ids=lambda p: p.stem,
 )
 def test_planning_skill_mentions_runtime_contract(manifest_path: Path):
@@ -126,7 +137,7 @@ def test_planning_skill_mentions_runtime_contract(manifest_path: Path):
 
 @pytest.mark.parametrize(
     "manifest_path",
-    [p for p in ALL_MANIFESTS if p.stem not in _EXCLUDED_PIPELINES],
+    RUNTIME_MANIFESTS,
     ids=lambda p: p.stem,
 )
 def test_compose_stage_references_runtime_routing(manifest_path: Path):

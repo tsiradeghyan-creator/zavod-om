@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "zavodom/agents/agent_request",
+  "title": "ZavodOM Agent Request",
+  "type": "object",
+  "required": [
+    "version", "request_id", "text", "intent", "topics", "formats", "languages",
+    "risks", "required_capabilities", "available_tools", "input_artifacts",
+    "automation_mode", "owner_constraints"
+  ],
+  "properties": {
+    "version": {"const": "1.0"},
+    "request_id": {"type": "string", "pattern": "^[A-Za-z0-9._-]{1,128}$"},
+    "text": {"type": "string", "minLength": 1},
+    "intent": {
+      "type": "string",
+      "enum": [
+        "question", "research", "content_creation", "content_transformation",
+        "media_production", "publishing", "system_change", "audit"
+      ]
+    },
+    "topics": {"$ref": "#/$defs/stringList"},
+    "formats": {"$ref": "#/$defs/stringList"},
+    "languages": {"$ref": "#/$defs/stringList"},
+    "risks": {"$ref": "#/$defs/stringList"},
+    "required_capabilities": {"$ref": "#/$defs/stringList"},
+    "available_tools": {"$ref": "#/$defs/stringList"},
+    "input_artifacts": {"$ref": "#/$defs/stringList"},
+    "automation_mode": {"type": "string", "enum": ["automatic", "supervised"]},
+    "owner_constraints": {"$ref": "#/$defs/stringList"}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "stringList": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    }
+  }
+}

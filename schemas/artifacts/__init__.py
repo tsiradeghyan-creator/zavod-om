@@ -38,6 +38,13 @@ ARTIFACT_NAMES = [
     "continuity_report",
     "story_bible",
     "performance_brief",
+    # Universal Zavod + evidence-plane additions.
+    "content_spec",
+    "creative_identity",
+    "content_quality_report",
+    "authorial_voice_report",
+    "candidate_bakeoff",
+    "rights_manifest",
 ]
 
 

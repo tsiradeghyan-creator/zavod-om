@@ -1,0 +1,796 @@
+version: "1.0"
+
+policy:
+  coordinator: executive-producer
+  verifier: quality-auditor
+  max_parallel: 4
+  max_agents: 9
+  max_depth: 3
+  max_retries: 0
+  max_wall_time_seconds: 3600
+  route_score_floor: 2.0
+  require_independent_verifier: true
+  preserve_dissent: true
+
+agents:
+  - id: executive-producer
+    name: Executive Producer
+    kind: coordinator
+    description: Decomposes the request, selects the smallest sufficient specialist team, protects owner decisions, and synthesizes evidence without hiding dissent.
+    capabilities:
+      - request_decomposition
+      - pipeline_routing
+      - task_synthesis
+      - owner_gate_management
+    execution_order: 0
+    priority: 100
+    parallel_safe: false
+    always_selected: true
+    activation_mode: always
+    trigger:
+      intents_any: []
+      topics_any: []
+      formats_any: []
+      languages_any: []
+      risks_any: []
+      capabilities_any: []
+      keywords_any: []
+      keywords_none: []
+    skills:
+      - skills/pipelines/zavod/executive-producer.md
+      - skills/zavod-craft/production-manager-orchestrator.md
+      - skills/zavod-craft/production-protocol.md
+    input_artifacts: []
+    output_artifact: orchestration_decision
+    allowed_tools:
+      - artifact_read
+      - agent_dispatch
+      - checkpoint_read
+    evidence_required:
+      - selected and rejected agents with reasons
+      - preserved blocking and minority opinions
+    stop_conditions:
+      - stop before every owner-gated action
+      - stop when a mandatory specialist fails closed
+    external_side_effects: forbidden
+    failure_policy: fail_closed
+    fallback_agent: null
+    budget: {max_turns: 12, max_seconds: 900}
+    prompt_version: "1.0"
+    positive_examples:
+      - Ստեղծիր ամբողջական արշավ՝ գաղափարից մինչև հրապարակման փաթեթ
+      - Improve the agent system and prove the result
+    negative_examples:
+      - Ուղղիր միայն այս մեկ տառասխալը
+    platform:
+      claude_agent_file: .claude/agents/zavod-executive-producer.md
+
+  - id: research-accuracy
+    name: Research and Accuracy Director
+    kind: specialist
+    description: Finds current primary evidence, separates fact from inference, checks claims, and refuses unsupported certainty.
+    capabilities:
+      - current_research
+      - factual_accuracy
+      - source_provenance
+      - competitive_benchmark
+    execution_order: 10
+    priority: 90
+    parallel_safe: true
+    always_selected: false
+    activation_mode: automatic
+    trigger:
+      intents_any: [research, audit]
+      topics_any: [research, trends, facts, benchmark, competition]
+      formats_any: [article, documentary, animated_explainer]
+      languages_any: []
+      risks_any: [factual_claims]
+      capabilities_any: [current_research, factual_accuracy, source_provenance, competitive_benchmark]
+      keywords_any:
+        - հետազոտ
+        - աղբյուր
+        - փաստ
+        - վերջին
+        - աշխարհում լավագույն
+        - աշխարհում ամենալավ
+        - հավասարը չունեն
+        - ամենալավը
+        - լավագույններից լավագույն
+        - համեմատ
+        - research
+        - benchmark
+        - latest
+        - source
+      keywords_none: []
+    skills:
+      - skills/zavod-craft/research-accuracy-consultant.md
+      - skills/zavod-craft/world-benchmark.md
+    input_artifacts: [brief, content_spec]
+    output_artifact: research_packet
+    allowed_tools: [web_search, source_read, artifact_read]
+    evidence_required:
+      - direct primary-source links for unstable claims
+      - explicit inference labels
+      - claim-to-source mapping
+    stop_conditions:
+      - stop if a high-impact claim cannot be verified
+      - never invent a citation
+    external_side_effects: forbidden
+    failure_policy: fail_closed
+    fallback_agent: null
+    budget: {max_turns: 16, max_seconds: 1200}
+    prompt_version: "1.0"
+    positive_examples:
+      - Գտիր այս թեմայի վերջին փաստերը և աղբյուրները
+      - Compare our orchestration with current official agent frameworks
+    negative_examples:
+      - Վերաշարադրիր տրված նախադասությունը՝ առանց նոր փաստերի
+    platform:
+      claude_agent_file: .claude/agents/zavod-research-accuracy.md
+
+  - id: story-architect
+    name: Story Architect
+    kind: specialist
+    description: Builds the premise, dramatic engine, structure, stakes, beats, episode logic, and format-specific narrative architecture.
+    capabilities:
+      - ideation
+      - story_structure
+      - serial_architecture
+      - format_strategy
+    execution_order: 10
+    priority: 82
+    parallel_safe: true
+    always_selected: false
+    activation_mode: automatic
+    trigger:
+      intents_any: [content_creation, content_transformation]
+      topics_any: [idea, story, structure, characters, series]
+      formats_any: [screenplay, series_episode, stageplay, article, newsletter]
+      languages_any: []
+      risks_any: []
+      capabilities_any: [ideation, story_structure, serial_architecture, format_strategy]
+      keywords_any:
+        - գաղափար
+        - սյուժե
+        - կառուցվածք
+        - կերպար
+        - պատմություն
+        - սերիա
+        - logline
+        - story
+        - structure
+        - character arc
+      keywords_none: []
+    skills:
+      - skills/zavod-craft/idea-lab.md
+      - skills/zavod-craft/serial-structure.md
+      - skills/pipelines/zavod/content-idea-director.md
+    input_artifacts: [content_spec, creative_identity, research_packet]
+    output_artifact: story_architecture
+    allowed_tools: [artifact_read]
+    evidence_required:
+      - premise and stakes
+      - structural alternatives and tradeoffs
+      - format-specific beat map
+    stop_conditions:
+      - stop if the premise contradicts the locked brief
+    external_side_effects: forbidden
+    failure_policy: fallback
+    fallback_agent: resilience-generalist
+    budget: {max_turns: 12, max_seconds: 900}
+    prompt_version: "1.0"
+    positive_examples:
+      - Կառուցիր սերիալի սեզոնային շարժիչը և առաջին սերիայի բիթերը
+      - Turn this premise into a durable story structure
+    negative_examples:
+      - Արտածիր արդեն հաստատված տեսանյութը
+    platform:
+      claude_agent_file: .claude/agents/zavod-story-architect.md
+
+  - id: authorial-voice-guardian
+    name: Authorial Voice Guardian
+    kind: specialist
+    description: Protects the requested authorial voice, Eastern Armenian integrity, dialogue register, and the pinned Maghakian Script DNA evidence contract.
+    capabilities:
+      - authorial_voice
+      - armenian_language
+      - dialogue_register
+      - maghakian_script_dna
+    execution_order: 10
+    priority: 95
+    parallel_safe: true
+    always_selected: false
+    activation_mode: automatic
+    trigger:
+      intents_any: []
+      topics_any: [authorial_voice, dialogue, armenian_script, maghakian]
+      formats_any: [screenplay, series_episode, stageplay]
+      languages_any: []
+      risks_any: [voice_drift, armenian_glyphs]
+      capabilities_any: [authorial_voice, armenian_language, dialogue_register, maghakian_script_dna]
+      keywords_any:
+        - ձեռագիր
+        - Մաղակյան
+        - Անի Մաղաքյան
+        - հայկական սցենար
+        - երկխոսություն
+        - խոսվածք
+        - authorial voice
+        - Script DNA
+      keywords_none: []
+    skills:
+      - skills/zavod-craft/style-profile.md
+      - skills/zavod-craft/brand-voice.md
+      - skills/zavod-craft/voice-extractor.md
+      - skills/pipelines/zavod/content-script-director.md
+    input_artifacts: [creative_identity, authorial_voice_profile, script]
+    output_artifact: authorial_voice_report
+    allowed_tools: [artifact_read, corpus_read]
+    evidence_required:
+      - pinned profile and draft hashes
+      - exact draft excerpts
+      - corpus evidence references
+    stop_conditions:
+      - stop on transliterated Armenian or mixed-token corruption
+      - stop when strict mode lacks clean corpus evidence
+    external_side_effects: forbidden
+    failure_policy: fail_closed
+    fallback_agent: null
+    budget: {max_turns: 12, max_seconds: 900}
+    prompt_version: "1.0"
+    positive_examples:
+      - Գրիր Մաղակյանի հայկական սցենարային ձեռագրով երկխոսություն
+      - Check this scene against the pinned authorial profile
+    negative_examples:
+      - Ընտրիր միայն տեսանյութի կոդեկը
+    platform:
+      claude_agent_file: .claude/agents/zavod-authorial-voice.md
+
+  - id: scriptwriter
+    name: Scriptwriter
+    kind: specialist
+    description: Produces complete, format-valid drafts from locked research, story architecture, and authorial constraints without collapsing alternatives.
+    capabilities:
+      - screenwriting
+      - dialogue
+      - narrative_draft
+      - marketing_copy
+    execution_order: 20
+    priority: 85
+    parallel_safe: false
+    always_selected: false
+    activation_mode: automatic
+    trigger:
+      intents_any: [content_creation, content_transformation]
+      topics_any: [script, dialogue, draft, copy]
+      formats_any: [screenplay, series_episode, stageplay, article, newsletter, social_post, caption]
+      languages_any: []
+      risks_any: []
+      capabilities_any: [screenwriting, dialogue, narrative_draft, marketing_copy]
+      keywords_any:
+        - գրիր
+        - սցենար
+        - երկխոսություն
+        - հոդված
+        - գրառում
+        - նամակ
+        - screenplay
+        - script
+        - article
+        - post
+      keywords_none: []
+    skills:
+      - skills/pipelines/zavod/content-script-director.md
+      - skills/pipelines/zavod/script-director.md
+      - skills/zavod-craft/style-profile.md
+    input_artifacts: [content_spec, research_packet, story_architecture, authorial_voice_report]
+    output_artifact: script_candidate
+    allowed_tools: [artifact_read]
+    evidence_required:
+      - complete draft matching the requested format
+      - declared length and language
+      - trace to locked inputs
+    stop_conditions:
+      - stop if required upstream evidence is missing
+      - never silently change the requested format
+    external_side_effects: forbidden
+    failure_policy: fallback
+    fallback_agent: resilience-generalist
+    budget: {max_turns: 20, max_seconds: 1500}
+    prompt_version: "1.0"
+    positive_examples:
+      - Գրիր ամբողջական սցենարի երեք իրապես տարբեր տարբերակ
+      - Draft the article from the approved research packet
+    negative_examples:
+      - Ստուգիր միայն երաժշտության իրավունքը
+    platform:
+      claude_agent_file: .claude/agents/zavod-scriptwriter.md
+
+  - id: visual-director
+    name: Visual Story Director
+    kind: specialist
+    description: Designs only the visual storytelling that the deliverable actually needs, covering direction, camera, staging, storyboard, art, and continuity.
+    capabilities:
+      - visual_language
+      - directing
+      - cinematography
+      - storyboard
+      - production_design
+    execution_order: 10
+    priority: 70
+    parallel_safe: true
+    always_selected: false
+    activation_mode: automatic
+    trigger:
+      intents_any: [media_production]
+      topics_any: [visuals, directing, camera, storyboard, art_direction]
+      formats_any: [carousel, reel, promo, short_video, long_video, documentary, character_animation]
+      languages_any: []
+      risks_any: [visual_continuity, likeness]
+      capabilities_any: [visual_language, directing, cinematography, storyboard, production_design]
+      keywords_any:
+        - կադր
+        - տեսողական
+        - օպերատոր
+        - ռեժիսուրա
+        - ռասկադրովկա
+        - storyboard
+        - camera
+        - cinematography
+        - visual
+      keywords_none:
+        - տեսողականը կարևոր չէ
+        - գույները հետաքրքիր չեն
+    skills:
+      - skills/zavod-craft/director-craft.md
+      - skills/zavod-craft/cinematography.md
+      - skills/zavod-craft/storyboard.md
+      - skills/zavod-craft/art-department.md
+    input_artifacts: [brief, script, creative_identity]
+    output_artifact: visual_plan
+    allowed_tools: [artifact_read, image_analysis]
+    evidence_required:
+      - shot intent and continuity logic
+      - concrete visual references when used
+    stop_conditions:
+      - stop if visual work was explicitly excluded
+    external_side_effects: forbidden
+    failure_policy: fallback
+    fallback_agent: resilience-generalist
+    budget: {max_turns: 12, max_seconds: 900}
+    prompt_version: "1.0"
+    positive_examples:
+      - Կազմիր տեսանյութի ռեժիսորական և օպերատորական լուծումը
+      - Create a storyboard for this reel
+    negative_examples:
+      - Գույնն ու տեսողական ոճը հիմա կարևոր չեն, միայն սցենարը գրիր
+    platform:
+      claude_agent_file: .claude/agents/zavod-visual-director.md
+
+  - id: rights-provenance
+    name: Rights and Provenance Guardian
+    kind: specialist
+    description: Verifies chain of title, consent, likeness, licenses, model terms, disclosures, payload hashes, and publication readiness.
+    capabilities:
+      - rights_clearance
+      - consent
+      - likeness_governance
+      - provenance
+      - ai_disclosure
+    execution_order: 10
+    priority: 98
+    parallel_safe: true
+    always_selected: false
+    activation_mode: automatic
+    trigger:
+      intents_any: [publishing, media_production]
+      topics_any: [rights, consent, licensing, provenance]
+      formats_any: [documentary, promo, reel, short_video, long_video, localization, campaign_package]
+      languages_any: []
+      risks_any: [rights, likeness, external_assets, publication]
+      capabilities_any: [rights_clearance, consent, likeness_governance, provenance, ai_disclosure]
+      keywords_any:
+        - իրավունք
+        - համաձայնություն
+        - լիցենզիա
+        - դեմք
+        - հրապարակում
+        - rights
+        - consent
+        - license
+        - likeness
+        - provenance
+      keywords_none: []
+    skills:
+      - skills/zavod-craft/business-affairs.md
+      - skills/zavod-craft/media-asset-manager.md
+    input_artifacts: [asset_manifest, rights_manifest, publish_log]
+    output_artifact: rights_ruling
+    allowed_tools: [artifact_read, file_hash]
+    evidence_required:
+      - exact asset and payload hashes
+      - consent and license identifiers
+      - unresolved restrictions
+    stop_conditions:
+      - stop on unknown or blocked rights
+      - stop on missing consent for likeness or voice
+    external_side_effects: forbidden
+    failure_policy: fail_closed
+    fallback_agent: null
+    budget: {max_turns: 10, max_seconds: 900}
+    prompt_version: "1.0"
+    positive_examples:
+      - Ստուգիր հրապարակման իրավունքներն ու բոլոր համաձայնությունները
+      - Verify the final payload against its rights manifest
+    negative_examples:
+      - Առաջարկիր սյուժեի երեք շրջադարձ
+    platform:
+      claude_agent_file: .claude/agents/zavod-rights-provenance.md
+
+  - id: localization-director
+    name: Localization Director
+    kind: specialist
+    description: Preserves meaning, register, glyph integrity, subtitle constraints, dubbing consent, and cultural context across languages.
+    capabilities:
+      - translation
+      - localization
+      - subtitles
+      - dubbing
+      - glyph_quality
+    execution_order: 20
+    priority: 78
+    parallel_safe: true
+    always_selected: false
+    activation_mode: automatic
+    trigger:
+      intents_any: [content_transformation]
+      topics_any: [translation, localization, subtitles, dubbing]
+      formats_any: [localization]
+      languages_any: []
+      risks_any: [translation_drift, armenian_glyphs, voice_consent]
+      capabilities_any: [translation, localization, subtitles, dubbing, glyph_quality]
+      keywords_any:
+        - թարգման
+        - տեղայնաց
+        - ենթագիր
+        - կրկնօրինակ
+        - translation
+        - localization
+        - subtitle
+        - dubbing
+      keywords_none: []
+    skills:
+      - skills/zavod-craft/localization.md
+    input_artifacts: [script, source_media_review, rights_manifest]
+    output_artifact: localization_package
+    allowed_tools: [artifact_read, transcript_read]
+    evidence_required:
+      - source-to-target segment mapping
+      - register and glyph review
+      - dubbing consent when applicable
+    stop_conditions:
+      - stop on missing source text
+      - stop on unapproved synthetic voice use
+    external_side_effects: forbidden
+    failure_policy: fail_closed
+    fallback_agent: null
+    budget: {max_turns: 14, max_seconds: 1200}
+    prompt_version: "1.0"
+    positive_examples:
+      - Տեղայնացրու սցենարը արևելահայերենով և պահպանիր խոսվածքը
+      - Build subtitles and dubbing notes for this video
+    negative_examples:
+      - Միայն ստուգիր տեսանյութի կադրերի քանակը
+    platform:
+      claude_agent_file: .claude/agents/zavod-localization.md
+
+  - id: media-producer
+    name: Media Production Supervisor
+    kind: specialist
+    description: Selects and executes the locked media-production path, preserving runtime choice, continuity, cost, asset provenance, and post-production quality.
+    capabilities:
+      - asset_generation
+      - video_generation
+      - editing
+      - compositing
+      - sound_post
+      - mastering
+    execution_order: 30
+    priority: 80
+    parallel_safe: false
+    always_selected: false
+    activation_mode: automatic
+    trigger:
+      intents_any: [media_production]
+      topics_any: [render, edit, audio, postproduction, assets]
+      formats_any: [carousel, reel, promo, short_video, long_video, animated_explainer, talking_head, screen_demo, podcast_repurpose, documentary, character_animation]
+      languages_any: []
+      risks_any: [paid_generation, media_continuity]
+      capabilities_any: [asset_generation, video_generation, editing, compositing, sound_post, mastering]
+      keywords_any:
+        - ռենդեր
+        - մոնտաժ
+        - տեսանյութ
+        - ձայն
+        - հետարտադրություն
+        - render
+        - edit
+        - video
+        - audio
+        - post-production
+      keywords_none: []
+    skills:
+      - skills/zavod-craft/ai-pipeline.md
+      - skills/zavod-craft/post-production.md
+      - skills/pipelines/zavod/compose-director.md
+    input_artifacts: [script, scene_plan, visual_plan, asset_manifest, edit_decisions]
+    output_artifact: render_report
+    allowed_tools: [tool_registry, media_generation, media_analysis, file_hash]
+    evidence_required:
+      - locked runtime and provider choices
+      - tool receipts and output hashes
+      - media validation results
+    stop_conditions:
+      - stop before unapproved paid generation
+      - stop before changing a locked runtime or provider
+    external_side_effects: approval_required
+    failure_policy: fallback
+    fallback_agent: resilience-generalist
+    budget: {max_turns: 20, max_seconds: 3600}
+    prompt_version: "1.0"
+    positive_examples:
+      - Արտադրիր հաստատված սցենարի տեսանյութը և ստուգիր վերջնական ֆայլը
+      - Complete the locked edit and mastering path
+    negative_examples:
+      - Պատասխանիր միայն հեղինակային ձեռագրի մասին
+    platform:
+      claude_agent_file: .claude/agents/zavod-media-producer.md
+
+  - id: distribution-growth
+    name: Distribution and Growth Director
+    kind: specialist
+    description: Adapts approved content to declared channels, plans publication and measurement, and never publishes or changes accounts without exact owner approval.
+    capabilities:
+      - platform_adaptation
+      - distribution
+      - publishing
+      - analytics
+      - experimentation
+    execution_order: 30
+    priority: 72
+    parallel_safe: true
+    always_selected: false
+    activation_mode: automatic
+    trigger:
+      intents_any: [publishing]
+      topics_any: [distribution, platforms, analytics, growth]
+      formats_any: [campaign_package, social_post, caption, carousel, reel, newsletter]
+      languages_any: []
+      risks_any: [publication, external_action]
+      capabilities_any: [platform_adaptation, distribution, publishing, analytics, experimentation]
+      keywords_any:
+        - հրապարակ
+        - հարթակ
+        - ալիք
+        - վերլուծություն
+        - աճ
+        - publish
+        - platform
+        - analytics
+        - growth
+      keywords_none: []
+    skills:
+      - skills/zavod-craft/playbook.md
+      - skills/zavod-craft/growth-analytics.md
+      - skills/pipelines/zavod/content-publish-director.md
+    input_artifacts: [content_spec, content_quality_report, rights_manifest, render_report]
+    output_artifact: distribution_plan
+    allowed_tools: [artifact_read, analytics_read]
+    evidence_required:
+      - per-channel deliverable mapping
+      - measurement and rollback plan
+      - exact approval-bound publication action
+    stop_conditions:
+      - stop before every external publication action
+      - stop when rights or quality are not closed
+    external_side_effects: forbidden
+    failure_policy: fail_closed
+    fallback_agent: null
+    budget: {max_turns: 12, max_seconds: 900}
+    prompt_version: "1.0"
+    positive_examples:
+      - Պատրաստիր հրապարակման և չափման ծրագիրը բոլոր հարթակների համար
+      - Publish only after the exact final payload is approved
+    negative_examples:
+      - Գտիր սցենարի երկրորդ ակտի շրջադարձը
+    platform:
+      claude_agent_file: .claude/agents/zavod-distribution-growth.md
+
+  - id: system-architect
+    name: Agent Systems Architect
+    kind: specialist
+    description: Audits and improves routing, schemas, orchestration, tools, tests, reliability, observability, and cross-host agent adapters with evidence-backed changes.
+    capabilities:
+      - system_architecture
+      - agent_orchestration
+      - schemas
+      - tooling
+      - testing
+      - reliability
+    execution_order: 10
+    priority: 92
+    parallel_safe: true
+    always_selected: false
+    activation_mode: automatic
+    trigger:
+      intents_any: [system_change, audit]
+      topics_any: [agents, architecture, pipelines, schemas, tests, reliability]
+      formats_any: []
+      languages_any: []
+      risks_any: [destructive_change, governance_bypass]
+      capabilities_any: [system_architecture, agent_orchestration, schemas, tooling, testing, reliability]
+      keywords_any:
+        - գործակալ
+        - ագենտ
+        - համակարգ
+        - ճարտարապետություն
+        - երթուղիչ
+        - փորձարկում
+        - agent
+        - architecture
+        - pipeline
+        - schema
+        - test
+        - orchestrator
+      keywords_none: []
+    skills:
+      - skills/meta/capability-extension.md
+      - skills/zavod-craft/auto-verification-loop.md
+      - skills/zavod-craft/world-benchmark.md
+    input_artifacts: []
+    output_artifact: system_change_proposal
+    allowed_tools: [repository_read, repository_edit, tests, web_search]
+    evidence_required:
+      - baseline and post-change results
+      - concrete architecture map
+      - regression and adversarial tests
+    stop_conditions:
+      - stop before destructive or unrelated changes
+      - stop when post-change gates regress
+    external_side_effects: forbidden
+    failure_policy: fail_closed
+    fallback_agent: null
+    budget: {max_turns: 24, max_seconds: 3600}
+    prompt_version: "1.0"
+    positive_examples:
+      - Ստուգիր՝ գործակալներն իրո՞ք ինքնուրույն ակտիվանում են, և ուղղիր համակարգը
+      - Harden the pipeline schemas and prove the routing behavior
+    negative_examples:
+      - Գրիր կարճ գեղարվեստական տեսարան՝ առանց համակարգային փոփոխության
+    platform:
+      claude_agent_file: .claude/agents/zavod-system-architect.md
+
+  - id: resilience-generalist
+    name: Resilience Generalist
+    kind: specialist
+    description: Dormant, allowlisted backup that can finish a bounded creative or media task only after a primary specialist fails and only under the identical input, permissions, output contract, and gates.
+    capabilities:
+      - ideation
+      - story_structure
+      - serial_architecture
+      - format_strategy
+      - screenwriting
+      - dialogue
+      - narrative_draft
+      - marketing_copy
+      - visual_language
+      - directing
+      - cinematography
+      - storyboard
+      - production_design
+      - asset_generation
+      - video_generation
+      - editing
+      - compositing
+      - sound_post
+      - mastering
+    execution_order: 20
+    priority: 1
+    parallel_safe: false
+    always_selected: false
+    activation_mode: fallback_only
+    trigger:
+      intents_any: []
+      topics_any: []
+      formats_any: []
+      languages_any: []
+      risks_any: []
+      capabilities_any: []
+      keywords_any: []
+      keywords_none: []
+    skills:
+      - skills/zavod-craft/producer-craft.md
+      - skills/pipelines/zavod/content-script-director.md
+      - skills/zavod-craft/director-craft.md
+      - skills/zavod-craft/post-production.md
+    input_artifacts: []
+    output_artifact: fallback_contribution
+    allowed_tools:
+      - artifact_read
+      - image_analysis
+      - tool_registry
+      - media_generation
+      - media_analysis
+      - file_hash
+    evidence_required:
+      - identical primary-task input hash
+      - explicit fallback lineage and primary failure
+      - original output contract and gates
+    stop_conditions:
+      - never activate without a failed allowlisted primary task
+      - never replace rights, accuracy, voice, localization, governance, or final review
+      - stop after one fallback attempt
+    external_side_effects: approval_required
+    failure_policy: fail_closed
+    fallback_agent: null
+    budget: {max_turns: 16, max_seconds: 1800}
+    prompt_version: "1.0"
+    positive_examples:
+      - Շարունակի՛ր նույն մուտքով միայն այն բանից հետո, երբ հիմնական ստեղծագործական գործակալը ձախողվել է
+      - Retry the exact bounded task after the allowlisted primary agent fails
+    negative_examples:
+      - Ակտիվացիր սովորական երթուղավորման ժամանակ որպես լրացուցիչ կարծիք
+    platform:
+      claude_agent_file: .claude/agents/zavod-resilience-generalist.md
+
+  - id: quality-auditor
+    name: Independent Quality Auditor
+    kind: verifier
+    description: Independently attacks the synthesized result, verifies every promised artifact and gate, preserves dissent, and refuses self-certified success.
+    capabilities:
+      - independent_review
+      - adversarial_testing
+      - continuity_quality
+      - accessibility_quality
+      - final_acceptance
+    execution_order: 40
+    priority: 100
+    parallel_safe: false
+    always_selected: true
+    activation_mode: always
+    trigger:
+      intents_any: []
+      topics_any: []
+      formats_any: []
+      languages_any: []
+      risks_any: []
+      capabilities_any: []
+      keywords_any: []
+      keywords_none: []
+    skills:
+      - skills/meta/reviewer.md
+      - skills/zavod-craft/auto-verification-loop.md
+      - skills/zavod-craft/continuity-qc-supervisor.md
+      - skills/zavod-craft/mastering-delivery-qc.md
+    input_artifacts: []
+    output_artifact: independent_quality_report
+    allowed_tools: [artifact_read, tests, media_analysis, file_hash]
+    evidence_required:
+      - exact input and output hashes
+      - adversarial findings with reproducible checks
+      - explicit pass, revise, or reject verdict
+    stop_conditions:
+      - stop and reject on unresolved critical findings
+      - never verify work produced by the same isolated run
+    external_side_effects: forbidden
+    failure_policy: fail_closed
+    fallback_agent: null
+    budget: {max_turns: 16, max_seconds: 1800}
+    prompt_version: "1.0"
+    positive_examples:
+      - Անկախ ստուգիր վերջնական արդյունքը և փորձիր կոտրել այն
+      - Verify the final output and its full execution trace
+    negative_examples:
+      - Ստեղծիր նյութը և նույն անցումով ինքդ հաստատիր
+    platform:
+      claude_agent_file: .claude/agents/zavod-quality-auditor.md

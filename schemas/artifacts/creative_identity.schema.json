@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openmontage/artifacts/creative_identity",
+  "title": "Creative Identity Lock",
+  "description": "Separates authorial handwriting from optional visual branding. The Maghakian script profile can be strict while colors and visual branding remain neutral.",
+  "type": "object",
+  "required": ["version", "identity_id", "authorial_voice"],
+  "properties": {
+    "version": { "type": "string", "const": "1.0" },
+    "identity_id": { "type": "string", "minLength": 1 },
+    "brand_pack_id": { "type": ["string", "null"] },
+    "authorial_voice": {
+      "type": "object",
+      "required": ["mode"],
+      "properties": {
+        "mode": { "type": "string", "enum": ["neutral", "reference", "strict"] },
+        "profile_id": { "type": "string" },
+        "register": { "type": "string", "enum": ["A1", "A2", "A3", "A4", "A5", "A6", "B", "C", "external_brand", "neutral"] },
+        "minimum_score": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "mode": { "enum": ["reference", "strict"] } }, "required": ["mode"] },
+          "then": { "required": ["profile_id", "register"] }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "visual_identity": {
+      "type": "object",
+      "properties": {
+        "mode": { "type": "string", "enum": ["neutral", "reference", "strict"] },
+        "pack_id": { "type": "string" }
+      },
+      "required": ["mode"],
+      "additionalProperties": false
+    },
+    "locked_by": { "type": "string" },
+    "locked_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

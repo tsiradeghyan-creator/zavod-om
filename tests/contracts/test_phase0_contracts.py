@@ -567,7 +567,9 @@ class TestAgentContextFiles:
         contents = (PROJECT_ROOT / "AGENT_GUIDE.md").read_text(encoding="utf-8")
         for header in (
             "## Orchestrator",
-            "## Stage Agents",
+            # Renamed from "## Stage Agents" when the stage layer became the
+            # director layer (idea/script/scene/asset/edit/publish directors).
+            "## Stage Director Playbooks",
             "## Reviewer Protocol",
             "## Communication Protocol",
             "## Human Checkpoint Protocol",

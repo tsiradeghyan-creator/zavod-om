@@ -69,23 +69,78 @@ The intelligence is in the skills, not in improvised code. An agent that reads t
 
 ## What OpenMontage Is
 
-OpenMontage is an instruction-driven video production system. The AI agent IS the intelligence — it reads instructions (pipeline manifests + stage director skills + meta skills) and drives the pipeline using tools.
+OpenMontage is an instruction-driven media-production system with a deterministic control plane.
+Model agents make creative judgments from pipeline manifests, director playbooks, and meta skills;
+Python validates routing, execution state, artifacts, approvals, and receipts.
 
-```
-Agent reads pipeline manifest (YAML) -> reads stage director skill (MD)
--> uses tools (Python BaseTool subclasses) -> self-reviews (meta skill)
--> checkpoints (Python utility) -> presents to human for approval
+```text
+request -> content route + agent route -> isolated specialist waves
+        -> execution ledger -> hash-bound synthesis candidate
+        -> exact owner gate where required -> independent final verification
+        -> pipeline checkpoint -> approval-bound external action where required
 ```
 
-**Python = tools + persistence.** No orchestration logic, creative decisions, review logic, or checkpoint policy in Python code. The agent makes those decisions guided by instructions.
+Python does not impersonate a creative worker. It enforces the graph and the evidence contract;
+the host runtime executes the selected model agents.
 
 Core loop:
 
-1. Select a pipeline.
-2. Run preflight.
-3. Discover real tools from the registry.
-4. Present the user with concepts, tool plan, production plan, and cost.
-5. Execute stage by stage with checkpoints.
+1. Normalize and route the request to a real pipeline.
+2. Route the request to the smallest sufficient typed specialist team.
+3. Run preflight and drive dependency waves through `lib.orchestrator.execute_agent_run(...)`.
+4. Record executor identity, output hash, evidence, and task state in the ledger.
+5. Synthesize one hash-bound candidate from receipt-backed contributions.
+6. Run a separate independent final verification of that exact candidate.
+7. Execute the production pipeline stage by stage with checkpoints and owner gates.
+
+## Automatic Agent Activation Contract
+
+ZavodOM has two different things that must never be conflated:
+
+- **Role playbook:** a Markdown file in `skills/` that describes craft, duties, and acceptance
+  criteria. One model can read several playbooks; that is still one execution context.
+- **Real agent:** a typed card in `agents/registry.yaml` that a host dispatches to an isolated worker.
+  It counts as executed only when `lib/agent_runtime.py` records an executor type, unique run ID,
+  prompt version, output hash, and evidence receipt.
+
+For every non-trivial Zavod request, the required flow is:
+
+1. **Initialize and route.** Before craft work, call
+   `lib.orchestrator.initialize_agent_run(pipeline_dir, project_id, request)`. It persists the
+   immutable request, active plan, and ledger. `lib/agent_router.py` extracts intent, topic,
+   format, language, risk, and required
+   capabilities. It records every selected and rejected card with reasons. Unmatched required
+   capability means `blocked`, not best-effort guessing.
+2. **Dispatch waves automatically.** Call `lib.orchestrator.execute_agent_run(...)` with the host's
+   native executor adapter. The Executive Producer locks the exact request hash. Independent
+   specialists with the same execution order run in parallel; dependent work waits for the prior
+   wave. The function also performs the allowlisted one-time fallback replan.
+3. **Record receipts.** Every task moves through the append-only ledger. Completion requires a real
+   executor receipt, output hash, and evidence. Terminal work cannot be edited in place.
+4. **Synthesize the candidate.** The Executive Producer combines only receipt-backed specialist
+   contributions, preserves blocking and minority findings, and locks the candidate hash.
+5. **Resolve exact owner gates.** Rights/likeness, destructive-change, and publication gates bind the
+   owner's approval to the synthesized output hash. Paid generation or runtime-change approval binds
+   to the complete planned task contract. The receipt includes the host-verified owner identity
+   provider and proof hash. A changed hash invalidates the approval.
+6. **Verify independently.** `quality-auditor` evaluates that exact approved candidate after synthesis.
+   Its
+   isolated run ID must differ from every producer run. A `revise` or `reject` verdict requires a new
+   hash-linked plan; the Executive Producer cannot self-certify or edit the terminal result in place.
+   Start the corrected candidate with `lib.orchestrator.initialize_revision_run(...)`, a new request
+   ID, and an explicit corrected-candidate or correction-packet artifact reference.
+
+The router is a planner; `execute_agent_run` is the real wave/receipt/fallback loop. Claude uses its
+agent adapters, Codex uses native subagents, and an API deployment must supply an equivalent native
+executor callback. Claude filesystem adapters are
+loaded at session start, so adapter changes require a session restart; `.claude/agents` files do not
+activate Codex workers. If the host cannot create isolated workers, it may continue only as explicitly
+labeled `single_context_simulation`. That is a degraded drafting mode: it must not be described as a
+real multi-agent run and cannot complete the independent-audit task.
+
+External publication, paid generation or a material runtime change, rights/likeness decisions, and
+destructive changes require owner approval bound to the plan-declared exact action hash: either the
+full task idempotency hash or the synthesized output hash.
 
 ## Decision Communication Contract
 
@@ -165,22 +220,33 @@ This applies especially to:
 
 ## Orchestrator
 
-The agent itself orchestrates the production state machine:
+Orchestration is split into two connected layers:
 
-`research -> proposal -> script -> scene_plan -> assets -> edit -> compose`
+- **Agent activation:** `lib/agent_router.py` builds route → specialist waves → hash-bound synthesis
+  candidate → exact owner gate where required → independent final verification;
+  `lib/orchestrator.execute_agent_run(...)` launches the waves through the native host adapter, while
+  `lib/agent_runtime.py` enforces task lifecycle and receipts.
+- **Production progression:** `lib/orchestrator.py` advances the selected pipeline one validated
+  checkpoint at a time and resumes fail-closed.
 
-The agent:
+The Executive Producer and host adapter:
 
-1. Reads the pipeline manifest (`pipeline_defs/*.yaml`) to know the process
-2. Calls `checkpoint.get_next_stage()` to find where to resume
-3. Reads the stage's director skill (`skills/pipelines/<pipeline>/<stage>-director.md`) to know HOW
-4. Uses tools (`tools/`) for concrete capabilities
-5. Self-reviews using the reviewer meta skill (`skills/meta/reviewer.md`)
-6. Checkpoints via the checkpoint protocol (`skills/meta/checkpoint-protocol.md`)
-7. Presents to human for approval when `human_approval_default: true`
+1. Routes the request and checks that all required capabilities are covered.
+2. Dispatches only planned tasks, respecting dependencies, permissions, budgets, and stop conditions.
+3. Reads each selected stage director playbook and relevant Layer 3 tool skills.
+4. Records task receipts, locks the synthesis candidate, and runs the independent verifier.
+5. Advances only schema-valid pipeline artifacts through `lib/orchestrator.py` and checkpoints.
+6. Presents owner-gated actions for exact approval before execution.
 
 Infrastructure files:
 
+- `agents/registry.yaml` — typed, versioned agent cards
+- `lib/agent_registry.py` — validates cards, skills, adapters, and instruction hashes
+- `lib/agent_router.py` — capability routing and bounded activation graph
+- `lib/agent_runtime.py` — append-only task ledger and exact approval receipts
+- `schemas/agents/` — request, registry, plan, and ledger schemas
+- `skills/meta/agent-routing.md` — host-neutral dispatch and verification contract
+- `lib/orchestrator.py` — one-stage-at-a-time production progression
 - `lib/checkpoint.py` — read/write checkpoints, stage validation
 - `tools/cost_tracker.py` — budget governance
 - `lib/pipeline_loader.py` — manifest loading and helpers
@@ -522,9 +588,12 @@ Record the music decision in the proposal/brief artifact so the asset director k
 
 Each pipeline manifest's `tools_available` field declares what tools a stage can use. Use selectors for multi-provider capabilities — the selector handles routing to whatever is available. Read the pipeline manifest for the authoritative list per stage.
 
-## Stage Agents
+## Stage Director Playbooks
 
-Each stage produces one canonical artifact that becomes the contract for the next stage. The stage director skill teaches the agent HOW to produce it.
+Each stage produces one canonical artifact that becomes the contract for the next stage. The stage
+director skill teaches a selected worker HOW to produce it. These Markdown files are role playbooks,
+not proof that separate agents ran; real execution is established by the typed registry, host
+dispatch, and execution-ledger receipt described above.
 
 | Stage | Director Skill | Canonical output | Core quality bar |
 |------|---------------|------------------|------------------|
@@ -544,7 +613,8 @@ Stage contract rules:
 
 ## Reviewer Protocol
 
-The reviewer is a meta skill (`skills/meta/reviewer.md`) — advisory, never directly blocks progression.
+The reviewer meta skill (`skills/meta/reviewer.md`) supports local stage self-review. It remains
+advisory and does not prove independent review.
 
 - Self-review after every stage execution, before checkpointing.
 - Load `review_focus` items from the pipeline manifest for the current stage.
@@ -552,6 +622,12 @@ The reviewer is a meta skill (`skills/meta/reviewer.md`) — advisory, never dir
 - Findings categorized: critical (must fix), suggestion (should fix), nitpick (nice-to-have).
 - Critical findings -> fix and re-review. Suggestions -> note and proceed.
 - Check playbook `quality_rules` as constraints, not suggestions.
+
+For a routed automatic-agent run, the additional `quality-auditor` task is mandatory and blocking.
+It runs after the hash-bound synthesis candidate, must use an isolated run ID different from every
+producing worker, and returns a receipt-backed pass, revise, or reject verdict. `Revise` or `reject`
+requires a new hash-linked plan. `single_context_simulation` is never an independent audit and cannot
+close that task.
 
 ## Human Checkpoint Protocol
 
@@ -569,6 +645,10 @@ Agents coordinate through canonical JSON artifacts, checkpoints, pipeline manife
 
 Primary files:
 
+- Agent registry: `agents/registry.yaml`
+- Agent control schemas: `schemas/agents/`
+- Activation router: `lib/agent_router.py`
+- Execution ledger: `lib/agent_runtime.py`
 - Artifact schemas: `schemas/artifacts/`
 - Checkpoint schema: `schemas/checkpoints/checkpoint.schema.json`
 - Pipeline manifest schema: `schemas/pipelines/pipeline_manifest.schema.json`
@@ -662,12 +742,22 @@ The `.agents/skills/` directory is large. When you're not coming in through a to
 | How does a tool actually work? | the tool's `usage_location` from the registry |
 | How should this pipeline stage behave? | `skills/pipelines/<pipeline>/...` |
 | What is the checkpoint/review policy? | `skills/meta/` |
+| Which real specialists should activate? | `agents/registry.yaml` + `lib/agent_router.py` |
+| Did an isolated worker actually run? | the `lib/agent_runtime.py` execution ledger receipt |
+| Is the review independent? | verifier receipt with a run ID distinct from every producer |
 
 ## What Not To Do
 
 - **Do not bypass the pipeline.** Never write ad-hoc scripts to call tools directly. All production goes through pipeline stages with director skills. See Rule Zero.
 - **Do not call generation tools without reading their Layer 3 skill.** Check the tool's `agent_skills` field, read the referenced skill, then craft your prompts using that guidance.
 - **Do not skip stage director skills.** Before executing any pipeline stage, read its director skill. The skill contains the quality bar, the workflow, and the review criteria.
+- **Do not call a playbook a real agent.** A role name or a bench ruling does not prove process
+  isolation. Require a planned task plus an executor/run receipt.
+- **Do not present simulation as multi-agent execution.** A same-context fallback must be labeled
+  degraded and cannot satisfy independent verification.
+- **Do not claim "best in the world" from architecture or green unit tests.** Maintain blind,
+  versioned evaluations against named external baselines, repeated runs, and human preference review;
+  publish the evidence and limitations with the claim.
 - Do not use deleted legacy names such as `tts_cloud`, `tts_engine`, or `video_gen`.
 - Do not hardcode provider names, API key names, or setup URLs. Read them from the registry's `install_instructions` and `dependencies` fields.
 - Do not begin asset generation before user approval on the production plan.

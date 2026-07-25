@@ -1,10 +1,10 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "openmontage/artifacts/brief",
-  "title": "Video Brief",
-  "description": "Creative brief produced by the Idea Explorer agent.",
+  "title": "Creative Brief",
+  "description": "Creative brief produced by the Idea Explorer agent. Supports timed media and format-neutral written content.",
   "type": "object",
-  "required": ["version", "title", "hook", "key_points", "tone", "style", "target_platform", "target_duration_seconds"],
+  "required": ["version", "title", "hook", "key_points", "tone", "style", "target_platform"],
   "properties": {
     "version": { "type": "string", "const": "1.0" },
     "title": { "type": "string", "minLength": 1 },
@@ -18,12 +18,25 @@
     "cta": { "type": "string", "description": "Call to action" },
     "tone": { "type": "string" },
     "style": { "type": "string", "description": "Style playbook name or custom description" },
+    "content_format": {
+      "type": "string",
+      "enum": ["social_post", "caption", "article", "newsletter", "screenplay", "series_episode", "stageplay", "video", "carousel", "promo"]
+    },
     "target_audience": { "type": "string" },
     "target_platform": {
       "type": "string",
-      "enum": ["youtube", "instagram", "tiktok", "linkedin", "generic"]
+      "enum": ["youtube", "instagram", "tiktok", "linkedin", "facebook", "telegram", "website", "email", "podcast", "print", "generic"]
     },
     "target_duration_seconds": { "type": "number", "minimum": 1 },
+    "target_length": {
+      "type": "object",
+      "required": ["unit", "value"],
+      "properties": {
+        "unit": { "type": "string", "enum": ["words", "characters", "pages", "scenes", "episodes", "slides"] },
+        "value": { "type": "number", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
     "reference_material": {
       "type": "array",
       "items": { "type": "string" },
@@ -65,5 +78,19 @@
     },
     "metadata": { "type": "object" }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "content_format": {
+            "enum": ["social_post", "caption", "article", "newsletter", "screenplay", "series_episode", "stageplay"]
+          }
+        },
+        "required": ["content_format"]
+      },
+      "then": { "required": ["target_length"] },
+      "else": { "required": ["target_duration_seconds"] }
+    }
+  ],
   "additionalProperties": false
 }

@@ -4,23 +4,48 @@ This is the single source of truth for project architecture and conventions. All
 
 ## Identity
 
-OpenMontage is an open-source, AI-orchestrated video production platform.
+OpenMontage is an open-source, AI-orchestrated media-production platform. ZavodOM is its universal
+content-production layer: a brand-neutral craft brain plus code-enforced routing, artifacts, gates,
+and owner checkpoints. The bundled Maghakian authorial profile is optional and remains separate from
+visual identity.
 
-## Architecture: Instruction-Driven (Agent-First)
+## Architecture: Hybrid Agent Control Plane
 
-The AI agent IS the intelligence. Python exists only for tools and persistence. Everything else — orchestration, creative decisions, review, stage transitions — lives in instructions (YAML manifests + markdown skills) the agent follows.
+Creative judgment remains in model agents instructed by pipeline manifests and Markdown craft
+skills. Python is the deterministic control plane: it validates content routing, discovers typed
+agent capabilities, plans dependency-aware dispatch waves, records task receipts, enforces
+approvals/checkpoints, drives those waves through a native host adapter, and refuses unsupported
+claims of completion.
 
+```text
+request → typed agent route → isolated specialist dispatch waves
+        → hash-linked execution receipts → hash-bound synthesis candidate
+        → exact owner gate where required → independent final verification → pipeline artifacts/checkpoints
+        → owner-gated external action
 ```
-Agent reads pipeline manifest (YAML) → reads stage director skill (MD)
-→ uses tools (Python BaseTool) → self-reviews (meta skill)
-→ checkpoints (Python utility) → presents to human for approval
-```
 
-**No Python orchestrator, no Python reviewer, no Python handlers.** The agent drives the pipeline.
+This distinction is contractual:
+
+- A file in `skills/` is a **role playbook**: knowledge and acceptance rules for a worker.
+- An entry in `agents/registry.yaml` is a **dispatchable agent card**: capabilities, triggers,
+  permissions, budget, evidence duties, failure policy, and instruction hashes.
+- A card counts as a **real agent execution** only when a host launches an isolated worker and the
+  execution ledger records its executor/run identity, output hash, and evidence. Merely reading
+  several role playbooks in one context is simulation, not multi-agent execution.
+- `lib/agent_router.py` plans work; `lib.orchestrator.execute_agent_run(...)` executes the graph,
+  parallel waves, receipts, owner pauses, and fallback replans. Claude, Codex, or an API host must
+  provide the actual native worker adapter. A host without isolated workers may use explicitly labeled degraded
+  `single_context_simulation`, but simulation cannot satisfy the independent-verifier task or a
+  claim of complete multi-agent execution.
 
 ## Source of Truth
 
-- **Agent guide & contract:** `AGENT_GUIDE.md` (tool inventory, pipeline selection, stage agents, protocols)
+- **Agent guide & contract:** `AGENT_GUIDE.md` (tool inventory, pipeline selection, dispatch, stage playbooks, protocols)
+- **Executable agent registry:** `agents/registry.yaml`
+- **Agent control schemas:** `schemas/agents/`
+- **Agent router/runtime:** `lib/agent_registry.py`, `lib/agent_router.py`, `lib/agent_runtime.py`,
+  `lib/orchestrator.execute_agent_run(...)`
+- **Host-neutral dispatch contract:** `skills/meta/agent-routing.md`
 - **Skill index:** `skills/INDEX.md`
 - **Tool registry:** `tools/tool_registry.py`
 - **Pipeline manifests:** `pipeline_defs/`
@@ -40,19 +65,56 @@ Layer 3: .agents/skills/            → "How the technology works" (generic API 
 
 Each tool's `agent_skills[]` field bridges Layer 1 → Layer 3. See `skills/INDEX.md` for the full mapping.
 
+These are knowledge layers, not proof of process isolation. The agent control plane above them
+selects the smallest sufficient specialist team and records which host workers actually executed it.
+
 ## Key Patterns
 
-- **Pipeline state machine:** `idea -> script -> scene_plan -> assets -> edit -> compose -> publish`
+- **Pipeline state machines:** media routes use `idea -> script -> scene_plan -> assets -> edit -> compose -> publish`;
+  the no-render `zavod-content` route uses `idea -> script -> quality -> publish`
+- **Deterministic content routing:** a schema-valid `content_spec` maps each supported format/modality
+  to a real pipeline or fails loudly (`lib/content_router.py`)
+- **Automatic specialist activation:** `lib/agent_router.py` extracts declared request signals,
+  scores every typed card, records selected and rejected agents with reasons, blocks unmatched
+  required capabilities, and emits bounded dependency waves
+- **Real execution receipts:** `lib/agent_runtime.py` maintains an append-only task lifecycle ledger.
+  A completed task needs an executor identity, output hash, and evidence; terminal tasks are immutable
+- **Independent acceptance:** the Executive Producer first builds one hash-bound candidate from
+  receipt-backed specialist work while preserving blocking and minority findings. The verifier then
+  evaluates that exact candidate in a different isolated run from every producer. A `revise` or
+  `reject` verdict requires a new hash-linked plan; the producer cannot self-certify the same output
 - **Instruction-driven stages:** Each stage has a director skill (MD) that teaches the agent HOW
 - **Pipeline manifests:** Declarative YAML defining stages, skills, tools, review focus, approval gates
 - **Capability-first tool design:** Each major family should expose a selector tool plus explicit provider tools
   - Example: `tts_selector` + `elevenlabs_tts` / `google_tts` / `openai_tts` / `piper_tts`
   - Example: `video_selector` + `heygen_video` / `wan_video` / `hunyuan_video` / `ltx_video_local` / `ltx_video_modal` / `cogvideo_video`
 - **Style playbooks:** YAML defining visual language, typography, motion, audio, asset generation constraints
-- **Artifacts are canonical:** `brief`, `script`, `scene_plan`, `asset_manifest`, `edit_decisions`, `render_report`, `publish_log`
+- **Artifacts are canonical:** the original media artifacts plus `content_spec`, `creative_identity`,
+  `candidate_bakeoff`, `authorial_voice_report`, `content_quality_report`, and `rights_manifest`
+  (32 artifact schemas total)
+- **Alternatives are proven:** `zavod-content` scripts require 3–5 complete blind candidates with
+  verified unique hashes, material differences across at least two creative axes, explicit rejection
+  reasons, and canonical hash identity between the selected candidate and final script
+- **Packages are exact:** a content script may hold one deliverable or a multi-deliverable package;
+  IDs/kinds/languages must match the locked spec. Aggregate quality covers every promised item exactly
+  once, runs all eight checks, and binds each review to the exact payload SHA-256.
+- **Creative identity is split:** authorial voice may be neutral/reference/strict independently of
+  optional visual identity. Strict Maghakian mode pins draft/profile hashes and evidence at the script seam.
+- **Final rights/provenance:** export and publication require the exact local payload, passing rights,
+  consent/disclosure, owner approval, and matching rights-row hash coverage; publication also needs
+  the returned URL. Claimed signed/verified C2PA manifests are file/hash-checked, but SHA-256 evidence
+  is not cryptographic C2PA signature verification.
+- **Append-only approved history:** new Zavod checkpoints hash-link to the exact previous checkpoint.
+  Resume fails if an earlier approval changed, and an earlier stage cannot be overwritten while later
+  linked checkpoints exist. This is tamper-evident integrity, not a cryptographic signature.
 - **Every tool inherits from `tools/base_tool.py`** (ToolContract)
 - **Checkpoint policy** lives in pipeline manifest (`human_approval_default` per stage) + `skills/meta/checkpoint-protocol.md`
-- **Reviewer** is a meta skill (`skills/meta/reviewer.md`), advisory, max 2 rounds
+- **Stage self-review** via `skills/meta/reviewer.md` is advisory. A routed automatic-agent run also
+  requires the registry's independent `quality-auditor`; same-context simulation cannot satisfy it
+- **Evidence-bound superiority claims:** architecture, schemas, and green unit tests establish
+  contract integrity, not market leadership. A "best in the world" claim requires a versioned blind
+  evaluation against named current baselines on identical briefs, inputs, budgets, and rubrics,
+  repeated runs, independent expert preference evidence, and disclosed failures and limitations
 - **Cost tracker** (`tools/cost_tracker.py`) manages budget: estimate -> reserve -> reconcile
 - **Canonical artifacts** validated against JSON schemas in `schemas/artifacts/`
 
@@ -64,6 +126,17 @@ Each tool's `agent_skills[]` field bridges Layer 1 → Layer 3. See `skills/INDE
 | `lib/config_model.py` | Runtime config loader (Pydantic) |
 | `lib/checkpoint.py` | Checkpoint writer/reader |
 | `lib/pipeline_loader.py` | Pipeline manifest loader + helpers |
+| `agents/registry.yaml` | Typed cards, triggers, permissions, budgets, fallbacks, and verifier policy |
+| `lib/agent_registry.py` | Registry/schema/reference validation + exact instruction hashing |
+| `lib/agent_router.py` | Request signals → selected/rejected agents → bounded dispatch waves |
+| `lib/agent_runtime.py` | Immutable task states, dependency/approval enforcement, hash-linked receipts |
+| `lib/orchestrator.py` | Native-host execution loop, safe parallel waves, fallback replan, pipeline checkpoints |
+| `schemas/agents/` | Request, registry, activation-plan, and execution-ledger contracts |
+| `skills/meta/agent-routing.md` | Cross-host dispatch, handoff, parallelism, receipt, verifier, and owner-gate law |
+| `lib/content_router.py` | Validated format/modality → pipeline routing |
+| `lib/candidate_bakeoff.py` | Blind full-draft comparison and selected/final identity proof |
+| `lib/authorial_voice.py` | Pinned authorial profile signals and strict evidence validation |
+| `lib/provenance.py` | Final local-file existence/hash/coverage verification |
 | `lib/media_profiles.py` | Platform-specific render profiles |
 | `styles/playbook_loader.py` | Style playbook loader + validator + design intelligence (color/type/a11y) |
 | `tools/base_tool.py` | ToolContract base class |
@@ -84,6 +157,11 @@ Each tool's `agent_skills[]` field bridges Layer 1 → Layer 3. See `skills/INDE
 
 | Pipeline | Manifest | Type |
 |----------|----------|------|
+| `zavod-content` | `pipeline_defs/zavod-content.yaml` | Universal written/narrative, no render |
+| `zavod-carousel` | `pipeline_defs/zavod-carousel.yaml` | Gated carousel production |
+| `zavod-reel` | `pipeline_defs/zavod-reel.yaml` | Full gated short-video production |
+| `zavod-reel-fast` | `pipeline_defs/zavod-reel-fast.yaml` | Audited short-video fast lane |
+| `zavod-promo` | `pipeline_defs/zavod-promo.yaml` | Promotional image/video/mixed production |
 | `talking-head` | `pipeline_defs/talking-head.yaml` | Footage-based |
 | `animated-explainer` | `pipeline_defs/animated-explainer.yaml` | AI-generated |
 | `screen-demo` | `pipeline_defs/screen-demo.yaml` | Screen-recording |
@@ -100,10 +178,12 @@ Each tool's `agent_skills[]` field bridges Layer 1 → Layer 3. See `skills/INDE
 ## When Building New Pipelines
 
 1. Create a YAML manifest in `pipeline_defs/` (validated by `pipeline_manifest.schema.json`)
-2. Create stage director skills in `skills/pipelines/<pipeline-name>/` (7 skills: idea through publish)
+2. Create one stage director skill per manifest stage in `skills/pipelines/<pipeline-name>/`
 3. Reference meta skills (reviewer, checkpoint-protocol) in the manifest
 4. Add compatible playbooks to the manifest
 5. Add contract tests in `tests/contracts/`
+6. If the pipeline introduces a new specialist capability, add or update a typed card and routing
+   tests; a director skill by itself does not create an executable agent
 
 ## When Building New Tools
 

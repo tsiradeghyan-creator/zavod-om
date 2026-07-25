@@ -27,8 +27,10 @@ markets, AI prototyping at near-zero cost).
   *premise*; but drama is bought on *tone*, and AI render hides her real asset — the
   dialogue. Pair the sizzle with ONE fully-produced 60–90s real-actor scene.
 - **Buyer map (know who you're pitching):** local channels / USArmenia (TV); vertical
-  submission portals ReelShort · DramaBox · ShortMax · FlexTV; RU-language platforms for
-  the Moscow diaspora. Match the deck's comps and budget tier to the buyer.
+  submission portals ReelShort · DramaBox · **NetShort** (2026's #3 leader) · ShortMax ·
+  FlexTV; RU-language platforms for the Moscow diaspora. Match the deck's comps and budget
+  tier to the buyer — and note DramaBox's sub-heavy model (70% subscription revenue) vs
+  ReelShort's coin+UA model when arguing the deal structure.
 - **Option agreement basics** (especially the novel «Տակնուվրա»): option fee 3–5% of
   purchase price, 12–18 month term + paid extension, reversion clause, separated rights
   (publishing / stage / sequel held back). Templates → `business-affairs.md`.
@@ -94,15 +96,21 @@ Her scripts already flag «ՓԼԵՅՍՄԵՆԹ» scenes inline — productize it:
 ## Distribution & markets
 
 - **TV (the day job):** local channels + USArmenia — deliverables per their specs.
-- **Vertical micro-drama (the bet) — corrected economics (2026):** seasons run
-  **60–100 (up to 120) episodes × 1–2 min** (typically ~100–200 min total); free **5–10 episodes**,
-  then ~$0.30–0.50/episode coin unlocks or ~$17–20/week subs. A series costs **$150–300K**
-  (≈$0.8–3K/min at 100–200 min — do the division per project, don't quote a flat rate),
-  **but user acquisition is up to ~90% of platform spend** — so the
-  binding constraint is NOT per-episode cost, it's marketing. **The indie play is selling
-  TO a platform (flat fee / rev-share), not self-distributing.** Market: ~$3.8B (2025) →
-  ~$7.8B forecast 2026; ReelShort ~$1.2B gross 2025. The «Վանը»/«Ախրիման» universe is the
-  natural candidate (`serial-structure.md` beat math · `playbook.md` monetization).
+- **Vertical micro-drama (the bet) — economics re-verified 2026-07:** seasons run
+  **50–100 (up to 120) episodes × 1–2 min** (typically ~100–200 min total); free **5–10 episodes**,
+  then ~$0.30–0.50/episode coin unlocks or ~$17–20/week subs (+ ad-unlock tier: watch ads →
+  ~6 episodes/24h). A series costs **$100–300K** (do the per-minute division per project, don't
+  quote a flat rate), **but marketing runs ≈9× production cost** (60–70% of installs bought on
+  Facebook/TikTok ads) — so the binding constraint is NOT per-episode cost, it's UA. Proof:
+  ReelShort grossed ~$1.2B (70M+ MAU) and is still LOSS-MAKING on marketing, while DramaBox
+  ($323M rev 2024, 50M+ MAU) turned a $10M profit with **70% of revenue from subscriptions** —
+  subs beat coins for margin. **The indie play is selling TO a platform (flat fee / rev-share),
+  not self-distributing.** Market: in-app revenue $3.8B (2025) → $7.8B forecast 2026 (Deloitte);
+  total-industry estimates $11–14B by end-2026; ReelShort + DramaBox ≈70% of the global market.
+  **Platform tempo norm:** 1 month development · 1 week shoot · 1 week post; vertical crews
+  average 10–15 script pages/day — her 30–40-page daily-serial muscle is a structural advantage.
+  The «Վանը»/«Ախրիման» universe is the natural candidate (`serial-structure.md` beat math ·
+  `playbook.md` monetization).
 - **🇦🇲 Armenian arbitrage play (own an unserved niche):** AI dubbing now cuts localization
   cost up to ~90%. Shoot ONCE in Armenian at Yerevan production costs (far below the $150K
   LA floor), then AI-dub RU/EN for Moscow + LA/Glendale diaspora (`localization.md`), and

@@ -1,54 +1,83 @@
-# Voice Extractor — Ձայնի ավտո-վերլուծաբան (the living-voice feeder)
+# Voice Extractor — Ձայնի աճող ապացուցողական շերտ
 
-Keeps `style-profile.md` + `corpus-notes.md` learning Ani's NEWEST writing without a manual
-read. A weekly scan of her script corpus surfaces new characters, aphorisms, and devices and
-proposes updates — so the factory sharpens in step with how she writes in real time.
+`scripts/voice_extractor.py` is the live, incremental feeder for the curated authorial-voice
+system. It turns eligible owner-supplied UTF-8 script text into a pinned corpus profile and
+review-only change deltas. It does not decide whether new evidence belongs in the canon.
 
-> **Hard rule — propose, don't pollute.** The voice files are curated. The extractor writes
-> a **draft delta** (`voice-deltas/<date>.md`), never edits `style-profile.md` directly. A
-> human (or the Maghakian veto in `world-benchmark.md`) accepts the delta into the canon. New
-> material is **PROVISIONAL** until confirmed (`style-profile.md` confidence flag).
+> **Hard rule — propose, do not pollute.** The extractor never edits `style-profile.md`,
+> `corpus-notes.md`, or another curated craft file. It updates machine evidence and writes a
+> delta for review; canon changes still require an explicit human decision.
 
-## What it scans
-`~/Documents/Maghakian-Scripts/docx/` (+ `txt/`). Tracks which files were already read (a
-`voice-deltas/seen.json` ledger of filename + mtime) so each run only processes NEW or CHANGED
-scripts.
+## Current evidence plane
 
-## What it extracts per new script
-- **New characters:** name, series, want / wound / secret, verbal tic, register (A1–A6/B/C).
-- **New aphorisms / signature lines:** verbatim Armenian, with the source file + a note whether
-  it echoes an existing one (feeds the aphorism usage ledger, `style-profile.md`).
-- **New devices / structure:** any cue, transition, framing trick not yet in the registers.
-- **Register confirmation:** which existing register it belongs to, or a candidate new one.
-- **Dialect/idiolect notes:** new slang, code-switch patterns, `,,,` density.
+- Corpus: `~/Documents/Maghakian-Scripts/txt/*.txt`
+- Pinned profile: `library/authorial_voice/maghakian-script-v1.json`
+- Incremental hash ledger: `library/authorial_voice/.seen.json`
+- Review deltas: `library/authorial_voice/deltas/<YYYY-MM-DD>.json` and `.md`
+- Current profile snapshot: 40 glyph-clean eligible source files across nine corpus register buckets;
+  register C is quarantined for strict automatic scoring until a clean source is available
 
-## Output — the weekly delta
-`voice-deltas/<YYYY-MM-DD>.md`:
-```md
-# Voice delta — <date>
-## New scripts read: <files>
-## New characters: <name · series · want/wound/secret · tic · register>
-## New aphorisms (verbatim): «…» (source: <file>)  [echo of: <existing?>]
-## New devices: …
-## Proposed edits: style-profile.md §<section> / corpus-notes.md §<series>
-## Confidence: provisional until human-confirmed
+The profile stores Unicode-safe source names or one-way filename evidence ids, exclusion evidence,
+a corpus snapshot SHA-256, per-register source membership, and feature ranges. A filename containing
+Latin/Cyrillic source text is never copied into generated profile or delta content. Visual colors,
+fonts, logo, and layout are intentionally outside this profile.
+
+## What each scan does
+
+1. Discovers eligible `.txt` files and leaves the source corpus untouched.
+2. Excludes contract/right files, unstable mixed-script filenames, and tiny files that cannot
+   provide useful evidence.
+3. Hashes every source file and compares it with `.seen.json`; only new or changed files enter
+   the delta. Removed files are recorded explicitly.
+4. Computes register candidates and objective feature signals.
+5. Runs the authorial Armenian glyph gate. Legitimate pure Russian code-switching is preserved;
+   Latin-script Armenian, mixed-script Armenian words, and invisible-character risks still fail.
+6. Replaces unsafe or transliterated source filenames with stable one-way evidence ids.
+7. Surfaces quoted-line and structural-device candidates as evidence for review. It never promotes
+   an aphorism, device, register, or rule automatically.
+
+Review tools can resolve an opaque id back to the local owner-supplied file with
+`lib.authorial_voice.resolve_evidence_source`; the unsafe name still never enters a generated artifact.
+
+## Run it
+
+Create or deliberately rebuild the pinned aggregate profile, then record the current corpus as the
+baseline:
+
+```bash
+./.venv/bin/python scripts/voice_extractor.py --baseline
 ```
-Glyph-gate every extracted Armenian string before writing the delta (no homoglyphs).
 
-## How it runs
-- **Status: SPEC ONLY — Python սքրիպտը ԴԵՌ ԳՐՎԱԾ ՉԷ.** Նախատեսված իրականացումը՝
-  `scripts/voice_extractor.py` (`python-docx` scan)։ Մինչ այդ extraction-ը արվում է ձեռքով՝
-  այս ֆայլի spec-ով (agent-ը կարդում է նոր .docx-երը ու գրում delta-ն նույն ձևաչափով)։
-  `voice-deltas/` թղթապանակը և `seen.json`-ը ստեղծվում են առաջին վազքին։
-- **Cadence:** weekly; runnable by the `zavod-scout` loop or its own cron (mirror the launchd
-  pattern of `zavod-scout`). It only WRITES the delta file — accepting into the canon stays a
-  human step.
-- **No invention:** it reports what's in the scripts; it never fabricates a character or
-  aphorism. Empty week → empty delta, that's fine.
+Run the incremental scan:
 
-## Voice-Extractor checklist
-- [ ] Only NEW/changed `.docx` processed (seen.json ledger current).
-- [ ] Delta written to `voice-deltas/<date>.md`; canon files untouched.
-- [ ] Every extracted Armenian string glyph-gated.
-- [ ] Aphorisms flagged as new vs. echo; characters carry want/wound/secret + register.
-- [ ] Human-confirm step pending before anything enters `style-profile.md`.
+```bash
+./.venv/bin/python scripts/voice_extractor.py
+```
+
+Normal output reports the profile path, changed/removed counts, and whether a review delta was
+written. A changed file with a glyph violation makes the command exit non-zero so corpus damage is
+loud instead of silently absorbed.
+
+## Relationship to strict Script DNA
+
+The extractor creates evidence; it does not approve prose. When
+`creative_identity.authorial_voice.mode` is `strict`, `lib/authorial_voice.py` and the script
+checkpoint require an `authorial_voice_report` against the pinned profile. Code verifies:
+
+- exact draft and profile hashes;
+- all seven authorial criteria and score arithmetic;
+- quoted evidence that truly exists in the draft;
+- corpus references that belong to the pinned snapshot;
+- Unicode, generic-trope, format, and register signals.
+
+The reviewer supplies the literary judgment and rationale. If evidence is stale, invented, outside
+the corpus snapshot, or below the locked score, the script stage cannot pass.
+
+## Review checklist
+
+- [ ] Only new, changed, and removed `.txt` files appear in the delta.
+- [ ] `.seen.json` contains the current SHA-256 ledger.
+- [ ] Source corpus and curated canon files remain untouched.
+- [ ] Every surfaced Armenian string passes the authorial glyph gate.
+- [ ] Candidates are treated as evidence, not approved canon.
+- [ ] A human reviews the delta before changing a register, example, or craft rule.

@@ -205,6 +205,27 @@ hook lands? turn holds? any panel over/under? Adjusted durations flow BACK into 
 cards, so the board and the animatic never disagree. No final motion render until the
 animatic locks the tempo.
 
+**Motion-animatic option (Katalist 2026 parity — their image-to-video animatics, our gates):**
+for movement-critical boards (action beat, product splash, camera-move-heavy cuts), draft-render
+individual panels image-to-video at the CHEAP tier (Seedance/Kling via fal, low res, panel's
+AI-prompt line + start frame) and cut those clips into the animatic instead of stills — it
+tests real motion + camera-move tempo, not just durations. Same laws: it runs through the
+pacing gate, adjusted durations write back into the cards, and draft clips are throwaway
+scaffolding — never final pixels (finals still render ONE panel at a time with seed +
+start-frame chaining, `ai-pipeline.md`).
+
+## Board review & versioning (sign-off discipline — Boords parity, run through our gates)
+Boords made frame-level review its whole product (versioned boards, per-frame comments,
+no-signup client links); we fold the discipline into the gate chain instead of a separate app:
+- **Version the board** v1, v2 — never "final" (same law as `post-production.md`). Each
+  version keeps its full card set, so a reverted panel restores its whole card, not just
+  the image.
+- **Frame-level notes:** review comments attach to the frame's card (a NOTES line), not to
+  chat. Every note is either RESOLVED (card updated) or REJECTED (reason logged) — and
+  unresolved notes BLOCK the animatic gate, not the other way round.
+- **Owner sign-off is recorded against the board version** the owner actually saw; an
+  approved v2 does not carry approval to v3 (matches the zavod hash-bound approval law).
+
 ## Two ways to output the board
 - **One-shot AI board** (fast): `nano_banana_pro` can render the WHOLE A3 bible — header, subject
   ref, environment + top-down plan w/ camera map, the 5 caption-lined panels, lighting/mood — in a
@@ -227,6 +248,8 @@ animatic locks the tempo.
       pose/body blocking (the no-faces performance line).
 - [ ] Timing pass run: Duration fields strung into the animatic (`animatic-editor.md`); tempo
       locked before any final motion render; adjusted durations written back into the cards.
+- [ ] Board versioned (v1/v2, never "final"); all frame notes RESOLVED/REJECTED before the
+      animatic gate; owner sign-off tied to the exact approved version.
 - [ ] Each cut has a distinct function along the register's cut-arc (drama establishment→payoff, or
       product reveal→beauty payoff); continuity readable WITHOUT the captions.
 - [ ] Coverage minimum present; cliffhanger object planted early; turn's CU boarded.

@@ -56,11 +56,84 @@ def run_canon_guard(project_dir: str, stage: str) -> dict[str, Any]:
             "violations": [] if r["ok"] else [r["action"]]}
 
 
-def run_script_gates(script_text: str) -> dict[str, Any]:
-    g = glyph_gate(script_text)
+def run_script_gates(script_text: str, *, allow_cyrillic_code_switch: bool = False) -> dict[str, Any]:
+    if allow_cyrillic_code_switch:
+        from lib.authorial_voice import authorial_glyph_gate
+        g = authorial_glyph_gate(script_text)
+    else:
+        g = glyph_gate(script_text)
     v = brand_voice(script_text)
     violations = list(g["violations"]) + (v["flags"] if not v["ok"] else [])
     return {"ok": g["ok"] and v["ok"], "glyph": g["verdict"], "brand_voice": v["verdict"], "violations": violations}
+
+
+def run_rights_gates(rights_manifest: dict[str, Any],
+                     publish_log: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Final-delivery rights and provenance gate.
+
+    Draft/pending-review exports may exist without this gate.  Once a publish log declares
+    a real publish or final export, every rights row must be usable, consent-sensitive assets
+    need evidence, and the AI disclosure decision must be closed.
+    """
+    violations: list[str] = []
+    try:
+        jsonschema.validate(rights_manifest, _schema("rights_manifest"))
+    except jsonschema.ValidationError as exc:
+        path = ".".join(str(p) for p in exc.absolute_path) or "(root)"
+        return {
+            "ok": False,
+            "verdict": "fail",
+            "violations": [f"rights_manifest.{path}: {exc.message}"],
+        }
+
+    entries = rights_manifest.get("entries") or []
+    if not entries:
+        violations.append("rights_manifest.entries is empty — final delivery has no chain-of-title evidence")
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        asset_id = entry.get("asset_id", "asset")
+        status = entry.get("status")
+        if status in {"unknown", "blocked", "legal_review"}:
+            violations.append(f"rights {asset_id!r}: status {status!r} cannot reach final delivery")
+        if status == "limited" and not (entry.get("constraints") or []):
+            violations.append(f"rights {asset_id!r}: limited status must name its constraints")
+        if entry.get("asset_type") == "likeness" and not entry.get("likeness_consent_id"):
+            violations.append(f"rights {asset_id!r}: likeness has no consent id")
+        if entry.get("asset_type") == "voice" and not entry.get("voice_consent_id"):
+            violations.append(f"rights {asset_id!r}: voice has no consent id")
+        if entry.get("model"):
+            if not entry.get("model_terms_url"):
+                violations.append(f"rights {asset_id!r}: AI model use has no terms source URL")
+            if not entry.get("model_terms_snapshot_sha256"):
+                violations.append(
+                    f"rights {asset_id!r}: AI model use has no pinned terms snapshot hash"
+                )
+
+    disclosure = rights_manifest.get("ai_disclosure") or {}
+    if disclosure.get("decision") == "pending":
+        violations.append("AI disclosure decision is still pending")
+    if disclosure.get("required") and disclosure.get("decision") != "label":
+        violations.append("AI disclosure is required but the decision is not 'label'")
+    if disclosure.get("decision") == "label" and not str(disclosure.get("label_text") or "").strip():
+        violations.append("AI disclosure decision is 'label' but label_text is empty")
+
+    if publish_log:
+        final_entries = [
+            item for item in publish_log.get("entries") or []
+            if isinstance(item, dict) and item.get("status") in {"published", "exported"}
+        ]
+        if final_entries:
+            if not rights_manifest.get("approved_by"):
+                violations.append("final publish/export has no rights_manifest.approved_by")
+            if not rights_manifest.get("approved_at"):
+                violations.append("final publish/export has no rights_manifest.approved_at")
+
+    return {
+        "ok": not violations,
+        "verdict": "pass" if not violations else "fail",
+        "violations": violations,
+    }
 
 
 def run_scene_plan_gates(scene_plan: dict[str, Any]) -> dict[str, Any]:

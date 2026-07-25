@@ -153,11 +153,31 @@ def required_bench(stage: str, pipeline_type: str | None = None) -> list[str]:
 
 def run_bench_gates(stage: str, report: dict[str, Any],
                     pipeline_type: str | None = None) -> dict[str, Any]:
-    bench = report.get("bench", {})
     violations: list[str] = []
+    report_stage = report.get("stage")
+    if report_stage != stage:
+        violations.append(
+            f"bench_report.stage: expected {stage!r}, got {report_stage!r} — a ruling from "
+            "another stage cannot certify this work"
+        )
+    bench = report.get("bench", {})
+    if not isinstance(bench, dict):
+        return {
+            "ok": False,
+            "verdict": "fail",
+            "violations": [*violations, "bench_report.bench must be an object"],
+            "warnings": [],
+        }
+    required = required_bench(stage, pipeline_type)
+    unexpected = sorted(set(bench) - set(required))
+    if unexpected:
+        violations.append(
+            "bench_report.bench: unexpected roles are not part of this routed stage: "
+            f"{unexpected}. Unplanned specialists must be rejected, not silently ignored."
+        )
     present: dict[str, str] = {}  # role -> ruling, for cross-role independence check
 
-    for role in required_bench(stage, pipeline_type):
+    for role in required:
         entry = bench.get(role)
         if entry is None:
             violations.append(f"bench.{role}: MISSING — the specialist never worked this stage")
@@ -239,5 +259,5 @@ def run_bench_gates(stage: str, report: dict[str, Any],
 
 
 if __name__ == "__main__":
-    demo_bad = {"bench": {"scene-director": {"ruling": "ok"}}}
+    demo_bad = {"stage": "scene", "bench": {"scene-director": {"ruling": "ok"}}}
     print("scene / thin bench ->", run_bench_gates("scene", demo_bad)["violations"][:2])

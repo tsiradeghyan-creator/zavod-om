@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "zavodom/agents/agent_result",
+  "title": "ZavodOM Native Host Agent Result",
+  "type": "object",
+  "required": ["status", "executor", "evidence", "verdict", "reason"],
+  "properties": {
+    "status": {"type": "string", "enum": ["completed", "input_required", "failed"]},
+    "executor": {
+      "type": "object",
+      "required": ["type", "run_id", "model", "prompt_version"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "claude_subagent", "codex_subagent", "api_agent",
+            "single_context_simulation"
+          ]
+        },
+        "run_id": {"type": "string", "minLength": 1},
+        "model": {"type": "string", "minLength": 1},
+        "prompt_version": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "output_artifact": {"type": "string", "minLength": 1},
+    "output": true,
+    "output_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "evidence": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "verdict": {"enum": [null, "pass", "revise", "reject"]},
+    "reason": {"type": "string", "minLength": 1}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "completed"}}},
+      "then": {
+        "required": ["output_artifact", "output", "output_hash"],
+        "properties": {"evidence": {"minItems": 1}}
+      }
+    },
+    {
+      "if": {"properties": {"status": {"enum": ["input_required", "failed"]}}},
+      "then": {"properties": {"verdict": {"const": null}}}
+    }
+  ],
+  "additionalProperties": false
+}

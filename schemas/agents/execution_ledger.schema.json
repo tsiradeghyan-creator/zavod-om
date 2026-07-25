@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "zavodom/agents/execution_ledger",
+  "title": "ZavodOM Agent Execution Ledger",
+  "type": "object",
+  "required": ["version", "request_id", "plan_hash", "registry_hash", "events", "head_hash"],
+  "properties": {
+    "version": {"const": "1.0"},
+    "request_id": {"type": "string"},
+    "plan_hash": {"$ref": "#/$defs/hash"},
+    "registry_hash": {"$ref": "#/$defs/hash"},
+    "events": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/event"},
+      "minItems": 1
+    },
+    "head_hash": {"$ref": "#/$defs/hash"}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "event": {
+      "type": "object",
+      "required": [
+        "event_id", "task_id", "agent_id", "sequence", "attempt", "from_state",
+        "to_state", "input_hash", "output_hash", "executor", "evidence", "dependency_receipts", "verdict", "reason",
+        "approval", "previous_event_hash", "event_hash"
+      ],
+      "properties": {
+        "event_id": {"type": "string", "pattern": "^[A-Za-z0-9._:-]+$"},
+        "task_id": {"type": "string"},
+        "agent_id": {"type": "string"},
+        "sequence": {"type": "integer", "minimum": 0},
+        "attempt": {"type": "integer", "minimum": 1},
+        "from_state": {"type": ["string", "null"]},
+        "to_state": {
+          "type": "string",
+          "enum": [
+            "submitted", "working", "input_required", "approval_required",
+            "completed", "failed", "cancelled", "rejected"
+          ]
+        },
+        "input_hash": {"$ref": "#/$defs/hash"},
+        "output_hash": {
+          "oneOf": [{"$ref": "#/$defs/hash"}, {"type": "null"}]
+        },
+        "executor": {
+          "type": ["object", "null"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "claude_subagent", "codex_subagent", "api_agent",
+                "single_context_simulation", "owner_approval"
+              ]
+            },
+            "run_id": {"type": "string", "minLength": 1},
+            "model": {"type": "string", "minLength": 1},
+            "prompt_version": {"type": "string", "minLength": 1}
+          },
+          "required": ["type", "run_id", "model", "prompt_version"],
+          "additionalProperties": false
+        },
+        "evidence": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "dependency_receipts": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/dependencyReceipt"}
+        },
+        "verdict": {"enum": [null, "pass", "revise", "reject"]},
+        "reason": {"type": "string"},
+        "approval": {
+          "type": ["object", "null"],
+          "properties": {
+            "gate_id": {"type": "string"},
+            "action_hash": {"$ref": "#/$defs/hash"},
+            "approver": {"type": "string", "minLength": 1},
+            "approved_at": {"type": "string", "format": "date-time"},
+            "identity_provider": {"type": "string", "minLength": 1},
+            "identity_proof_hash": {"$ref": "#/$defs/hash"}
+          },
+          "required": [
+            "gate_id", "action_hash", "approver", "approved_at",
+            "identity_provider", "identity_proof_hash"
+          ],
+          "additionalProperties": false
+        },
+        "previous_event_hash": {
+          "oneOf": [{"$ref": "#/$defs/hash"}, {"type": "null"}]
+        },
+        "event_hash": {"$ref": "#/$defs/hash"}
+      },
+      "additionalProperties": false
+    },
+    "dependencyReceipt": {
+      "type": "object",
+      "required": ["task_id", "event_hash", "output_hash"],
+      "properties": {
+        "task_id": {"type": "string"},
+        "event_hash": {"$ref": "#/$defs/hash"},
+        "output_hash": {"$ref": "#/$defs/hash"}
+      },
+      "additionalProperties": false
+    }
+  }
+}

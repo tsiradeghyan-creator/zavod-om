@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openmontage/artifacts/content_spec",
+  "title": "Universal Content Specification",
+  "description": "Brand-neutral intake contract used to route any supported content request to a real pipeline without pretending every deliverable is a video.",
+  "type": "object",
+  "required": [
+    "version",
+    "content_format",
+    "primary_modality",
+    "language",
+    "channels",
+    "deliverables",
+    "automation_mode"
+  ],
+  "properties": {
+    "version": { "type": "string", "const": "1.0" },
+    "content_format": {
+      "type": "string",
+      "enum": [
+        "social_post",
+        "caption",
+        "article",
+        "newsletter",
+        "screenplay",
+        "series_episode",
+        "stageplay",
+        "carousel",
+        "reel",
+        "promo",
+        "short_video",
+        "long_video",
+        "animated_explainer",
+        "talking_head",
+        "screen_demo",
+        "podcast_repurpose",
+        "localization",
+        "documentary",
+        "character_animation",
+        "campaign_package"
+      ]
+    },
+    "primary_modality": {
+      "type": "string",
+      "enum": ["text", "image", "video", "audio", "mixed"]
+    },
+    "language": { "type": "string", "minLength": 2 },
+    "channels": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "deliverables": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "acceptance_criteria"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "kind": { "type": "string", "minLength": 1 },
+          "content_format": {
+            "type": "string",
+            "enum": [
+              "social_post", "caption", "article", "newsletter", "screenplay",
+              "series_episode", "stageplay", "carousel", "reel", "promo",
+              "short_video", "long_video", "animated_explainer", "talking_head",
+              "screen_demo", "podcast_repurpose", "localization", "documentary",
+              "character_animation"
+            ],
+            "description": "Required per deliverable when the top-level content_format is campaign_package."
+          },
+          "channel": { "type": "string" },
+          "target_length": {
+            "type": "object",
+            "properties": {
+              "unit": { "type": "string", "enum": ["words", "characters", "seconds", "minutes", "slides", "pages", "episodes"] },
+              "minimum": { "type": "number", "minimum": 0 },
+              "maximum": { "type": "number", "minimum": 0 }
+            },
+            "required": ["unit"],
+            "additionalProperties": false
+          },
+          "acceptance_criteria": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "minItems": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "automation_mode": { "type": "string", "enum": ["supervised", "automatic"] },
+    "source_material": { "type": "array", "items": { "type": "string" } },
+    "reference_material": { "type": "array", "items": { "type": "string" } },
+    "success_metric": { "type": "string" },
+    "constraints": { "type": "array", "items": { "type": "string" } },
+    "metadata": { "type": "object" }
+  },
+  "additionalProperties": false
+}

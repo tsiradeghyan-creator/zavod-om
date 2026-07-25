@@ -3,19 +3,20 @@
 The zavod-scout meta-agent. Load before any big FILM MODE bet, new engine choice,
 paid sponsor package, pitch deck, vertical pilot, or full production sprint. Its job is
 simple and brutal: compare every station against the strongest current tools/workflows in
-the world, then absorb the rival's strongest discipline as a Maghakian-safe rule.
+the world, then absorb the rival's strongest discipline as an enforceable, identity-safe rule.
 
 **Doctrine:** if a rival is stronger, we do not imitate its surface; we steal the operating
-principle, convert it into a checklist / ledger / bake-off / approval gate, and keep Ani's
-voice as the final veto.
+principle, convert it into a checklist / ledger / bake-off / approval gate, and keep the active
+authorial profile as the final creative veto. For Maghakian work, that veto is Ani's actual
+screenwriting handwriting—not a palette or generic brand tone.
 
 ## Source snapshot (refresh before major money)
 
-Snapshot verified **2026-06-13** against primary sources:
+Snapshot verified **2026-07-13** against primary sources:
 
 | Field | Current world benchmark | What matters |
 |---|---|---|
-| AI video consistency | Runway **Gen-4.5** (Feb 2026 flagship) · Google Veo 3.1 · Luma **Ray3.2** (Jun 2026) · Kling 3.0 · Adobe Firefly | reference images, keyframes, multi-cut, audio, controlled motion, production formats |
+| AI video consistency | Runway **Gen-4.5** (released **2025-12-01**) · Google Veo 3.1 · Luma **Ray3.2** (Jun 2026) · Kling 3.0 · Adobe Firefly | reference images, keyframes, multi-cut, audio, controlled motion, production formats |
 | Sora risk note | **OpenAI Sora discontinued** (web/app 2026-04-26; API 2026-09-24) | even a $1B-backed model can vanish — NEVER make the pipeline dependent on one engine |
 | Production management | StudioBinder · Entertainment Partners / Movie Magic · Scenechronize / SyncOnSet | call sheets, stripboards, calendars, continuity, document control |
 | Writers' room | Arc Studio · WriterDuet | beat cards, draft history, collaboration, notes, revision discipline |
@@ -24,6 +25,9 @@ Snapshot verified **2026-06-13** against primary sources:
 | Rights and royalties | Rightsline | rights ledger, availability, royalties, contract status, IP lifecycle |
 | Localization/audio | ElevenLabs Dubbing v2 (+ v3 Armenian TTS) | performance-aware dubbing, voice cloning only with consent, 90+ language reach |
 | Social growth | Iconosquare · Predis.ai · Flick / Metricool-class | analytics, competitor listening, trend/audio detection, A/B creative, scheduling |
+| Durable agent workflow | LangGraph persistence · OpenAI human-in-the-loop + tracing | resumable state, interrupt evidence, approval boundaries, inspectable tool/action history |
+| Content authenticity | C2PA specification and SDKs | signed provenance, claim verification, tamper-evident delivery—not just a filename or database row |
+| Platform delivery | YouTube Data/Analytics APIs · TikTok Content Posting API | returned platform IDs/URLs, explicit publish state, analytics feedback into the next decision |
 
 Source URLs to re-check each scout run:
 - https://runwayml.com/research/introducing-runway-gen-4.5
@@ -36,6 +40,48 @@ Source URLs to re-check each scout run:
 - https://www.rightsline.com/ · https://www.arcstudiopro.com/ · https://www.writerduet.com/
 - https://storyfit.com/ · https://www.cinelytic.com/ · https://elevenlabs.io/dubbing
 - https://www.iconosquare.com/ · https://predis.ai/ · https://www.flick.social/
+- https://docs.langchain.com/oss/python/langgraph/persistence
+- https://openai.github.io/openai-agents-python/human_in_the_loop/ · https://openai.github.io/openai-agents-python/tracing/
+- https://spec.c2pa.org/ · https://opensource.contentauthenticity.org/docs/rust-sdk/
+- https://developers.google.com/youtube/v3/guides/uploading_a_video · https://developers.google.com/youtube/analytics/reference
+- https://developers.tiktok.com/products/content-posting-api/
+
+## Implemented absorption — 2026-07-13
+
+The following benchmark disciplines are now executable ZavodOM contracts, not prose promises:
+
+1. **Honest universal intake and routing.** `content_spec` names format, modality, channels,
+   deliverables, acceptance criteria, and automation mode. `lib/content_router.py` maps supported
+   work to a real pipeline or fails loudly. Five Zavod manifests and 32 artifact schemas are audited;
+   text is no longer forced through a video-shaped brief.
+2. **Blind alternative proof.** The script seam requires 3–5 complete schema-valid candidates,
+   hidden labels/system preference, at least two creative difference axes, unique verified hashes,
+   material text differences, a reason for every rejection, and canonical hash identity between the
+   selected candidate and final script.
+3. **Authorial Script DNA as evidence.** `creative_identity` separates authorial voice from optional
+   visual identity. Strict Maghakian work pins the profile and draft hashes, selected register,
+   seven scored criteria, real draft excerpts, and corpus references.
+4. **Format-neutral package post-production.** `zavod-content` may produce one deliverable or an exact
+   package matching the locked promise. Its aggregate `content_quality_report` covers each promised
+   item exactly once, runs all eight checks exactly once, binds the review to that payload's SHA-256,
+   and blocks any open/revise issue.
+5. **Rights and local provenance at final delivery.** Both export and publication require an exact
+   local payload covered by a matching rights-row SHA-256, plus controlled or explicitly constrained
+   rights, required consent/model-terms evidence, a closed disclosure decision, and owner approval.
+   Publication additionally requires the returned URL. Claimed signed/verified C2PA manifests are
+   required to exist and match their declared hash.
+
+### Boundaries that remain open
+
+- A SHA-256 match is local provenance evidence. ZavodOM file/hash-checks a claimed signed/verified
+  C2PA manifest, but does not yet create or cryptographically verify the signature itself.
+- `publish_log` and owner approval govern delivery, but first-party platform connectors with returned
+  IDs and automatic analytics ingestion are not yet a complete closed loop.
+- The writers' room has structure/story-bible discipline, but a general branching story-event graph
+  with surgical continuity impact analysis remains a future upgrade.
+
+These boundaries are benchmark debt, not hidden capability. They must be closed with a small proof and
+a checkpoint seam before the system may claim them.
 
 ## Absorption protocol
 
@@ -46,16 +92,18 @@ Source URLs to re-check each scout run:
 3. **Convert feature → discipline.** A product feature becomes a zavod rule:
    dashboard → weekly decision log; call-sheet app → call-sheet minimum; model quality →
    bake-off scorecard; review tool → versioned approval gate.
-4. **Maghakian veto.** If the borrowed rule flattens Ani's voice, uses sloppy Armenian,
-   violates dignity, or turns restraint into hype, reject it.
+4. **Authorial veto.** If the borrowed rule flattens the selected author's voice, uses sloppy
+   language, violates dignity, or turns restraint into hype, reject it. In Maghakian mode, validate
+   against the pinned Script DNA evidence.
 5. **Regression proof.** Run a tiny proof: one scene, one shot, one slide, one caption, or
    one rights row. No theory-only upgrade counts.
 
 ## Automation rule (no manual bureaucracy)
 
 The templates below are **AI-auto-filled, not human homework.** The agent populates every
-field from project context; the human does ONE job — the **Maghakian veto** plus verifying the
-**load-bearing rows only**. Auto-fill everything; never auto-APPROVE these (a human must confirm):
+field from project context; the human does one job—the **active authorial veto** plus verifying the
+**load-bearing rows only**. In Maghakian mode, the veto uses the pinned Script DNA evidence.
+Auto-fill everything; never auto-APPROVE these (a human must confirm):
 rights status · likeness/voice consent · glyph-gate result · dignity/ethics · final publish.
 A filled template nobody reads is dead weight — so the agent fills it; the human just decides.
 
@@ -237,7 +285,7 @@ Before declaring any imported tool "ours," all five must be YES:
 
 | Test | Question |
 |---|---|
-| Voice | Protects Ani's actual screenwriting + brand voice? |
+| Voice | Protects the active author's actual handwriting and register? |
 | Rights | Makes ownership clearer than before? |
 | Continuity | Reduces visual/story/production drift? |
 | Proof | Creates a small artifact or measurable result? |
@@ -279,6 +327,10 @@ If not all five YES, the tool is only a note, not absorbed.
 
 ## Hard gates by production type
 
+- **Post / article / newsletter:** vs modern writing workspaces and AI content systems — schema-valid
+  format contract, blind 3–5 full-draft bake-off with selected/final hash identity, active
+  authorial-voice evidence, factual traceability, format-neutral package quality report, and final
+  rights/provenance gate.
 - **Single post / carousel:** vs Predis/Canva/Adobe Express speed — 2 hook variants, 1 save
   slide, 1 caption-SEO note, 1 glyph-gate pass.
 - **Reel / AI teaser:** vs Runway/Veo/Luma/Kling/Firefly — ≥2 engines for hero visuals unless
@@ -293,11 +345,12 @@ If not all five YES, the tool is only a note, not absorbed.
 ```md
 # World Benchmark Greenlight — <project>
 Date · Station(s) · Strongest outside rival checked · Rival advantage · Zavod absorption ·
-Maghakian veto risk · Proof run · Result · Next upgrade · Owner
+Authorial veto risk (Maghakian when active) · Proof run · Result · Next upgrade · Owner
 ```
 
 ## Final law
 
-The world's best tools are departments, not bosses. The boss is the story: Ani's voice,
-clean Armenian, restraint, dignity, production truth. A rival can beat us on speed, but it
-must not beat us on soul, chain of title, continuity, or taste.
+The world's best tools are departments, not bosses. The boss is the story: the active author's
+handwriting, clean language, dignity, and production truth. In Maghakian mode that means Ani's
+pinned Script DNA and clean Armenian. A rival can beat us on speed, but it must not beat us on
+soul, chain of title, continuity, or taste.

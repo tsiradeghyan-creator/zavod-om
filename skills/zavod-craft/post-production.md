@@ -44,6 +44,12 @@ any cut — Reel, micro-drama episode, sizzle, or carousel-video hybrid.
   stretch runs >10–15s and the curve rises into the paywall. Confirm against the real
   drop-off data from `growth-analytics.md`; a dip the data flags but the rubric missed
   becomes a new rule.
+- **Clip-mining pass (long master → shorts):** when a long master exists (episode, windows
+  video), mine candidate clips before designing new ones — score each candidate 1–5 on:
+  hook-in-first-frame · self-contained turn · loop potential · plays-silent readability.
+  This is OpusClip-class "virality scoring" rebuilt on house taste: an AI ranker
+  (OpusClip / Vizard tier) may PROPOSE candidates, but the rubric + tension-curve pass
+  decide — never ship a ranker's cut uncut.
 - 30–60s sweet spot; retention loop: last shot flows back into the first.
 - AI footage = b-roll/teaser support only; Ani face-to-camera leads.
 - No foreign watermarks. Punch-ins (4K→1080) replace second angles in vertical.
@@ -86,7 +92,9 @@ translation/QC for EN/RU → `localization.md`.
 
 ## Tools & pipeline
 
-- **Free path:** CapCut (vertical speed) → DaVinci Resolve (grade/sound polish).
+- **Free path:** CapCut (vertical speed) → DaVinci Resolve 21 (grade/sound polish;
+  **IntelliSearch** finds any shot in the master library by content — use it to pull b-roll
+  and clip-mining candidates instead of scrubbing).
 - **AI post:** enhance speech (Adobe MCP) · fal-ai for music beds, upscales, cleanups ·
   auto-transcribe for captions, then HUMAN glyph pass.
 - Project hygiene: `exports/<slug>/` per `carousel-template.md`; version as v1, v2 —

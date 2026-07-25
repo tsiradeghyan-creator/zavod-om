@@ -1,0 +1,154 @@
+name: zavod-content
+version: "1.0"
+description: >
+  Format-neutral Zavod path for written and narrative content: social posts, captions,
+  articles, newsletters, screenplays, series episodes, and stage plays. It separates
+  authorial handwriting from visual branding, supports supervised and automatic draft
+  runs, performs a real post-production quality stage, and requires rights evidence before
+  final export or publication.
+category: custom
+stability: production
+default_checkpoint_policy: guided
+
+orchestration:
+  mode: executive-producer
+  skill: pipelines/zavod/executive-producer
+  budget_default_usd: 0.00
+  max_revisions_per_stage: 3
+  max_send_backs: 3
+  max_wall_time_minutes: 45
+
+metadata:
+  supported_formats:
+    - social_post
+    - caption
+    - article
+    - newsletter
+    - screenplay
+    - series_episode
+    - stageplay
+  production_engine:
+    locked_in: engine_lock
+    lane: none
+    compose_runtime: none
+  authorial_voice:
+    artifact: creative_identity
+    strict_report: authorial_voice_report
+    bundled_profile: maghakian-script-v1
+
+required_skills:
+  - pipelines/zavod/executive-producer
+  - pipelines/zavod/content-idea-director
+  - pipelines/zavod/content-script-director
+  - pipelines/zavod/content-quality-director
+  - pipelines/zavod/content-publish-director
+  - meta/reviewer
+  - meta/checkpoint-protocol
+
+stages:
+  - name: idea
+    skill: pipelines/zavod/content-idea-director
+    produces: [brief, content_spec, creative_identity]
+    checkpoint_required: true
+    human_approval_default: true
+    sub_stages:
+      - name: intake_or_writer_room
+        description: Lock format, audience, channels, source material, deliverables, and acceptance criteria.
+        human_approval_default: true
+        produces: [content_spec]
+      - name: concept_lock
+        description: Compare at least three materially different directions and lock one in the decision log.
+        human_approval_default: true
+        produces: [brief]
+    review_focus:
+      - content_spec routes back to zavod-content
+      - Creative identity locks authorial voice separately from visual branding
+      - Automation mode matches run_mode
+      - Every deliverable has acceptance criteria and target length
+    success_criteria:
+      - Schema-valid brief, content_spec, and creative_identity
+      - Concept selection recorded with alternatives and rejection reasons
+
+  - name: script
+    skill: pipelines/zavod/content-script-director
+    required_artifacts_in: [brief, content_spec, creative_identity]
+    produces: [script, candidate_bakeoff]
+    checkpoint_required: true
+    human_approval_default: true
+    sub_stages:
+      - name: structure_pass
+        description: Build the format-appropriate structure before line writing.
+        human_approval_default: true
+        produces: [structure_pass]
+      - name: candidate_bakeoff
+        description: Compare three candidates without revealing which one is machine-preferred.
+        human_approval_default: true
+        produces: [candidate_bakeoff]
+      - name: authorial_voice_pass
+        description: Run the locked voice profile and evidence report when reference or strict mode is active.
+        human_approval_default: true
+        produces: [authorial_voice_pass]
+      - name: accuracy_pass
+        description: Trace factual claims and remove unsupported assertions.
+        human_approval_default: true
+        produces: [accuracy_pass]
+      - name: final_draft_lock
+        description: Lock the selected structured draft.
+        human_approval_default: true
+        produces: [final_draft_lock]
+    review_focus:
+      - Draft uses structured blocks appropriate to the content format
+      - Strict authorial voice carries a valid evidence-backed report
+      - Armenian words use proper Eastern Armenian Unicode
+      - Narrative formats carry a story_bible
+      - Claims carry source references where applicable
+    success_criteria:
+      - Schema-valid script
+      - Blind candidate_bakeoff contains at least three complete, materially different drafts and the selected draft matches script exactly
+      - Locked creative_identity and content_spec remain unchanged
+
+  - name: quality
+    skill: pipelines/zavod/content-quality-director
+    required_artifacts_in: [script]
+    produces: [content_quality_report]
+    checkpoint_required: true
+    human_approval_default: true
+    sub_stages:
+      - name: editorial_postproduction
+        description: Structural edit, line edit, copy edit, and proofread as separate passes.
+        human_approval_default: true
+        produces: [editorial_postproduction]
+      - name: channel_adaptation
+        description: Produce channel variants without changing the locked story promise or authorial voice.
+        human_approval_default: true
+        produces: [channel_adaptation]
+      - name: evidence_review
+        description: Verify language, accuracy, rights, accessibility, and delivery evidence.
+        human_approval_default: true
+        produces: [evidence_review]
+    review_focus:
+      - Every applicable quality check has concrete evidence
+      - No open issue or revise check remains
+      - Channel adaptations preserve the master draft
+    success_criteria:
+      - Schema-valid content_quality_report with pass verdict
+
+  - name: publish
+    skill: pipelines/zavod/content-publish-director
+    required_artifacts_in: [script, content_quality_report]
+    produces: [publish_log]
+    checkpoint_required: true
+    human_approval_default: true
+    sub_stages:
+      - name: presentation_route
+        description: Owner approves final export/publication, metadata, rights manifest, and AI disclosure.
+        human_approval_default: true
+        produces: [presentation_route]
+    review_focus:
+      - Final publish or export carries a passing rights_manifest
+      - Draft and pending-review status remain non-public
+      - Final metadata and Unicode text match the approved content
+      - Performance measurement is scheduled where the channel supports it
+    success_criteria:
+      - Schema-valid publish_log
+      - Explicit owner approval for final delivery

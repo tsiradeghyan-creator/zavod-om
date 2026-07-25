@@ -12,7 +12,29 @@ proper Eastern Armenian only, never a Latin/Cyrillic lookalike.
 - **Safe zone:** middle 65% of the 9:16 frame (top 15% / bottom 20% are UI graveyards).
 - **Animation curves:** ease-out 200–300ms in, **no bounce**, no spin. One caption style
   per series — design it once, log it, reuse it.
+- **Word-level sync (the 2026 floor):** captions time per WORD, not per line — the reveal
+  or quiet highlight moves with the speech (Submagic-class word animation and Resolve's AI
+  Animated Subtitles made this the market baseline). The Maghakian version keeps the
+  restraint: word-reveal or subdued karaoke highlight only — ease-out, no pop-bounce, no
+  emoji, no per-word color chaos. **Armenian caveat:** auto-transcription word-timestamps
+  drift on Armenian — the machine drafts the timing, the HUMAN glyph pass verifies both
+  the glyphs AND the word boundaries.
 - Fonts: **Noto Sans Armenian** (captions) / **GHEA** fonts (titles) — per `maghakian-brand`.
+
+## Rail vs. embedded text (the scarcity law)
+
+Two distinct text layers, never confused — the discipline behind the agent ecosystem's
+most-installed caption skill (HyperFrames `embedded-captions`), kept and then restrained
+further:
+- **The rail** — the burned-in caption line (Armenian primary + EN underbar). Verbatim,
+  every word, middle-65% safe zone. This is the workhorse; it never performs.
+- **Embedded emphasis** — a word or phrase composited INTO the scene (on the wall, in the
+  steam, behind the object). Scarce and EARNED: at most ONE per piece, only at the turn.
+  Their doctrine says it best — "embedding every word is the common mistake"; ours appears
+  once or not at all. Embedded Armenian still rides the overlay/composite layer, never an
+  AI-rendered glyph (`storyboard.md` frame law).
+- **Occlusion check:** neither layer may cover the subtext object or the hands — the
+  caption yields, the frame doesn't.
 
 ## Titles, episode & time cards
 
@@ -62,9 +84,21 @@ Captions use Noto/GHEA; CAMPAIGN key-art and logos may go heavier:
   `carousel-template.md`).
 - One legible focal word maximum on a cover; the rest is image.
 
+## Execution engines (in-house — doctrine → render)
+
+- **Remotion caption burn** (`remotion-composer/`, word-level caption support): captions as
+  code — deterministic, one logged style per series, Noto Sans Armenian loaded locally.
+- **HyperFrames** (HTML/CSS/GSAP): kinetic typography and title cards when the type IS the
+  motion — always a locked house identity, never a preset theme.
+- Both run AFTER the glyph gate + spellcheck + canonical-phrase lock on the caption file —
+  engines render text; they don't get to author it.
+
 ## Motion-design checklist
 - [ ] Captions burned-in, Armenian primary + EN underbar, middle-65% safe zone.
-- [ ] One logged caption style per series; ease-out, no bounce/spin.
+- [ ] One logged caption style per series; ease-out, no bounce/spin; word-level timing
+      human-verified (Armenian word boundaries drift in auto-transcribe).
+- [ ] Embedded emphasis ≤1 per piece, at the turn only; occlusion check passed (no text
+      over the subtext object or hands).
 - [ ] Episode/time/chapter cards in the house Armenian pattern; purple accent only.
 - [ ] Glyph gate passed on every burned-in line before export.
 - [ ] Cover frame: mid-action CU, thumbnail-legible; carousel slide-2 alt-hook ready.

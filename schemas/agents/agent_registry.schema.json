@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "zavodom/agents/agent_registry",
+  "title": "ZavodOM Agent Registry",
+  "type": "object",
+  "required": ["version", "policy", "agents"],
+  "properties": {
+    "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+$"},
+    "policy": {
+      "type": "object",
+      "required": [
+        "coordinator", "verifier", "max_parallel", "max_agents", "max_depth",
+        "max_retries", "max_wall_time_seconds", "route_score_floor",
+        "require_independent_verifier", "preserve_dissent"
+      ],
+      "properties": {
+        "coordinator": {"type": "string"},
+        "verifier": {"type": "string"},
+        "max_parallel": {"type": "integer", "minimum": 1, "maximum": 16},
+        "max_agents": {"type": "integer", "minimum": 2, "maximum": 32},
+        "max_depth": {"type": "integer", "minimum": 1, "maximum": 8},
+        "max_retries": {"type": "integer", "minimum": 0, "maximum": 5},
+        "max_wall_time_seconds": {"type": "integer", "minimum": 30},
+        "route_score_floor": {"type": "number", "minimum": 0},
+        "require_independent_verifier": {"const": true},
+        "preserve_dissent": {"const": true}
+      },
+      "additionalProperties": false
+    },
+    "agents": {
+      "type": "array",
+      "minItems": 3,
+      "items": {"$ref": "#/$defs/agent"}
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "stringList": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "agent": {
+      "type": "object",
+      "required": [
+        "id", "name", "kind", "description", "capabilities", "execution_order",
+        "priority", "parallel_safe", "always_selected", "activation_mode", "trigger", "skills",
+        "input_artifacts", "output_artifact", "allowed_tools", "evidence_required",
+        "stop_conditions", "external_side_effects", "failure_policy", "fallback_agent",
+        "budget", "prompt_version", "positive_examples", "negative_examples", "platform"
+      ],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "name": {"type": "string", "minLength": 2},
+        "kind": {"type": "string", "enum": ["coordinator", "specialist", "verifier"]},
+        "description": {"type": "string", "minLength": 20},
+        "capabilities": {"$ref": "#/$defs/stringList"},
+        "execution_order": {"type": "integer", "minimum": 0, "maximum": 100},
+        "priority": {"type": "integer", "minimum": 0, "maximum": 100},
+        "parallel_safe": {"type": "boolean"},
+        "always_selected": {"type": "boolean"},
+        "activation_mode": {
+          "type": "string",
+          "enum": ["automatic", "always", "fallback_only"]
+        },
+        "trigger": {
+          "type": "object",
+          "required": [
+            "intents_any", "topics_any", "formats_any", "languages_any", "risks_any",
+            "capabilities_any", "keywords_any", "keywords_none"
+          ],
+          "properties": {
+            "intents_any": {"$ref": "#/$defs/stringList"},
+            "topics_any": {"$ref": "#/$defs/stringList"},
+            "formats_any": {"$ref": "#/$defs/stringList"},
+            "languages_any": {"$ref": "#/$defs/stringList"},
+            "risks_any": {"$ref": "#/$defs/stringList"},
+            "capabilities_any": {"$ref": "#/$defs/stringList"},
+            "keywords_any": {"$ref": "#/$defs/stringList"},
+            "keywords_none": {"$ref": "#/$defs/stringList"}
+          },
+          "additionalProperties": false
+        },
+        "skills": {
+          "type": "array",
+          "items": {"type": "string", "pattern": "^skills/.+\\.md$"},
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "input_artifacts": {"$ref": "#/$defs/stringList"},
+        "output_artifact": {"type": "string", "minLength": 1},
+        "allowed_tools": {"$ref": "#/$defs/stringList"},
+        "evidence_required": {"$ref": "#/$defs/stringList"},
+        "stop_conditions": {"$ref": "#/$defs/stringList"},
+        "external_side_effects": {
+          "type": "string",
+          "enum": ["forbidden", "approval_required", "allowed"]
+        },
+        "failure_policy": {
+          "type": "string",
+          "enum": ["fail_closed", "fallback", "degrade_with_warning"]
+        },
+        "fallback_agent": {"type": ["string", "null"]},
+        "budget": {
+          "type": "object",
+          "required": ["max_turns", "max_seconds"],
+          "properties": {
+            "max_turns": {"type": "integer", "minimum": 1, "maximum": 64},
+            "max_seconds": {"type": "integer", "minimum": 10, "maximum": 7200}
+          },
+          "additionalProperties": false
+        },
+        "prompt_version": {"type": "string", "minLength": 1},
+        "positive_examples": {"$ref": "#/$defs/stringList"},
+        "negative_examples": {"$ref": "#/$defs/stringList"},
+        "platform": {
+          "type": "object",
+          "required": ["claude_agent_file"],
+          "properties": {
+            "claude_agent_file": {
+              "type": ["string", "null"],
+              "pattern": "^\\.claude/agents/.+\\.md$"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

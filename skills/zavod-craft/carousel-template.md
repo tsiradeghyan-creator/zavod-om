@@ -31,6 +31,21 @@ Pairs with `style-profile.md` (voice) and `playbook.md` (algorithm).
 
 For 13–15 serial version: split slides 03–06 into "Part 1/5… 5/5" beats, each a scene.
 
+## Per-slide captions (IG feature, late June 2026 — write them, most rivals still ignore this)
+
+IG now lets every slide carry its own caption, swapping as the viewer swipes. This is a second
+text layer under the carousel — use it, don't echo:
+- **Slide 1 caption = the master caption** (`style-profile.md` formula: hook → truth → numbers →
+  comment CTA). It's what feed shows before any swipe; hashtags live here.
+- **Slides 2+: 1–2 lines each, doing THAT slide's job** — alt-hook line under 02, the question's
+  tease under 03, a numbers line under 05, «պահպանի՛ր սա» under the last. Each swipe reveals a
+  new line = extra dwell, and dwell + swipe are what carousels get ranked on.
+- **Never duplicate the on-image text.** The slide states; the caption adds the subtext — a
+  detail, a source, a question. If caption = image text, delete the caption line.
+- **Distribute caption-SEO:** one real search phrase per slide caption (show name, «հայկական
+  սերիալ», "Armenian screenwriter") instead of stuffing them all into one master block.
+- Provenance: IG rollout late June 2026, live by July (platform features drift — re-verify).
+
 ## Visual recipe (the look)
 
 - **Aesthetic:** editorial magazine — Apartamento × Kinfolk × New York Magazine. Sharp grid,
@@ -103,3 +118,5 @@ daily Story series for a new serial from its design code:
 - [ ] ≥1 save-worthy slide; last slide = specific comment CTA.
 - [ ] All Armenian in proper Unicode; no faces/stills; wordmark + handle present.
 - [ ] Caption follows `style-profile.md` formula; 3-5 hashtags are in the caption, not first comment.
+- [ ] Per-slide captions written: master on slide 1; one job + one search phrase per slide;
+      no caption echoes its slide's on-image text.

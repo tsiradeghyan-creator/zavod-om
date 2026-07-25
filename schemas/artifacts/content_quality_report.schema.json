@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "openmontage/artifacts/content_quality_report",
+  "title": "Universal Content Quality Report",
+  "description": "Format-neutral post-production report for text and mixed deliverables.",
+  "type": "object",
+  "required": ["version", "deliverables", "open_issues", "verdict"],
+  "properties": {
+    "version": { "type": "string", "const": "1.0" },
+    "deliverables": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["deliverable_id", "artifact_sha256", "checks", "open_issues", "verdict"],
+        "properties": {
+          "deliverable_id": { "type": "string", "minLength": 1 },
+          "artifact_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "checks": {
+            "type": "array",
+            "minItems": 8,
+            "maxItems": 8,
+            "items": {
+              "type": "object",
+              "required": ["name", "status", "evidence"],
+              "properties": {
+                "name": { "type": "string", "enum": ["structure", "accuracy", "authorial_voice", "language", "channel_fit", "rights", "accessibility", "delivery"] },
+                "status": { "type": "string", "enum": ["pass", "revise", "not_applicable"] },
+                "evidence": { "type": "string", "minLength": 8 }
+              },
+              "additionalProperties": false
+            }
+          },
+          "open_issues": { "type": "array", "items": { "type": "string" } },
+          "verdict": { "type": "string", "enum": ["pass", "revise"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "open_issues": { "type": "array", "items": { "type": "string" } },
+    "verdict": { "type": "string", "enum": ["pass", "revise"] },
+    "reviewed_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}
