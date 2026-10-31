@@ -106,3 +106,9 @@ remotion-composer/public/demo-props/caption-burn-*
 output/
 pipeline/
 *.pyc
+
+# Shared-workspace safety rules (2026-10-31)
+.env.*
+!.env.example
+*.key
+*.pem
