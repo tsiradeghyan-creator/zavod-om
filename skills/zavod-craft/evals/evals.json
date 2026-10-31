@@ -1,0 +1,47 @@
+{
+  "name": "content-zavod-evals",
+  "updated": "2026-08-25",
+  "purpose": "Map the content-zavod skill contract to existing ZavodOM executable checks.",
+  "commands": [
+    {
+      "id": "healthcheck",
+      "command": "./.venv/bin/python lib/healthcheck.py",
+      "proves": [
+        "craft brain files are discoverable",
+        "manifests and schemas are valid",
+        "agent routing and runtime receipt contracts are wired",
+        "gates and provenance checks are live"
+      ]
+    },
+    {
+      "id": "content-router",
+      "command": "./.venv/bin/pytest tests/zavod/test_content_router.py",
+      "proves": [
+        "supported formats route through deterministic manifests",
+        "invalid format/modality combinations fail closed"
+      ]
+    },
+    {
+      "id": "agent-routing-runtime",
+      "command": "./.venv/bin/pytest tests/agents tests/zavod/test_checkpoint_chain.py tests/zavod/test_runtime_docs_static.py",
+      "proves": [
+        "agent cards route by required capabilities",
+        "dispatch and receipts remain hash-bound",
+        "runtime documentation stays consistent with implementation"
+      ]
+    },
+    {
+      "id": "rights-and-gates",
+      "command": "./.venv/bin/pytest tests/zavod/test_gates.py tests/zavod/test_rights_manifest.py tests/zavod/test_authorial_voice.py",
+      "proves": [
+        "glyph, rights, authorial voice, and approval gates block unsafe delivery",
+        "Maghakian strict authorial profile remains evidence-bound"
+      ]
+    }
+  ],
+  "safety_boundaries": [
+    "Do not publish, spend, or approve rights/likeness/location from an eval.",
+    "Do not rewrite user artifacts while running these checks.",
+    "Healthcheck is required before scout or unattended production changes."
+  ]
+}

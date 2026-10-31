@@ -18,7 +18,7 @@ claude mcp add --transport http fal-ai \
 ```
 3. Restart Claude Code։ Պաշտոնական գործիքները՝ `search_models` · `get_model_schema` ·
    `get_pricing` · `search_docs` · `run_model` · `submit_job` · `check_job` ·
-   `upload_file` · `recommend_model`։
+   `get_job_result` · `cancel_job` · `upload_file` · `recommend_model`։
 
 ## Current install on this machine (legacy, works)
 Հիմա `~/.claude.json`-ում դրված է **երրորդ կողմի** `fal-ai-mcp-server` npm փաթեթը

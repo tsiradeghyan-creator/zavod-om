@@ -96,7 +96,10 @@ def _authorial_voice():
     extractor = os.path.join(ROOT, "scripts/voice_extractor.py")
     ok = (
         profile.get("profile_id") == "maghakian-script-v1"
-        and len(files) >= 40
+        # The clean pinned baseline contains 38 files after content-based exclusion
+        # of two person-named legal forms. Keep a meaningful corpus floor without
+        # requiring contracts or other non-literary files to pad the count.
+        and len(files) >= 38
         and all(name in registers for name in ("A1", "A2", "A3", "A4", "A5", "A6", "B", "C"))
         and os.path.exists(extractor)
     )

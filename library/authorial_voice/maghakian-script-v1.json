@@ -16,49 +16,53 @@
       "feature_ranges": {
         "armenian_letter_ratio": {
           "max": 1.0,
-          "median": 1.0,
-          "min": 0.999882,
-          "p10": 0.999929,
+          "median": 0.999882,
+          "min": 0.996478,
+          "p10": 0.999033,
           "p90": 1.0
         },
         "code_switch_tokens_per_1k": {
-          "max": 0.279252,
-          "median": 0.0,
+          "max": 5.431503,
+          "median": 0.279252,
           "min": 0.0,
           "p10": 0.0,
-          "p90": 0.167551
+          "p90": 2.326226
         },
         "colloquial_markers_per_10k_chars": {
           "max": 41.695927,
           "median": 33.998587,
           "min": 30.766405,
-          "p10": 31.792559,
-          "p90": 39.702095
+          "p10": 32.114248,
+          "p90": 37.708262
         },
         "scene_markers_per_1k_lines": {
           "max": 34.759358,
           "median": 27.190332,
           "min": 24.967148,
-          "p10": 25.8065,
-          "p90": 32.637647
+          "p10": 25.605346,
+          "p90": 33.200088
         },
         "triple_comma_per_10k_chars": {
           "max": 133.168021,
-          "median": 119.901856,
-          "min": 114.800424,
-          "p10": 115.779711,
-          "p90": 128.531431
+          "median": 117.248641,
+          "min": 32.899583,
+          "p10": 73.493395,
+          "p90": 124.427722
         }
       },
       "files": [
         "84 ամառ 10 փոխված.txt",
+        "84-ի ամառը 5.txt",
+        "84-ի ամառը 6.txt",
+        "84-ի ամառը 7.txt",
+        "84-ի ամառը 8.txt",
         "դու1.txt",
         "դու2.txt",
         "դու3.txt",
         "դու4.txt"
       ],
       "minimum_signal": 0.62,
-      "sample_count": 5,
+      "sample_count": 9,
       "status": "active"
     },
     "A2": {
@@ -363,8 +367,8 @@
         "armenian_letter_ratio": {
           "max": 1.0,
           "median": 1.0,
-          "min": 0.998252,
-          "p10": 0.999138,
+          "min": 0.999359,
+          "p10": 0.999744,
           "p90": 1.0
         },
         "code_switch_tokens_per_1k": {
@@ -372,49 +376,48 @@
           "median": 0.0,
           "min": 0.0,
           "p10": 0.0,
-          "p90": 2.624439
+          "p90": 1.15942
         },
         "colloquial_markers_per_10k_chars": {
           "max": 58.513751,
-          "median": 2.078138,
+          "median": 12.594458,
           "min": 0.0,
-          "p10": 0.241344,
-          "p90": 33.781484
+          "p10": 0.181008,
+          "p90": 39.964551
         },
         "scene_markers_per_1k_lines": {
           "max": 43.478261,
-          "median": 0.0,
+          "median": 14.285714,
           "min": 0.0,
           "p10": 0.0,
-          "p90": 31.684158
+          "p90": 34.632684
         },
         "triple_comma_per_10k_chars": {
           "max": 109.091856,
           "median": 0.0,
           "min": 0.0,
           "p10": 0.0,
-          "p90": 44.227334
+          "p90": 60.443465
         }
       },
       "files": [
         "source-filename-sha256-710674a2fa72b5bbd2cabe43c93a510f5d581ae0288500de461aa5b86d51f118",
         "Անուշ-Արշակ.txt",
         "Մի գեղեցիկ օր 1.txt",
-        "Պետրոս Հովհաննիսյան.txt",
-        "Վարդան Քոչարյան (3).txt",
         "Տարիքդ ասեմ 1.txt",
         "կարեն .txt",
         "մի գեղեցիկ օր պերսոնաժներ.txt",
         "սինոփսիս.txt"
       ],
       "minimum_signal": 0.35,
-      "sample_count": 9,
+      "sample_count": 7,
       "status": "active"
     }
   },
   "sources": {
     "corpus_kind": "private_owner_supplied",
     "excluded_files": [
+      "content-glyph-failure-sha256-f1f9427d5eb87f9add70d9ebbd918d815877daec47bf27c018c064ac362d4687",
       "content-glyph-failure-sha256-12364174100b93467de63410219347b33f1e476d88814666618ece823d9a5171",
       "unsafe-filename-sha256-3b97b999e26ff23df6b78b39959d37425c818d88065b23e506c6228a62b87614",
       "content-glyph-failure-sha256-f1415b9af74e70400e1cb93a29834c987366c801eeb50f095f19604bd6471838",
@@ -423,11 +426,17 @@
       "content-glyph-failure-sha256-af2f21a55b0a0806656e733bfac63a9adc5445def128452b55f794888a183740",
       "content-glyph-failure-sha256-d3afec68d0bcdf9b22d2a9da0d41fe35e695f8ae460a8d023d981c01ea25388b",
       "content-glyph-failure-sha256-8f34a0128c183a8732345e671f78efa16dda513bb07ae9f1289a6adfb2d4516b",
-      "content-glyph-failure-sha256-6036422aeb4087fd1348b6a16127beb1adec1cb9b50218204e2d945d272d3a30"
+      "legal-content-sha256-3575ecfe7eab5e2807283b0ddd8d409242138b443b9c3db283500e6dd2e1c71b",
+      "content-glyph-failure-sha256-6036422aeb4087fd1348b6a16127beb1adec1cb9b50218204e2d945d272d3a30",
+      "legal-content-sha256-b40ed0d102928b130513338eb3aac4d81d70df5a2217df7cc643e3128a73047e"
     ],
-    "file_count": 40,
+    "file_count": 42,
     "files": [
       "84 ամառ 10 փոխված.txt",
+      "84-ի ամառը 5.txt",
+      "84-ի ամառը 6.txt",
+      "84-ի ամառը 7.txt",
+      "84-ի ամառը 8.txt",
       "source-filename-sha256-710674a2fa72b5bbd2cabe43c93a510f5d581ae0288500de461aa5b86d51f118",
       "source-filename-sha256-de0928c8500195ec2a8bc649456441f199c350443343a7342dda1590b717805a",
       "source-filename-sha256-6685771b23d1f7f847c854367c21d680beb7182bd9e9a8962088af108863e7de",
@@ -452,14 +461,12 @@
       "Մայրենի 6+Նվարդ.txt",
       "Մի գեղեցիկ օր 1.txt",
       "մի գեղեցիկ օր պերսոնաժներ.txt",
-      "Պետրոս Հովհաննիսյան.txt",
       "սինոփսիս.txt",
       "Սոսկալի 2 նոր.txt",
       "Սոսկալի 3 (1).txt",
       "Սոսկալի 4.txt",
       "Սոսկալի 5.txt",
       "Սոսկալի 6.txt",
-      "Վարդան Քոչարյան (3).txt",
       "Տարիքդ ասեմ 1.txt",
       "քեզանից հետո 10.txt",
       "քեզանից հետո 2.txt",
@@ -468,7 +475,7 @@
       "քեզանից հետո 8.txt",
       "քեզանից հետո 9.txt"
     ],
-    "snapshot_sha256": "89e4320ca212c253f1d2793a919c44c93efb3be22aac49ab7ba08eb8d1dc44cf"
+    "snapshot_sha256": "ffaa91a29a4d303a5f66d910f48125072a640e2c2f008b0ea283ea1ecb3cdc61"
   },
   "version": "1.0"
 }

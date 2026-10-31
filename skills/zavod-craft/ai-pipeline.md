@@ -12,9 +12,10 @@ writes the prompts (`cinematography.md`); this file owns the engine layer.
 | Carousel BG — complex / 14 refs | **Nano Banana Pro** (Gemini 3 Pro Image) | hero BGs, multi-reference consistency |
 | Poster / multilingual text-in-image | **Ideogram 4.0** | best non-Latin text rendering |
 | Brand asset / dense text / UI mock | **GPT Image 2** | strongest at packed text + logos/layout |
-| Video — premium | **Veo 3.1** | native 48kHz audio, 4K, Ingredients ref images |
-| Video — volume/cheap | **Kling 3.0** | ~$0.029/s, native 4K, first/last-frame chaining, multi-cut |
-| Video — cheapest w/ audio | **Seedance 1.5 Pro/2.0** | @Image1/@Video1/@Audio1 reference tags |
+| Video — dialogue/premium | **Veo 3.1** | the only engine with native 48kHz synced *dialogue*; 4K, Ingredients ref images |
+| Video — volume/cheap | **Kling 3.0 Turbo** (Jun 2026) | faster/cheaper variant of 3.0; native 4K/60fps, 15s, first/last-frame chaining, multi-cut. Full 3.0 for heroes + phoneme-level lip-sync |
+| Video — long beat / max refs | **Seedance 2.5** (official launch 2026-07-31) | 30s native single-pass · 4K route where available · audio alongside · **30 image + 10 video + 10 audio refs** · clay/white-model previz · timestamp-level controllable editing (fix one time range, keep motion/camera/light). 2.0 remains the fallback tier |
+| ~~Video — Sora 2~~ | **deprecated 2026-04-26, API off 2026-09-24** | do not route here |
 | Lipsync | **Sync-3 / Sync Lipsync 2 Pro** | Kling LipSync backup |
 | Music | **MiniMax Music 2.0** | ACE-Step backup (license per `business-affairs.md`) |
 | Armenian TTS / VO | **ElevenLabs v3 — Armenian (hye)** | direct API, NOT fal — unlocks Armenian VO |
@@ -50,11 +51,49 @@ data than CJK/Arabic, so never trust it blind:
 3. AI-rendered **short display words** allowed ONLY if they pass; **body text stays Canva
    overlay** (the Background rule, `carousel-template.md`).
 
+## Project pack / render dossier (absorbed 2026-08-25 — beat RedBox-style context persistence)
+
+For any multi-shot, continuity-sensitive, or revision-prone asset, chat history is not the
+production memory. Create or update a local render dossier before generation:
+
+```text
+media/video-projects/<project-id>/
+  manifest.json        # model, duration, aspect, seed, cost, approval state
+  brief.md             # owner-approved objective and constraints
+  shot-table.md        # time | picture | sound | shot, copied from storyboard.md
+  refs/                # approved subject/object/environment/audio refs only
+  keyframes/           # accepted first/end frames by shot number
+  prompts/             # sealed prompt per shot + negative constraints + prompt version
+  clips/               # generated drafts/finals
+  qc/                  # glyph gate, no-faces, continuity, artifact reports
+```
+
+- **Mode lock:** label each shot `text-to-video`, `reference-guided`, or `first-last-frame`.
+  First/last-frame mode requires exactly two images with explicit start/end semantics; style
+  references alone stay `reference-guided`.
+- **Reference inheritance:** build the core environment master first, then generate later
+  keyframes from the same environment anchor + the shot-specific delta. Do not rewrite the
+  whole world for every frame.
+- **Approval boundary:** no paid model run, likeness use, brand-identity change, publishing, or
+  account/tool migration happens from the dossier without Ani's explicit approval.
+- **Our edge:** generic video-director skills preserve context; this dossier also carries
+  Armenian glyph QC, no-faces verification, rights state, cost state and Maghakian restraint.
+
 ## Consistency kit (the new continuity standard)
 
 - **House reference sheet:** 3–5 approved BG/style images, fed as image references —
   Veo **Ingredients** / Kling **Elements** / Seedance **@Image** tags. This replaces the
   old character-sheet method (`cinematography.md`).
+- **Seedance 2.5's 50-material ceiling — use it for coverage, not for clutter.** The whole
+  shot-relevant look bible can fit in one call (environment hero, subject/object sheet, subtext
+  object, palette plate, audio bed) across 30 image + 10 video + 10 audio refs. But @tag hygiene
+  below still rules: **never pass a reference for something absent from the shot** — every slot is
+  another chance to force an object into frame. Pass the shot's own anchors, not the series' whole
+  library.
+- **Controllable editing (2.5) = the retake tool.** When a take is right but the subject is
+  wrong, re-render with the subject replaced and the original's motion/camera/lighting preserved,
+  instead of re-rolling the whole shot and losing the blocking. Under the no-faces rule this is
+  for hands/objects/wardrobe continuity — it is NOT a face-swap path.
 - **Start/end-frame chaining** for episode continuity: last frame of shot N = first frame
   of shot N+1 (the director locks entry/exit frames — `director-craft.md`).
 - Optional **FLUX LoRA fine-tune** on fal for the editorial look when a series needs it.
@@ -97,8 +136,9 @@ for Kling Elements / Veo Ingredients). The DoP's block-prompt structure lives in
 
 - Log **model / seed / prompt-version per asset** in the working `-prompts.md` file —
   this is also the AI-provenance trail for `business-affairs.md`.
-- **Cost tracking:** use the fal MCP `estimate_cost` / `usage` tools; put a per-asset cost
-  line in the deliverable. (Currently unused — wire it in.)
+- **Cost tracking:** use the official fal MCP `get_pricing` before a run and record the quoted
+  endpoint/params in `manifest.json`; use the installed legacy server's `estimate_cost` / `usage`
+  only when that server is the active route. Put a per-asset cost line in the deliverable.
 
 ## Quick Mode (speed lane — when fast beats perfect)
 
@@ -122,8 +162,10 @@ ceiling. Run AFTER the look is locked, never as a generator.
   metal, paper grain, the subtext object — not "skin pores" (we don't show faces in AI output).
 - **Low-strength, locked-seed, NO DRIFT:** Magnific/Krea hallucinate detail and can change the
   image — cap creativity/strength so identity, geometry and the subtext object stay exact.
-- **Order:** lock look → upscale (Topaz/Kling-4K) → realism pass (low strength) → grain on top
-  (`color-craft.md`). Re-run the glyph gate if any text region was touched.
+- **Order:** lock look → upscale (Topaz/Kling-4K) → realism pass (low strength) → **grade under
+  the series show-LUT** (`color-craft.md` still lane — stills get graded too, on Resolve 21's
+  Photo page, BEFORE any text overlay) → grain on top. Re-run the glyph gate if any text region
+  was touched.
 - Hero assets only; skip for Quick Mode drafts.
 
 ## Identity-lock (ONLY for licensed / owned faces)

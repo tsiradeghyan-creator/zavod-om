@@ -1,21 +1,12 @@
 ---
 name: gpt-image-prompting
 description: >-
-  Best-practice prompting and API patterns for OpenAI's GPT image generation
-  models (gpt-image-2, gpt-image-1.5, gpt-image-1, gpt-image-1-mini). Use this
-  skill whenever the user wants to generate or edit an image with an OpenAI /
-  gpt-image model, write or improve an image-generation prompt, build an
-  image-gen or image-editing workflow, or asks how to get better results
-  (photorealism, in-image text, infographics, logos, ads, UI mockups, style
-  transfer, virtual try-on, compositing, object removal, lighting/weather
-  changes, product mockups, character consistency). Prefer this skill over
-  ad-hoc prompting for any gpt-image work.
-  SCOPE GATE — this skill is OpenAI-specific. Trigger it only when an OpenAI /
-  gpt-image model is named or is the established target of the current workflow.
-  A bare "make an image of…" / "generate a logo for…" is NOT enough: route those
-  to `content-zavod` (which owns image production and picks the engine), to
-  `fal-ai-media` for Nano Banana / fal models, or to `higgsfield` for the
-  configured platform.
+  OpenAI-specific GPT image prompting and API workflow skill. Use only when an
+  OpenAI/gpt-image model is named or already chosen for generation, editing,
+  image prompt repair, UI/infographic/logo/ad mockups, compositing, product
+  mockups, or character-consistency image work.
+metadata:
+  version: 1.1.0
 ---
 
 # GPT Image Prompting
@@ -23,6 +14,22 @@ description: >-
 Write effective prompts and API calls for OpenAI's `gpt-image` models. The
 goal is production-quality, controllable output with fewer retries — by being
 explicit about structure, constraints, and what must change vs. stay the same.
+
+Scope gate: a bare "make an image" request is not enough. Route engine-neutral
+image work to `content-zavod`, Nano Banana/fal work to `fal-ai-media`, and
+Higgsfield platform work to `higgsfield`.
+
+## Safety Boundaries
+
+- Verify current OpenAI image model names, parameters, prices, and policy
+  constraints before presenting them as current or running paid generation.
+- Do not spend credits, upload private/sensitive images, or publish outputs
+  without explicit approval.
+- Do not imitate private likenesses, voices, IDs, protected characters, logos,
+  or brand assets without clear authorization.
+- Do not overwrite source images or generated deliverables unless the user asks.
+- For exact text, logos, UI, charts, and Armenian typography, prefer editable
+  overlay or programmatic composition when image-model text may be unreliable.
 
 ## How to use this skill
 

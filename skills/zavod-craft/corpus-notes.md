@@ -180,3 +180,14 @@ Remaining (same registers, not yet read): selavi 111-444, ճերմակ 1-6, Մա
 
 ### USER-REQUESTED READING COMPLETE: selavi 1-4 ✓ · Հատուկ Դասարան 7-10 ✓ · Ճերմակ շապիկ 1-6 ✓.
 ### TOTAL fully read: 23 episodes (7 registers A1-A6 + B) + «Բլոկադա» prose + «Տակնուվրա» novel ~48pp.
+
+
+## OpenClaw script-agent study · 2026-09-29 (12 packets)
+
+- Script agents read 52 non-contract canonical archive texts plus separately labeled ASR, current project-direction, assistant-made, collaborative and uncertain-draft material. The packet index counts 69 unique study sources; 70 source-block entries because the single «Տակնուվրա» file was split across two packets.
+- The local authorial-voice feature baseline now has 42 glyph-clean source files. It is an evidence plane, not an automatic judgment of prose quality.
+- Review reports and the consolidated profile are in the sibling automation workspace `ani-script-agents/`; the durable live copy is in each OpenClaw script agent workspace.
+- The cross-work profile is limited to repeated patterns across independent authored works. Character tics, commercial placements, co-written children’s work, ASR transcripts, support docs and owner-directed current projects stay separately labeled.
+- «Տակնուվրա» is a short-story and monologue collection, not a novel. It was read in two split packets and the reports identify incomplete portions; do not claim the whole volume was studied.
+- Three cloud-only `84-ի ամառը` placeholders (episodes 2–4) were not available. The study does not claim coverage of them.
+- Two person-named legal contracts were excluded by the corpus extractor’s content-based filter; mixed-script errors in `84-ի ամառը 9` were excluded from style learning.

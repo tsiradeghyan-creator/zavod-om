@@ -4,9 +4,14 @@
 system. It turns eligible owner-supplied UTF-8 script text into a pinned corpus profile and
 review-only change deltas. It does not decide whether new evidence belongs in the canon.
 
-> **Hard rule — propose, do not pollute.** The extractor never edits `style-profile.md`,
-> `corpus-notes.md`, or another curated craft file. It updates machine evidence and writes a
-> delta for review; canon changes still require an explicit human decision.
+> **Evidence and update boundary.** The extractor never edits `style-profile.md`, `corpus-notes.md`,
+> or another curated craft file. It updates machine evidence and writes a delta. The owner has
+> authorized the script agents to keep the Ani profile current: after each new owner-supplied script
+> or explicit project direction, agents apply `ani-evaluation-and-update.md`, record evidence and
+> scope in `ani-profile-changelog.md` / `ani-project-directions.md`, and update the curated profile
+> when the evidence thresholds in that protocol are met. A one-off direction applies immediately to
+> its named project; it does not become historical authorial evidence. Preserve the original and a
+> reversible prior profile snapshot.
 
 ## Current evidence plane
 
@@ -25,8 +30,10 @@ fonts, logo, and layout are intentionally outside this profile.
 ## What each scan does
 
 1. Discovers eligible `.txt` files and leaves the source corpus untouched.
-2. Excludes contract/right files, unstable mixed-script filenames, and tiny files that cannot
-   provide useful evidence.
+2. Excludes contract/right files by filename, and also excludes person-named documents whose
+   opening explicitly identifies them as contracts and contains multiple legal-party markers.
+   It also excludes unstable mixed-script filenames and tiny files that cannot provide useful
+   evidence. Original source files remain untouched.
 3. Hashes every source file and compares it with `.seen.json`; only new or changed files enter
    the delta. Removed files are recorded explicitly.
 4. Computes register candidates and objective feature signals.

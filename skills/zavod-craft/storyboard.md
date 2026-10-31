@@ -78,6 +78,28 @@ both for action/sports), plus the environment plan always:
     direction · **key-light direction** · obstacles / doors / edges / landmarks.
   - Every camera position + move must be **physically possible** inside the mapped space.
 
+### Inheritance ladder (absorbed 2026-08-25 — RainLib/RedBox/Seedance parity, with our gates)
+
+Rival storyboard skills now win on context persistence: a core environment frame, stable anchor
+phrases, and per-shot deltas. We keep that, then add the full card, Armenian/no-faces policy and
+approval gates:
+
+1. **Environment master first:** build the wide/core environment reference before any close-up.
+   It must show layout, major props, light direction and the camera worldview for the whole
+   sequence.
+2. **Subject/object anchor block:** one exact phrase for the subject or hero object; for
+   Maghakian/no-faces boards this phrase describes hands, silhouette, wardrobe construction,
+   accessories and subtext object, never a generated actor face.
+3. **Panel prompts inherit, then differ:** every panel repeats the same environment anchor and
+   subject/object anchor, then changes ONLY the shot-specific delta: size, angle, action phase,
+   pose, camera move, light change, duration.
+4. **Transition pair field:** each card states how it exits and how the next panel enters —
+   motion match, shape match, color match, action match, scale match, or hard cut. This is written
+   on the board before editing so AI clips do not become isolated pretty shots.
+5. **Dossier handoff:** once the board is approved, `ai-pipeline.md` receives a render dossier
+   with `shot-table.md`, refs, keyframes, sealed prompts and QC receipts. The board is the brief;
+   the dossier is the execution memory.
+
 ## The maximal shot card (under EVERY frame)
 
 For each frame, the board carries this card — the world's-best annotation set:
@@ -100,6 +122,7 @@ For each frame, the board carries this card — the world's-best annotation set:
 | **Continuity** | eyeline · screen-direction (L→R/R→L) · wardrobe/prop (`production-team.md`) |
 | **Duration / fps** | seconds + 24/25fps (120fps overcrank only for the object insert) |
 | **AI-prompt line** *(if rendered)* | the house render template (`cinematography.md` · `ai-pipeline.md`); build it off the Composition×Lighting×Pose menu in `prompt-axes.md` |
+| **Transition pair** | exit/entry glue to the next panel: motion · shape · color · action · scale · hard cut; name the continuity anchor that survives |
 
 ## Coverage minimum per scene (what the board must contain)
 Master · OTS pair (or singles for 9:16) · **the turn's CU** (held 2s longer) · **one subtext
@@ -197,6 +220,27 @@ AI engines misread space and light when given only words. Ground them with a rea
 - **Lean version (80% of the value, near-zero cost):** a single CineTracer/Blender still as the
   start frame beats a full UE5 pipeline — phase the heavy 3D only for complex hero scenes.
 
+**In-engine whitebox previz (Seedance 2.5, official launch 2026-07-31 — the previz step moved inside the model):**
+2.5 ships **3D white-model previz**: it locks space, composition and motion *before* style is
+applied. That is the same job as our CineTracer/Blender start frame, one call earlier and at no
+extra tooling cost — so it becomes the default previz lane for AI-rendered boards, with the
+external 3D path kept for complex hero scenes and for anything that must be physically surveyed.
+Our gates do not move:
+- The whitebox is checked against the **top-down SET PLAN** (camera positions C1…Cn, 180° axis,
+  key-light direction) — the engine proposing a camera does not make the camera *possible*. A
+  whitebox that contradicts the set plan is rejected, not adopted.
+- Whitebox → approved → THEN style. Never let the styled render be the first time the space is
+  seen; that is how geometry drift enters a board.
+- The whitebox is **planning scaffolding, never final pixels** — same law as the motion-animatic.
+
+**30-second single-pass changes the panel math (read this before celebrating it):** with a full
+beat renderable in one call, the temptation is to stop boarding and let the engine improvise the
+middle. Don't. The board still specifies every cut, and **finals still render one panel at a
+time with seed + start-frame chaining** — the long window is spent on the HOLD (restraint: the
+frame that stays), not on unboarded coverage. Where a 30s pass genuinely serves a continuous
+oner, the board carries it as ONE panel with internal beats marked on the Duration field, and
+the animatic gate still locks tempo first.
+
 ## Timing pass — the board's Duration column is executable (animatic gate)
 The per-frame **Duration/fps** fields are not notes; they are the cut. String the accepted
 panels into a timed animatic (`animatic-editor.md`) BEFORE any expensive final render — the
@@ -242,6 +286,8 @@ no-signup client links); we fold the discipline into the gate chain instead of a
       fingerprint, continuity anchors, primary screen direction + 180° axis).
 - [ ] Reference sheet built for the register (Subject sheet / **Hero-Object sheet** / model sheet) +
       environment plan; the sheet's anchors match every panel.
+- [ ] Inheritance ladder followed: environment master first, stable subject/object anchor block,
+      panel-specific deltas only, and transition pair named on every connected cut.
 - [ ] Top-down set plan drawn; camera numbers C1…Cn match the panel cuts; every path physically possible.
 - [ ] Look bible locked (palette/gradient, contrast ratio, lens set, grain, default move).
 - [ ] Every frame carries the full card — incl. lens(mm)+reason, lighting recipe, color gradient,
@@ -256,6 +302,11 @@ no-signup client links); we fold the discipline into the gate chain instead of a
 - [ ] Continuity drift-killers pass (no face/anatomy/costume/prop drift, screen direction held).
 - [ ] Vertical safe zones respected; no AI text inside the frame (unless glyph-gate passed); the
       active brand preset's rules applied (Maghakian = no actor face / Armenian on overlay only).
+- [ ] Previz done before style: whitebox (in-engine 2.5) or CineTracer/Blender still, checked
+      against the top-down set plan; contradictions rejected, not adopted.
 - [ ] Board = planning doc; final cinematic frames are rendered ONE panel at a time with seed +
-      start-frame chaining (`ai-pipeline.md`), NOT as a single megaboard.
+      start-frame chaining (`ai-pipeline.md`), NOT as a single megaboard — a 30s single-pass
+      window is not permission to leave a cut unboarded.
+- [ ] Approved board handed to the `ai-pipeline.md` render dossier; paid generation / likeness /
+      publishing / account or tool migration remains owner-approved only.
 - [ ] AI frames carry the house prompt line + start/end chaining for continuity.

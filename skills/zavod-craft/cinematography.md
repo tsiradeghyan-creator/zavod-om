@@ -85,13 +85,19 @@ in drama registers.
 | Probe-lens macro language in AI prompts — "extreme macro, probe lens perspective" | Lens whacking |
 | Mirror/prism only as reflection-without-identity | — |
 
-## → AI-PROMPT TRANSLATION TABLE (DoP language → engines, June 2026)
+## → AI-PROMPT TRANSLATION TABLE (DoP language → engines, verified July 2026)
 
 **Vocabulary law (beats every generic prompt skill):** ban "cinematic / epic / stunning /
 beautiful / dramatic / masterpiece" — engines average them to mush. Every adjective is replaced
 by **environmental pressure + a physical specific**: not "moody lighting" but "cold refrigerator
 light on wet enamel"; not "tense" but "fluorescent flicker, a fly on the glass". The world does
 the emotion. (`ai-pipeline.md` enforces this as a prompt gate.)
+
+**Grade words are banned too (flat-source law, `color-craft.md`):** the palette line is **art
+direction, not a grade** — name what is physically in frame (the gold practical, the wet enamel,
+the tungsten bulb, the wardrobe). Never "teal-and-orange grade / heavily graded / LUT applied /
+colour-graded look": a baked-in look leaves the colourist no headroom, and cross-engine matching
+dies with it. The engine lights the scene; `color-craft.md` grades it.
 
 Build every video prompt as: **[shot size + lens feel] + [subject & action] + [lighting
 recipe] + [movement] + [palette/grade] + [texture] + [audio bed]**. House template:
@@ -103,11 +109,26 @@ recipe] + [movement] + [palette/grade] + [texture] + [audio bed]**. House templa
 > palette: black #0D0D0D with gold accents, filmic grain, 4K, {audio bed: ambient
 > written out — "distant traffic, clock ticking"}, {start frame: <image>}"
 
-| Engine | State (June 2026) | House rule |
+| Engine | State (verified 2026-07-31) | House rule |
 |---|---|---|
-| Veo 3.1 | native synced audio/dialogue/SFX · native 9:16 · true 4K · "Ingredients" = up to 3 ref images | write the ambient sound INTO the prompt ("distant traffic, clock ticking"); never leave audio unspecified or the engine invents it |
-| Kling 2.6/3.0 | synced audio · first/last-frame control · Elements (4 ref images) · motion transfer · 3.0 multi-cut (≤6 shot changes/gen) | chain shots: last frame of shot N = first frame of shot N+1 |
-| Seedance 1.5 Pro/2.0 | reference-to-video via @Image1/@Video1/@Audio1 tags (≤9 images / 3 videos / 3 audio) | THE consistency standard — replaces the old character-sheet method |
+| Veo 3.1 | the only model doing native 48kHz synced **dialogue** (not just SFX) · native 9:16 · true 4K · "Ingredients" = up to 3 ref images | write the ambient sound INTO the prompt ("distant traffic, clock ticking"); never leave audio unspecified or the engine invents it |
+| Kling 3.0 (Feb 2026) · **3.0 Turbo** (Jun 2026) | Omni One multimodal base · native 4K/60fps · 15s clips · phoneme-level multi-character lip-sync (best in class) · first/last-frame control · Elements · multi-cut (≤6 shot changes/gen). **Turbo** = faster/cheaper variant of the same generation | chain shots: last frame of shot N = first frame of shot N+1. Turbo is the volume/draft lane, 3.0 proper for heroes |
+| **Seedance 2.5** (official launch 2026-07-31) | **30s native single-pass** (2.0 capped at 15s) · native 4K route where available · audio generated alongside · **up to 30 images + 10 videos + 10 audio refs** in one request · **clay/white-model previz** to lock space + composition + motion before style · **timestamp-level controllable editing** — alter a time range / subject / camera while preserving approved motion, lighting and continuity | THE consistency standard. The 50-material ceiling means the whole shot-relevant look bible can ride in the call; the 30s window means a full beat is ONE generation, not four chained |
+| ~~Sora 2~~ | **deprecated 2026-04-26; API shuts down 2026-09-24** | do not route here; do not cite it in a client deck |
+
+**What the 2.5 jump actually changes for the DoP:** with 30s in one pass, the unit of generation
+can become "a beat" — so the *lighting recipe must hold across an internal cut*, which is exactly
+what the LOCATION MAP + POSITIVE LOCKS blocks below are for. Do not celebrate the long window by
+writing a long scene: restraint still says hold the frame. Use the extra seconds on the hold, not
+on more coverage.
+
+**Timestamp-edit handoff (absorbed 2026-08-25 from Seedance 2.5's official editing path):**
+when only one segment is wrong, do not reroll the whole take. Mark an edit window in the DoP
+notes — `00:08-00:12 camera only`, `00:15-00:18 hand action only`, `00:20-00:23 light spill only`
+— plus the continuity locks that must survive before/after the edit. This beats generic "fix it"
+prompts because the cinematographer names the one variable allowed to change. Under the no-faces
+rule, this is especially useful for hands, props, wardrobe, lighting direction and subtext objects;
+faces/likeness remain rights-gated and normally absent.
 
 - **Engines now parse real DoP grammar** — "dolly", "crane", "85mm", "rack focus" no
   longer drift on Veo 3.1/Seedance; the old "avoid pan/tilt" caution applies only to
@@ -155,11 +176,23 @@ SCENE CONTEXT → ACTIVE REFERENCES (@tags) → LOCATION MAP (FG/MG/BG + camera 
   tele-detail · 8° extreme-tele. Discrete steps only (no "23°"); multishot = FOV per segment
   + "no drift mid-segment"; CAMERA block sits 3rd in the core layer order (subject → action
   → camera → style → constraints) — at the end FOV gets ignored, at the front it fights identity.
-- **⚠️ UNRESOLVED A/B (do not blindly rewrite the house template):** seedance-clean bans
-  gear/mm names in prompt text (FOV° + "look, not gear"); our table above + Mx-Shell's
-  camera-emulation trick NAME real gear and 2026 engines parse "85mm / dolly / rack focus"
-  fine on Veo/Kling. Treat FOV°/no-gear as the **Seedance 2.0 dialect only** until an A/B on
-  Seedance settles it; Veo/Kling keep mm/gear language. Log the A/B result here.
+- **✅ A/B RESOLVED (2026-07-31) — it was a false binary.** The open question was FOV° (per
+  `seedance-clean`) vs named mm (per our table). ByteDance's own Seedance prompt guidance backs
+  **neither extreme**: it treats lens as **buckets** — wide (24–28mm feel) · normal (35–50mm
+  feel) · telephoto (85mm+ feel) — and advises against exact millimetres "unless necessary",
+  because Seedance responds to human-rhythmic description, not photographic metadata
+  (`f/2.8, ISO 800` is noise to it). Discrete FOV° was over-precision in the other direction.
+  **House ruling:**
+  - **Seedance dialect:** lead with the bucket, append the approximate focal only when the
+    compression itself is the point — `[shot size] + [movement] + [angle], [bucket or ~focal]`.
+    Keep the FOV° table above as a *reference for reading* other people's prompts, not as our
+    output format.
+  - **Veo / Kling:** keep naming real gear and mm — they parse "85mm / dolly / rack focus" fine.
+  - **Universal:** *zoom ≠ dolly* — zoom changes focal length (the image compresses), dolly moves
+    the camera (perspective shifts). Engines trained on real footage honour the distinction, so
+    use the term you actually mean; this is where most "why did it look wrong" cases come from.
+  - Our lens table (§ Lens language) stays the **decision** tool — it says WHY 85mm; the dialect
+    only governs how that decision gets typed into a given engine.
 
 ## Real-set quick kits (when shooting, not rendering)
 

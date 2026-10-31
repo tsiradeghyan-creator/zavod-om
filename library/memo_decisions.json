@@ -50,6 +50,12 @@
    "by": "owner (delegated)",
    "note": "No-op memo: the pass proposed zero new styles ('taste registry already current'), so there is nothing for the owner to approve or reject. Closed to clear the undecided-memo gate; same shape as scout_memo_2026-07-06.",
    "items": {}
+  },
+  "scout_memo_2026-07-27.md": {
+   "decided": "2026-08-25",
+   "by": "owner (delegated)",
+   "note": "No-op memo: the pass proposed zero new capabilities ('Registry already current'), so there is nothing to approve, reject, spend, install, or change. Closed to clear the undecided-memo gate.",
+   "items": {}
   }
  }
 }

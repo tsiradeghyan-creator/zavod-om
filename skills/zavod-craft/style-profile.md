@@ -5,15 +5,22 @@
 > When the user edits a draft or feeds new material, update the rules here + log it in the Changelog.
 > Keep examples REAL. Detailed per-series intel is in `corpus-notes.md`.
 >
-> **Source corpus:** ~54 episodes + the novel «Տակնուվրա» + the «Բլոկադա» prose, canonically in
-> `~/Documents/Maghakian-Scripts/docx/` (text: `~/Documents/Maghakian-Scripts/txt/`; the
-> `~/Downloads/` copies are legacy). Built 2026-06-02/03 from a full read of: «դու» 1–4,
-> «քեզանից հետո» 2,3,4,8,9,10, «Սոսկալի» 2,3, «Հատուկ Դասարան 3» 7, «Մայրենի» 1, and the
-> «Բլոկադա» prose — covering every register; remaining episodes/novel being read to deepen.
+> **Source corpus:** canonical archive `~/Documents/Maghakian-Scripts/`.
+> On 2026-09-29, 52 non-contract archive texts were included in the OpenClaw study packets,
+> alongside separately labeled ASR, current-direction, assistant-made, collaborative, and uncertain
+> materials. The local automated feature profile has 42 glyph-clean sources; its feature gate is
+> distinct from the broader agent reading set.
+> **Authoritative evidence-limited profile and update protocol:** [ANI_WRITING_PROFILE.md](ani-writing-profile.md)
+> and the adjacent `ani-writing-*.md` references. “Տակնուվրա” is a short-story/monologue collection,
+> not a novel. The older notes below are historical work notes; their cross-register absolutes and
+> blanket reuse advice are superseded by the cited profile. Treat motifs, punctuation, dialect, scene
+> format, and endings as register- or character-specific unless the evidence file supports a broader
+> claim. Do not imitate OCR/ASR/mixed-script defects.
 
-## VOICE FINGERPRINT (TL;DR — the irreducible core)
+## HISTORICAL WORKING NOTES — NOT UNIVERSAL RULES
 
-If you remember nothing else, hold these. They are true across EVERY register:
+Use the updated profile above for cross-work claims. The details below can help with matching projects,
+but each must be checked against the relevant work and character.
 1. **Emotion lives in behaviour, not statement.** Characters never announce feelings; conflict runs
    under the words (Eva jokes to hide terminal illness; Armen wounds to mask despair). Restraint = power.
 2. **The cold protagonist who secretly longs to surrender.** Her signature character keeps everyone at

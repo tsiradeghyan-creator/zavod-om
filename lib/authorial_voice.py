@@ -41,7 +41,7 @@ CRITERIA = (
 )
 
 REGISTER_PATTERNS: dict[str, tuple[str, ...]] = {
-    "A1": ("դու", "բլոկադա", "84 ամառ"),
+    "A1": ("դու", "բլոկադա", "84 ամառ", "84-ի ամառը"),
     "A2": ("քեզանից հետո",),
     "A3": ("սոսկալի",),
     "A4": ("հատուկ դասարան",),
@@ -69,6 +69,11 @@ REGISTER_SOURCE_IDS: dict[str, frozenset[str]] = {
 
 EXCLUDED_NAME_PATTERNS = (
     "պայմանագիր", "հեղինակային_իրավունք", "հեղինակային իրավունք", "contract",
+)
+
+LEGAL_CONTENT_MARKERS = (
+    "պատվիրատու", "կատարող", "ստուդիան", "դերասան", "ծառայությունների մատուցման",
+    "պայմանագրի առարկան", "կողմերը կնքեցին", "հեղինակային իրավունքների փոխանցման",
 )
 
 COLLOQUIAL_TOKENS = frozenset({
@@ -525,6 +530,15 @@ def discover_corpus(corpus_dir: str | Path) -> tuple[list[Path], list[str]]:
             source_text = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             excluded.append(f"decode-failure-sha256-{sha256_text(path.name)}")
+            continue
+        # Some legal/actor forms are saved under the person's name instead of a legal
+        # filename. Keep them out of an authorial sample even when their Armenian glyphs
+        # are clean. Require an explicit contract heading plus multiple legal markers so
+        # a scripted mention of a contract cannot exclude an episode by accident.
+        opening = " ".join(source_text[:2400].casefold().split())
+        legal_markers = sum(marker in opening for marker in LEGAL_CONTENT_MARKERS)
+        if opening.startswith("պայմանագիր") and legal_markers >= 2:
+            excluded.append(f"legal-content-sha256-{sha256_text(path.name)}")
             continue
         if not authorial_glyph_gate(source_text).get("ok"):
             excluded.append(f"content-glyph-failure-sha256-{sha256_text(path.name)}")
