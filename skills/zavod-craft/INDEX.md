@@ -1,5 +1,17 @@
 # ZavodOM — Brain index (52 craft files → spine slots)
 
+> **Canon note:** `gpt-image-prompting/` here is the canon of my-first-project's top-level
+> `gpt-image-prompting` skill (the laptop sync copies it there); edit it here, not in the copy.
+
+> **Load on demand:** this folder holds about 71k words, so read only the files the current stage
+> names. These five are the largest; open them only when the brief needs them, and then only the
+> relevant section:
+> - `commercial-prompt-library/testimonial-story.md` (~4,200 words): testimonial/story ad briefs only
+> - `storyboard.md` (~3,500 words): when boarding shots; read the section for the current task
+> - `commercial-prompt-library/luxury-aesthetic.md` (~3,200 words): luxury/aesthetic ad briefs only
+> - `world-benchmark.md` (~2,900 words): benchmark or "how do the best do it" questions only
+> - `commercial-prompt-library/before-after.md` (~2,800 words): before/after ad briefs only
+
 > The zavod's brain (taste / voice / craft) lives here as 52 craft files (+ `SKILL.md` and this
 > `INDEX.md` = 53 top-level `.md` files). `style-library/` adds the matured style cards.
 > `commercial-prompt-library/` adds 6 Seedance 2.0 format cards: 5 commercial (viral-hook,
@@ -12,7 +24,7 @@
 > Soyuz AI Lab course, 2026-07-24). The `ai-cartoon-reel.md` style map carries 14 ready style clauses.
 > This index WIRES each
 > one to the OpenMontage spine: which pipeline **stage/role** consults it and which **gate** it
-> feeds. Director skills (`skills/pipelines/<pipeline>/<role>-director.md`) MUST cite the craft
+> feeds. Director skills (`skills/pipelines/<pipeline>/<role>-director.md`) cite the craft
 > files listed for their stage. General first; Maghakian-specific marked [HY].
 
 ## Stage → craft → gate map
@@ -37,7 +49,7 @@ The model skill named in the row above then writes the final prompt text.
 
 ## Hard gates the brain must pass (code-enforced, see `lib/`)
 These are wired into the **checkpoint enforcement seam** (`lib/checkpoint._enforce_zavod_gates`,
-dispatched by `lib/gatechain.py`): a `zavod-*` stage **cannot** persist a `completed`/`awaiting_human`
+dispatched by `lib/gatechain.py`): a `zavod-*` stage cannot persist a `completed`/`awaiting_human`
 checkpoint whose artifacts fail their gate. Upstream pipelines are untouched. Contract and regression
 tests live under `tests/zavod/`.
 1. `armenian_glyph_gate.py` — any on-screen text with Latin/Cyrillic spliced into an Armenian word, OR a Cyrillic homoglyph word in Armenian context → **fail**. Runs on **all** text regardless of declared language; the old language-tag bypass is closed. ✅ live & enforced (script + scene_plan seam)
@@ -63,7 +75,7 @@ tests live under `tests/zavod/`.
    also needs a returned URL. Claimed signed/verified C2PA manifests are file/hash-checked. A hash is
    evidence, not cryptographic signature verification. ✅ live & enforced (final publish seam)
 
-## Rule (Rule Zero + voice law)
+## Voice and Rule Zero
 - Every production starts by asking the owner for mode: **քո հաստատումներով՝ փուլ առ փուլ** (default)
   or **ավտոմատ լրիվ սևագրային վազք** (draft/verify internally, but no publish/spend/rights-lock/final
   delivery without explicit approval).

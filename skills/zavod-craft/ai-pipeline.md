@@ -15,7 +15,8 @@ Before writing a prompt, run `film-crew` (single-shot mode for one shot, full mo
 | Poster / multilingual text-in-image | **Ideogram 4.0** | best non-Latin text rendering |
 | Brand asset / dense text / UI mock | **GPT Image 2** | strongest at packed text + logos/layout |
 | Video — dialogue/premium | **Veo 3.1** | the only engine with native 48kHz synced *dialogue*; 4K, Ingredients ref images |
-| Video — volume/cheap | **Kling 3.0 Turbo** (Jun 2026) | faster/cheaper variant of 3.0; native 4K/60fps, 15s, first/last-frame chaining, multi-cut. Full 3.0 for heroes + phoneme-level lip-sync |
+| Video — volume/cheap (API) | **Kling 3.0 Turbo** (Jun 2026) | faster/cheaper variant of 3.0; native 4K/60fps, 15s, first/last-frame chaining, multi-cut. Full 3.0 for API hero shots + phoneme-level lip-sync. Kling 3.x stays the lane for API/fal runs |
+| Video — Kling 4.0 (app) | **Kling 4.0** (in the Kling app since 2026-10-15) | clips up to 30 s; API not announced yet, so verify live before planning an API or fal run on it (specs: verify live). Use it for hand-run app generations; keep 3.x for API runs |
 | Video — long beat / max refs | **Seedance 2.5** (official launch 2026-07-31) | 30s native single-pass · 4K route where available · audio alongside · **30 image + 10 video + 10 audio refs** · clay/white-model previz · timestamp-level controllable editing (fix one time range, keep motion/camera/light). 2.0 remains the fallback tier |
 | ~~Video — Sora 2~~ | **retired** — OpenAI closed the Sora app and its API (API ended 2026-09-24) | do not route here |
 | Lipsync | **Sync-3 / Sync Lipsync 2 Pro** | Kling LipSync backup |

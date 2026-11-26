@@ -1,7 +1,8 @@
 # Playbook — Posting, Captions & Algorithm (2026)
 
-Distilled from the agency's research log at `~/.memory/long-term-memory.md`. Apply at Stations 3–4.
-Re-check that file periodically; algorithms shift.
+Distilled from the agency's research log `long-term-memory.md`: it lives at `~/.memory/long-term-memory.md`
+on the Mac and at `memory/long-term-memory.md` in my-first-project (a daily snapshot of the Mac copy).
+Apply at Stations 3–4. Re-check that file periodically; algorithms shift.
 
 ## Format strategy
 - **Reels = REACH** (3–5× reach via Explore/Reels feed) → stranger discovery.

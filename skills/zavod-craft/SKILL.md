@@ -1,6 +1,6 @@
 ---
 name: content-zavod
-description: ZavodOM craft brain — universal production factory for supported written, narrative, image, audio, video, and mixed formats, run through the ZavodOM routing when the zavod-om repo is checked out (otherwise this skill's own INDEX.md as a single-context simulation), with manifests, gates, and owner checkpoints. Use for zavod, post, article, screenplay, carousel, reel, promo, and film-mode production. Authorial voice is locked separately from optional visual identity. The bundled Maghakian Script DNA profile activates only on an explicit Maghakian or Ani identifier—never on a bare "for my brand".
+description: 'ZavodOM craft brain for multi-stage, multi-station production: one run that carries several formats or stations (idea, script, look, assets, render, edit, publish) through ZavodOM routing with manifests, quality gates and owner checkpoints. Runs through the zavod-om router when that repo is checked out, otherwise through the INDEX.md in this skill as a single-context simulation. Use for zavod runs, multi-format content packages (for example post + carousel + reel from one idea), promo and film-mode production. Not for single marketing copy (use copywriting), Instagram serial planning (use mini-scenario), screenplay formatting and script documents (use director-desk), or story writing (use ani-screenwriting-workflow). Authorial voice is locked separately from optional visual identity. The bundled Maghakian Script DNA profile activates only on an explicit Maghakian or Ani identifier, not on a bare "for my brand".'
 metadata:
   version: 2.3.0
   owner: Universal Production Zavod (Maghakian brand pack bundled)
@@ -30,9 +30,10 @@ When zavod-om is not available (for example inside my-first-project, where this 
 `.claude/skills/content-zavod/`), use this skill's own `INDEX.md` and `production-protocol.md`, run
 as a `single_context_simulation`, and say so in the report.
 
-## Required opening question
+## Opening question
 
-Before doing any production work, ask:
+Before production work starts, ask which mode to run in, because the mode decides where the
+run stops for owner approval:
 
 ```text
 Ո՞ր ռեժիմով ենք աշխատում։
@@ -43,9 +44,10 @@ Before doing any production work, ask:
 ```
 
 Default is **քո հաստատումներով՝ փուլ առ փուլ** unless the owner explicitly chooses the
-automatic draft run.
+automatic draft run. If the owner already named the mode in the request, skip the question and
+go straight to the first stage.
 
-## Automatic agent activation law
+## Automatic agent activation
 
 When the zavod-om repo is available, build the typed request before non-trivial work and run
 `lib/agent_router.py` against `agents/registry.yaml`, and follow the cross-host contract in
@@ -78,14 +80,15 @@ Codex, or an API host executes. If isolation is unavailable, label the run
 `single_context_simulation`. It is degraded drafting only and cannot close independent verification
 or be reported as a complete multi-agent run.
 
-## Owner approval law
+## Owner approval
 
 - Every stage ends with an Agent Report.
 - In owner-gated mode, every output must be approved before the next phase starts.
 - The only advance command is **«Անցիր առաջ»**.
 - The owner can veto with **«Փոխիր այս դետալը»**.
-- The owner can delegate a bounded choice with **«Ինքդ որոշիր»**, but that never authorizes
-  publish, spend, rights/likeness/location approval, or final delivery.
+- The owner can delegate a bounded choice with **«Ինքդ որոշիր»**. That covers the choice only;
+  publish, spend, rights/likeness/location approval and final delivery still wait for the owner,
+  because they cost money or cannot be undone.
 - If the owner says the script already exists, treat it as locked input and start from the
   next open phase. Do not rewrite the script unless asked.
 
@@ -142,21 +145,21 @@ the draft and profile hashes, cover all seven criteria, quote real draft excerpt
 the pinned corpus, and pass the locked minimum score. Visual colors and fonts are not required unless
 the user separately activates a visual identity.
 
-## Hard rules
+## Production rules
 
 ### Universal — every production, any brand or none
 - **Honest routing:** validate `content_spec`, then use the deterministic router. If format and
-  modality are incompatible or no audited route exists, fail loudly instead of pretending the
-  nearest video pipeline fits.
-- **Honest agent claims:** never convert a list of consulted role playbooks into a claim that several
-  agents ran. Report activated card IDs, executor types, run IDs, and the ledger head hash.
+  modality are incompatible or no audited route exists, stop and report it plainly rather than
+  forcing the nearest video pipeline to fit, so the owner knows the route is missing.
+- **Honest agent claims:** a list of consulted role playbooks is not evidence that several agents
+  ran, so do not report it as one. Report activated card IDs, executor types, run IDs, and the ledger head hash.
 - **Blind candidate proof:** every `zavod-content` script stage carries a `candidate_bakeoff` with
   three to five complete schema-valid drafts. Labels and system preference stay hidden; the set must
   differ across at least two creative axes, use unique verified hashes and materially different text,
   explain every rejection exactly once, and make the final script canonically identical to the
   selected candidate.
-- **Text correctness (glyph gate):** no Latin/Cyrillic homoglyph spliced into a word in ANY
-  language; when Armenian is used it must be proper Eastern Armenian Unicode. On-image body text
+- **Text correctness (glyph gate):** no Latin/Cyrillic homoglyph spliced into a word in any
+  language, because it breaks search, fonts and reading; when Armenian is used it must be proper Eastern Armenian Unicode. On-image body text
   goes through overlay, not AI-baked; AI-baked text only for short display words that pass the gate.
 - **Written-content post-production:** `zavod-content` runs `idea → script → quality → publish`.
   A script may carry one deliverable or an exact package matching all locked deliverable IDs.
@@ -175,19 +178,20 @@ the user separately activates a visual identity.
 - No actor faces, likenesses, copyrighted stills, music, locations, or rights-sensitive material without explicit approval.
 - Respect the platform hashtag cap (e.g. max 5 total) when publishing.
 - Label realistic AI video per platform rules.
-- For promo/generative visual work, never produce polished art or video before the owner locks:
+- For promo/generative visual work, wait to produce polished art or video until the owner locks the
+  items below, because polished renders are paid and slow to redo:
   source frame, visual style, typography, character/people policy, technical storyboard, and prompt.
 - Text-only `zavod-content` uses the `none` engine and no compose runtime. Media generation uses two
-  mutually-exclusive engine lanes, asked up front and locked in `engine_lock` (never mixed):
-  **Higgsfield** = AI footage (real source media attached) + **ffmpeg** overlay/assembly, **zero Remotion**;
-  **Remotion** = programmatic build, no AI footage, compose via `remotion`/`hyperframes`.
+  mutually-exclusive engine lanes, asked up front and locked in `engine_lock` and not mixed within one run:
+  Higgsfield = AI footage (real source media attached) + ffmpeg overlay/assembly, with no Remotion;
+  Remotion = programmatic build, no AI footage, compose via `remotion`/`hyperframes`.
 
 ### Brand-pack rules — only when a pack is active (named explicitly)
 - **Maghakian authorial profile:** preserve behaviour over statement, subtext, register fidelity,
   natural dialogue, structure, format, and disciplined symbols/aphorisms. Legitimate Russian
   code-switching may remain; Latin-script Armenian and mixed-script Armenian words fail.
-- **Maghakian visual pack, only if separately active:** Armenian body text on overlay/Canva only; **no actor
-  faces** in AI frames (hands/back/silhouette/object); the storyboard **Maghakian-quiet** preset
+- **Maghakian visual pack, only if separately active:** Armenian body text on overlay/Canva only; no actor
+  faces in AI frames (hands/back/silhouette/object), to avoid likeness and rights problems; the storyboard **Maghakian-quiet** preset
   (restraint, behaviour over statement, board the hands). A different pack may allow faces or another
   language. `brand_voice_check` runs against the active pack's `style-profile.md`/`brand-voice.md`.
 

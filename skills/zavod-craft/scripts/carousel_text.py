@@ -37,8 +37,18 @@ LAT = re.compile(r'[A-Za-z]')
 CYR = re.compile(r'[Ѐ-ӿ]')
 WORD = re.compile(r'[A-Za-zЀ-ӿԱ-Ֆա-ևﬓ-ﬗ]+')
 
-FONT_DIRS = ["/Library/Fonts", "/System/Library/Fonts", "/System/Library/Fonts/Supplemental",
-             os.path.expanduser("~/Library/Fonts"), "/usr/share/fonts"]
+# Font search order: $CAROUSEL_FONT_DIR (one or more dirs, os.pathsep-separated), then a
+# `fonts/` folder next to this script, then the macOS defaults, then common Linux dirs.
+# Put NotoSerifArmenian/GHEA files in scripts/fonts/ (or point the env var at them) on any
+# machine that is not the Mac.
+_SCRIPT_FONTS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
+FONT_DIRS = ([d for d in os.environ.get("CAROUSEL_FONT_DIR", "").split(os.pathsep) if d]
+             + [_SCRIPT_FONTS,
+                "/Library/Fonts", "/System/Library/Fonts", "/System/Library/Fonts/Supplemental",
+                os.path.expanduser("~/Library/Fonts"),
+                "/usr/share/fonts", "/usr/share/fonts/truetype", "/usr/share/fonts/opentype",
+                "/usr/share/fonts/truetype/noto", "/usr/share/fonts/opentype/noto",
+                os.path.expanduser("~/.local/share/fonts"), os.path.expanduser("~/.fonts")])
 FONT_ALIASES = {
     "noto-serif": ["NotoSerifArmenian", "Noto Serif Armenian"],
     "noto-sans":  ["NotoSansArmenian", "Noto Sans Armenian"],
@@ -113,7 +123,10 @@ def render_block_layer(b, font, lines, lh, measure):
     return layer, layer.width, layer.height
 
 def main():
-    ap = argparse.ArgumentParser()
+    ap = argparse.ArgumentParser(
+        description="Lay out Armenian text onto a background slide (glyph gate enforced).",
+        epilog="Fonts are looked up in $CAROUSEL_FONT_DIR, then scripts/fonts/, then the "
+               "macOS font folders, then common Linux font folders.")
     ap.add_argument("--bg", required=True); ap.add_argument("--spec", required=True)
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
@@ -131,7 +144,8 @@ def main():
         glyph_gate(b["text"])
         fp = find_font(b.get("font", "noto-serif"))
         if not fp:
-            sys.exit(f"Font not found for '{b.get('font')}'. Install Noto Serif Armenian or GHEA.")
+            sys.exit(f"Font not found for '{b.get('font')}'. Install Noto Serif Armenian or GHEA, "
+                     f"or put the font file in {_SCRIPT_FONTS} or a folder named in $CAROUSEL_FONT_DIR.")
         coverage_gate(fp, b["text"], b.get("font", "noto-serif"))
         font = ImageFont.truetype(fp, b.get("size", 80))
         maxw = int((sx1 - sx0) * b.get("max_width", 1.0))
