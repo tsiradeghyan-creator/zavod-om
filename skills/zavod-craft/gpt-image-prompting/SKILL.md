@@ -31,8 +31,9 @@ Before writing a prompt, run `film-crew` (single-shot mode for one shot, full mo
 - Do not imitate private likenesses, voices, IDs, protected characters, logos,
   or brand assets without clear authorization.
 - Do not overwrite source images or generated deliverables unless the user asks.
-- For exact text, logos, UI, charts, and Armenian typography, prefer editable
-  overlay or programmatic composition when image-model text may be unreliable.
+- For titles, including Armenian ones, try rendering the text in the image first (spelled exactly, in
+  quotes) and keep a clean area around it; if the letters come out broken, add the text as an overlay in
+  post (Tigran's rule, 2026-11-26). Logos, UI, charts and long Armenian copy still work best as editable overlay.
 
 ## How to use this skill
 
