@@ -62,7 +62,7 @@ Then refine the survivors with four craft tests:
   5th axis → score /60. **≥48/60 = produce now; 36–47 = park; <36 = kill.**
   (Thresholds are 80% = produce, 60% = park on both routes.)
 
-Score each axis 1–10. Big bets (a new series, a pitch to a channel) → run `llm-council`.
+Score each axis 1–10. Big bets (a new series, a pitch to a channel) → run a Roast Room council (`maghakian-roast-room/` in my-first-project) or `bab-production`.
 
 ## Writers-room protocols
 

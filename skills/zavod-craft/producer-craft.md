@@ -130,4 +130,4 @@ Her scripts already flag «ՓԼԵՅՍՄԵՆԹ» scenes inline — productize it:
 - [ ] Budget has 10% contingency + post protected.
 - [ ] Breakdown + location-grouped schedule exists; TURN scenes protected.
 - [ ] Deliverables/specs per platform confirmed (`post-production.md` table).
-- [ ] For big bets: `llm-council` verdict attached to the greenlight memo.
+- [ ] For big bets: Roast Room (or `bab-production`) verdict attached to the greenlight memo.
