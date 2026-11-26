@@ -10,8 +10,9 @@ Use this for **scale stats** in carousels/captions ("X seasons", "X episodes",
 
 - **48 projects** (TV serials, films, theatre plays, children's content, concepts).
 - **2,300+ episodes / parts** total, **since 2016** (studio figures, 2026-11). The per-title
-  list below predates them: it has 47 rows and sums lower; add the missing title when known.
-- **~80,000 pages** written.
+  list below has all 48 titles, matching maghakianscripts.com/projects (updated 2026-10-03,
+  checked 2026-11-26).
+- **80,000+ pages** written.
 - **Span:** screenwriting since 2016; the list below starts at the first listed title (2017)
   and runs to 2026, continuous output.
 - **Formats:** daily/weekly serials · films · ներկայացումներ (theatre) · մանկական
@@ -67,7 +68,8 @@ Use this for **scale stats** in carousels/captions ("X seasons", "X episodes",
 | 44 | Բլոկադա | 2026 | ներկայացում | 40–60 |
 | 45 | Օպերացիա Սոս | 2026 | 16 | 560 |
 | 46 | Se.La.Vi | 2026 | 10 մաս | 350 |
-| 47 | Մի գեղեցիկ օր | 2026 | 150 | (հաշվարկից դուրս) |
+| 47 | Մի գեղեցիկ օր | 2026 | 50+ (ընթացքի մեջ; earlier note: 150 planned) | 1750+ |
+| 48 | Սոս 911 | 2026 | 16 | 560 |
 
 ## Notes
 - Items 42, 44 = theatre plays (ներկայացում); 33, 43 = films; 29 = children's content.
