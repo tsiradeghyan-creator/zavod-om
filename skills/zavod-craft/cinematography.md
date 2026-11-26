@@ -7,7 +7,7 @@ World-class DoP craft + the translation layer that turns it into AI-video prompt
 
 ## Lighting (the mood engine)
 
-- **Motivated low-key = the house drama look** (the «Խաղալիք» palette: black #0D0D0D,
+- **Motivated low-key = the house drama look** (on «Խաղալիք»: deep blacks,
   gold veining, one warm practical). Every light needs an excuse in the world: window,
   lamp, fridge, phone screen.
 - **Contrast ratio by register:** comedy (A3) 2:1 flat & bright · daily drama 4:1 ·
@@ -77,7 +77,7 @@ in drama registers.
 
 | ALLOWED (with discipline) | FORBIDDEN (trend-bait vs restraint brand) |
 |---|---|
-| Halation + Black Pro-Mist 1/4–1/2 look — "filmic halation, gentle bloom on practicals": gold practicals bloom on #0D0D0D | FPV drone language |
+| Halation + Black Pro-Mist 1/4–1/2 look — "filmic halation, gentle bloom on practicals": gold practicals bloom on near-black | FPV drone language |
 | Subtle anamorphic texture, memory/dream register ONLY — "subtle anamorphic character, oval bokeh"; NOT streak flares | Snorricam |
 | Parallax foreground occlusion — "shot through a doorframe/foreground object": extends frame-within-frame, hides faces | Whip-pan transitions |
 | Speed ramp ONLY as 60→24fps settle INTO stillness on the turn | Infinite/AI-zoom transitions |
@@ -99,6 +99,9 @@ the tungsten bulb, the wardrobe). Never "teal-and-orange grade / heavily graded 
 colour-graded look": a baked-in look leaves the colourist no headroom, and cross-engine matching
 dies with it. The engine lights the scene; `color-craft.md` grades it.
 
+Before writing a prompt, run `film-crew` (single-shot mode for one shot, full mode for several) per CLAUDE.md, and take its plan as input. If a film-crew plan already exists, use it. The film-crew plan feeds the template below; the model skill
+(seedance-25-director, cinema-worldbuilder-pro-2.0, higgsfield…) writes the final text.
+
 Build every video prompt as: **[shot size + lens feel] + [subject & action] + [lighting
 recipe] + [movement] + [palette/grade] + [texture] + [audio bed]**. House template:
 
@@ -106,8 +109,12 @@ recipe] + [movement] + [palette/grade] + [texture] + [audio bed]**. House templa
 > of field f/1.8 | 35mm documentary feel}, {subject + ONE action}, motivated low-key
 > lighting from {a warm practical lamp | a cold window}, deep shadows, negative fill,
 > {coral|steel-blue} rim light, {static tripod | slow 8% push-in | subtle handheld},
-> palette: black #0D0D0D with gold accents, filmic grain, 4K, {audio bed: ambient
+> palette: {active brand profile palette, e.g. Maghakian: black #000000, graphite #111111,
+> one red #D90429 accent}, filmic grain, 4K, {audio bed: ambient
 > written out — "distant traffic, clock ticking"}, {start frame: <image>}"
+
+The palette slot comes from the active brand profile; with no brand profile active, fill it
+from the show's own look bible (`storyboard.md`).
 
 | Engine | State (verified 2026-07-31) | House rule |
 |---|---|---|

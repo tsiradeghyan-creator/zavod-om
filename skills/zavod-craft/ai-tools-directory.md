@@ -21,11 +21,11 @@ verify current pricing/limits before spend. Consulted by **asset-director** (eng
 - **Freepik (FLUX)** — versatile, custom character/style + LoRA, editing, some video.
 - **Ideogram** — images **with legible text** (logos, posters); inpaint/outpaint.
 - **Leonardo AI** — design/concepts, trainable models (DreamBooth/LoRA).
-- **DALL·E 3** — strong prompt-following in ChatGPT/Bing.
+- ~~**DALL·E 3**~~ — retired; OpenAI's current image line is gpt-image (above). Do not route here (verify live).
 - **Krea** — free generator + prompt inspiration, cloud style training.
 
 ## Video (text/image → video)
-- **Sora (OpenAI)** — remix/extend/loop/blend/storyboard.
+- ~~**Sora (OpenAI)**~~ — retired: OpenAI closed the Sora app and its API (API ended 2026-09-24). Do not route here.
 - **Google Veo** — native audio (dialogue/SFX), realistic physics, lip-sync.
 - **Kling** — face-swap, motion brush, start/end frames, lip-sync.
 - **Runway** — text/image→video + editor (bg/light/object replace).

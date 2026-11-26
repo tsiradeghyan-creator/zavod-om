@@ -1,4 +1,4 @@
-# Brand Voice — Maghakian Script Writing Agency (DEFINITIVE)
+# Brand Voice — Maghakian Scripts (DEFINITIVE)
 
 > The agency's external identity & tone — WHO Maghakian sounds like and WHY. Grounded in Ani Maghakyan's
 > real authorial signature (derived from her actual scripts + the novel «Տակնուվրա» — see
@@ -72,8 +72,8 @@ Two dials: **warm ↔ restrained** and **poetic ↔ plain.** Same DNA, different
   ✓ «Մի մարդ օվկիանոս անցավ սիրո համար, որը գոյություն չուներ»: (show the irony, not the adjective).
 - **Stated emotion → behaviour:** ✗ "We are passionate about storytelling" → ✓ name the
   thing you'd cross an ocean for; let the reader feel the passion.
-- **Career flattened → aggregate:** ✗ "the writer of «Խաղալիք»" → ✓ "47 projects, ~2,270
-  episodes" (never reduce the career to one show — `filmography.md`).
+- **Career flattened → aggregate:** ✗ "the writer of «Խաղալիք»" → ✓ "48 projects, 2,300+
+  episodes, since 2016" (never reduce the career to one show — `filmography.md`).
 - **Resolved → left on the turn:** ✗ "…and that's why memory matters." → ✓ end on the
   image, trust the reader.
 

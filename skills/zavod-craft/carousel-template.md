@@ -56,8 +56,8 @@ text layer under the carousel — use it, don't echo:
   պաստառի սեփական դեմքերը մնում են անփոփոխ (`ai-pipeline.md` Identity-lock; AI-ն նոր դեմք
   երբեք չի ստեղծում)։
 - **Palette:** pick a per-topic palette (poster colors of the show). Keep the agency wordmark
-  bottom-corner + `@maghakianscripts`. Brand purple `#6450D2` is the house accent when no
-  topic palette dominates.
+  bottom-corner + `@maghakianscripts`. The active brand accent (Maghakian: red `#D90429`) is the house
+  accent when no topic palette dominates.
 - **Type:** Noto Serif/Sans Armenian for body; bold display for headline. One yellow/accent
   highlight behind the key phrase, rotated ~-1.5°.
 

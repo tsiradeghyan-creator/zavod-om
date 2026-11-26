@@ -42,7 +42,7 @@ further:
 - Time-cards copied from her scripts: «ՄԵԿ ՇԱԲԱԹ ԱՆՑ», «ՀԱՋՈՐԴ ԱՌԱՎՈՏ»,
   «ԵՐԿՈՒ ՏԱՐԻ ԱՌԱՋ» (`style-profile.md` / `corpus-notes.md`).
 - Chapter-title cards for the A6 register («Ճերմակ շապիկ» chapter heads).
-- **Brand purple #6450D2 only as an accent** in UI/titles — never a wash over the image.
+- **Brand accent only as an accent** in UI/titles (Maghakian: red #D90429), never a wash over the image.
 
 ## Glyph gate (this station OWNS it)
 
@@ -99,6 +99,6 @@ Captions use Noto/GHEA; CAMPAIGN key-art and logos may go heavier:
       human-verified (Armenian word boundaries drift in auto-transcribe).
 - [ ] Embedded emphasis ≤1 per piece, at the turn only; occlusion check passed (no text
       over the subtext object or hands).
-- [ ] Episode/time/chapter cards in the house Armenian pattern; purple accent only.
+- [ ] Episode/time/chapter cards in the house Armenian pattern; brand accent only.
 - [ ] Glyph gate passed on every burned-in line before export.
 - [ ] Cover frame: mid-action CU, thumbnail-legible; carousel slide-2 alt-hook ready.

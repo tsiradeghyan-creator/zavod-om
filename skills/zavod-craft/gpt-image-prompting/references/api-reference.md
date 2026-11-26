@@ -87,7 +87,7 @@ for i, item in enumerate(result.data, start=1):
 | `quality` | `low`, `medium`, `high` | `low` = fast/cheap; `medium`/`high` for text, portraits, dense detail, high-res. |
 | `size` | see constraints | Portrait/landscape/square + arbitrary sizes on `gpt-image-2`. |
 | `input_fidelity` | `low`, `high` | **Edits only, older models only.** Helps preserve likeness during large edits. Not used on `gpt-image-2` (already high fidelity). |
-| `background` | `opaque`, `transparent`, `auto` | Force opaque for product mockups; do a downstream cutout for a final transparent asset. |
+| `background` | `opaque`, `transparent`, `auto` | `transparent` works on `gpt-image-1.5` only: `gpt-image-2` returns HTTP 400 for it (since 2026-09-30). On `gpt-image-2`, generate on a flat plain background and cut out downstream. Force opaque for product mockups. |
 | `n` | integer | Number of variations per call. |
 
 ## Model comparison (as of April 2026)

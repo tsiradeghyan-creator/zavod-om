@@ -22,8 +22,9 @@ The heart of the job is the **subtext-object registry**:
 - Per production, spec each live symbol: **what it looks like, where it lives in frame,
   who is allowed to touch it.** Plant the cliffhanger object early, ignored, so the
   payoff lands (`director-craft.md` blocking).
-- Palette discipline: the set dressing serves the show palette (black #0D0D0D, gold,
-  per-show accent) — never fights the grade.
+- Palette discipline: the set dressing serves the show palette (from the active brand
+  profile when one is active, e.g. Maghakian black #000000 / graphite #111111 / red #D90429,
+  plus the per-show accent) — never fights the grade.
 
 ## Costume — Կոստյումներ
 

@@ -1,6 +1,6 @@
 ---
 name: content-zavod
-description: ZavodOM craft brain — universal production factory for supported written, narrative, image, audio, video, and mixed formats, always run through the ZavodOM routing, manifests, gates, and owner checkpoints. Use for zavod, post, article, screenplay, carousel, reel, promo, and film-mode production. Authorial voice is locked separately from optional visual identity. The bundled Maghakian Script DNA profile activates only on an explicit Maghakian or Ani identifier—never on a bare "for my brand".
+description: ZavodOM craft brain — universal production factory for supported written, narrative, image, audio, video, and mixed formats, run through the ZavodOM routing when the zavod-om repo is checked out (otherwise this skill's own INDEX.md as a single-context simulation), with manifests, gates, and owner checkpoints. Use for zavod, post, article, screenplay, carousel, reel, promo, and film-mode production. Authorial voice is locked separately from optional visual identity. The bundled Maghakian Script DNA profile activates only on an explicit Maghakian or Ani identifier—never on a bare "for my brand".
 metadata:
   version: 2.3.0
   owner: Universal Production Zavod (Maghakian brand pack bundled)
@@ -13,15 +13,22 @@ This skill is the craft brain inside **ZavodOM**. It is not a prose-only workflo
 **brand-neutral by default** and routes each supported format through an implemented production
 path. `creative_identity` keeps the author's handwriting separate from optional visual branding,
 so the Maghakian Script DNA profile can be strict while colors, fonts, and visual packs remain
-neutral. Every production must run through:
+neutral.
 
-- `~/zavod-om/ZAVODOM.md`
+**Where the router lives.** When the zavod-om repo is checked out, run each production through its
+router (paths relative to the zavod-om repo root):
+
+- `ZAVODOM.md`
 - `lib/content_router.py` + a schema-valid `content_spec`
 - the real manifest returned by the router. Five Zavod-specific manifests are available:
   `zavod-content`, `zavod-carousel`, `zavod-reel`, `zavod-reel-fast`, and `zavod-promo`;
   other supported formats may route to an existing OpenMontage manifest
 - `skills/zavod-craft/INDEX.md`
 - `skills/zavod-craft/production-protocol.md`
+
+When zavod-om is not available (for example inside my-first-project, where this skill is mirrored as
+`.claude/skills/content-zavod/`), use this skill's own `INDEX.md` and `production-protocol.md`, run
+as a `single_context_simulation`, and say so in the report.
 
 ## Required opening question
 
@@ -40,9 +47,10 @@ automatic draft run.
 
 ## Automatic agent activation law
 
-Before non-trivial work, build the typed request and run `lib/agent_router.py` against
-`agents/registry.yaml`; follow the cross-host contract in `skills/meta/agent-routing.md`. The
-activation plan must follow this order:
+When the zavod-om repo is available, build the typed request before non-trivial work and run
+`lib/agent_router.py` against `agents/registry.yaml`, and follow the cross-host contract in
+`skills/meta/agent-routing.md` (all zavod-om repo paths). Without zavod-om, skip the router and
+label the run `single_context_simulation` (see below). The activation plan follows this order:
 
 ```text
 route → dispatch waves → append-only receipts → hash-bound synthesis candidate
@@ -108,6 +116,9 @@ Load only the craft files for the current stage from `INDEX.md`.
   `business-affairs.md`; produces `content_quality_report` without forcing a render stage
 - Scene/look: `director-craft.md`, `cinematography.md`, `storyboard.md`, `prompt-axes.md`, `art-department.md`, `style-rider.md`
 - Assets/render: `ai-pipeline.md`, `prompt-axes.md`, `background-environment-artist.md`, `motion-design.md`, provider docs
+- Image or video prompts (scene/look and assets/render): before writing a prompt, run `film-crew` (single-shot mode for one shot, full mode for several) per CLAUDE.md, and take its plan as input. If a film-crew plan already exists, use it. The model skill
+  (seedance-25-director, banana-pro-director-2.0, gpt-image-prompting, cinema-worldbuilder-pro-2.0,
+  higgsfield) then writes the final prompt text.
 - Edit/finish: `post-production.md`, `sound-craft.md`, `compositor.md`, `mastering-delivery-qc.md`
 - Publish/growth: `playbook.md`, `growth-analytics.md`
 - Governance/QC: `production-protocol.md`, `pre-advance-council.md`, `auto-verification-loop.md`, `qc-continuity-gate.md`

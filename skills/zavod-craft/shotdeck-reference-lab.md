@@ -85,8 +85,9 @@ https://community.shotdeck.com/wp-json/wp/v2/article-topics?per_page=100&_fields
   source, movement, negative space, colour temperature.
 - **Art department:** mine objects, wallpaper, costume silhouette, set texture, practicals —
   the object must mean something in the script; decoration dies.
-- **Color:** build reference still sets by register, but grade for Maghakian skin/black/gold
-  discipline first; brand purple stays accent only.
+- **Color:** build reference still sets by register, but grade for skin/black discipline first
+  (Maghakian pack: black #000000 / graphite #111111); the brand accent (Maghakian red #D90429)
+  stays accent only.
 - **Post:** use edit/process interviews for rhythm — when to hold, when to cut on motion,
   when silence/room tone carries the turn.
 - **Producer:** Shot Talks for schedule reality — days, multi-camera, location constraints,

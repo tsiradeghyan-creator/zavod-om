@@ -1,4 +1,4 @@
-# Filmography — Ani Maghakyan / Maghakian Script Writing Agency
+# Filmography — Ani Maghakyan / Maghakian Scripts
 
 The complete portfolio of Ani Maghakyan's authored projects (scripts she wrote).
 Use this for **scale stats** in carousels/captions ("X seasons", "X episodes",
@@ -8,10 +8,12 @@ Use this for **scale stats** in carousels/captions ("X seasons", "X episodes",
 
 ## Aggregate (the portfolio numbers)
 
-- **47 projects** (TV serials, films, theatre plays, children's content, concepts).
-- **~2,264–2,273 episodes / parts** total (47th — «Մի գեղեցիկ օր» — not yet in the sum).
+- **48 projects** (TV serials, films, theatre plays, children's content, concepts).
+- **2,300+ episodes / parts** total, **since 2016** (studio figures, 2026-11). The per-title
+  list below predates them: it has 47 rows and sums lower; add the missing title when known.
 - **~80,000 pages** written.
-- **Span:** 2017 → 2026 (9 years, continuous output).
+- **Span:** screenwriting since 2016; the list below starts at the first listed title (2017)
+  and runs to 2026, continuous output.
 - **Formats:** daily/weekly serials · films · ներկայացումներ (theatre) · մանկական
   բովանդակություն · concept documents.
 

@@ -12,7 +12,7 @@ Layout guarantees (all enforced, render fails loudly instead of shipping a broke
 - Blocks sharing a vertical zone (top/center/bottom) stack with a gap — never overlap.
 - Any block that exits the safe area, or any single word wider than max_width, is an error.
 
-Usage (from the repo root ~/zavod-om/):
+Usage (from the zavod-om repo root):
     python3 skills/zavod-craft/scripts/carousel_text.py --bg slide-bg.png --spec slide.json --out slide-01.png
 
 slide.json (one slide):
@@ -23,7 +23,7 @@ slide.json (one slide):
   "blocks": [
     {"text": "Սերը հասցե ուներ", "font": "noto-serif", "size": 92,
      "color": "#FAFAFA", "anchor": "top-center", "max_width": 0.86,
-     "highlight": "#6450D2", "rotate": -1.5}
+     "highlight": "#D90429", "rotate": -1.5}
   ]
 }
 """

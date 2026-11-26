@@ -37,8 +37,8 @@ markets, AI prototyping at near-zero cost).
 
 ## Format licensing — the catalog goldmine (biggest untapped revenue)
 
-47 projects / ~2,270 episodes is a remake-rights catalog, not just a résumé.
-- **FIRST: catalog-rights audit.** Which of the 47 does Ani actually control vs.
+48 projects / 2,300+ episodes is a remake-rights catalog, not just a résumé.
+- **FIRST: catalog-rights audit.** Which of the 48 does Ani actually control vs.
   work-for-hire owned by the channels? This single answer determines the whole strategy.
   File it in `business-affairs.md`.
 - **Format bible per controllable title:** the engine, episode grammar, casting

@@ -28,7 +28,9 @@ the identity/face policy. Don't force a narrative-drama template onto a product 
 
 ## The look bible (lock ONCE per production — keeps the board consistent)
 Before any frame, lock the shared block every panel inherits:
-- **Palette + grade:** black #0D0D0D, gold accents, show accent; the gradient logic
+- **Palette + grade:** the active brand profile's palette (Maghakian: black #000000, graphite
+  #111111, one red #D90429 accent) or, with no profile active, the show's own palette; plus the
+  show accent; the gradient logic
   (e.g. warm tungsten foreground → cold window background = past vs present).
 - **Contrast ratio by register:** comedy 2:1 · daily drama 4:1 · thriller/«Ճերմակ շապիկ» 8:1+.
 - **Lens set:** 35 documentary spine · 50 dialogue · 85–100 the turn (`cinematography.md`).

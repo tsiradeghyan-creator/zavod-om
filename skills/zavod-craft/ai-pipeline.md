@@ -4,6 +4,8 @@ The AI Pipeline TD station: which engine per need, how Armenian text is handled,
 consistency / seeds / cost / QC stay under control. Setup/keys → `fal-setup.md`. The DoP
 writes the prompts (`cinematography.md`); this file owns the engine layer.
 
+Before writing a prompt, run `film-crew` (single-shot mode for one shot, full mode for several) per CLAUDE.md, and take its plan as input. If a film-crew plan already exists, use it.
+
 ## 2026 engine lineup (per need)
 
 | Need | Primary | Notes / backup |
@@ -15,7 +17,7 @@ writes the prompts (`cinematography.md`); this file owns the engine layer.
 | Video — dialogue/premium | **Veo 3.1** | the only engine with native 48kHz synced *dialogue*; 4K, Ingredients ref images |
 | Video — volume/cheap | **Kling 3.0 Turbo** (Jun 2026) | faster/cheaper variant of 3.0; native 4K/60fps, 15s, first/last-frame chaining, multi-cut. Full 3.0 for heroes + phoneme-level lip-sync |
 | Video — long beat / max refs | **Seedance 2.5** (official launch 2026-07-31) | 30s native single-pass · 4K route where available · audio alongside · **30 image + 10 video + 10 audio refs** · clay/white-model previz · timestamp-level controllable editing (fix one time range, keep motion/camera/light). 2.0 remains the fallback tier |
-| ~~Video — Sora 2~~ | **deprecated 2026-04-26, API off 2026-09-24** | do not route here |
+| ~~Video — Sora 2~~ | **retired** — OpenAI closed the Sora app and its API (API ended 2026-09-24) | do not route here |
 | Lipsync | **Sync-3 / Sync Lipsync 2 Pro** | Kling LipSync backup |
 | Music | **MiniMax Music 2.0** | ACE-Step backup (license per `business-affairs.md`) |
 | Armenian TTS / VO | **ElevenLabs v3 — Armenian (hye)** | direct API, NOT fal — unlocks Armenian VO |

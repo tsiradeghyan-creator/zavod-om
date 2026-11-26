@@ -6,7 +6,7 @@ description: >-
   image prompt repair, UI/infographic/logo/ad mockups, compositing, product
   mockups, or character-consistency image work.
 metadata:
-  version: 1.1.0
+  version: 1.2.0
 ---
 
 # GPT Image Prompting
@@ -16,8 +16,11 @@ goal is production-quality, controllable output with fewer retries — by being
 explicit about structure, constraints, and what must change vs. stay the same.
 
 Scope gate: a bare "make an image" request is not enough. Route engine-neutral
-image work to `content-zavod`, Nano Banana/fal work to `fal-ai-media`, and
-Higgsfield platform work to `higgsfield`.
+still-image work to `banana-pro-director-2.0` (the studio default for stills),
+Nano Banana/fal work to `fal-ai-media`, and Higgsfield platform work to
+`higgsfield`.
+
+Before writing a prompt, run `film-crew` (single-shot mode for one shot, full mode for several) per CLAUDE.md, and take its plan as input. If a film-crew plan already exists, use it.
 
 ## Safety Boundaries
 
@@ -57,6 +60,10 @@ Higgsfield platform work to `higgsfield`.
 - **`quality="medium"` / `"high"`** for small or dense text, detailed
   infographics, close-up portraits, identity-sensitive edits, slides/charts,
   and high-resolution outputs.
+- **Transparent backgrounds:** `gpt-image-2` returns HTTP 400 for
+  `background="transparent"` (since 2026-09-30). For a transparent asset, use
+  `gpt-image-1.5`, or generate on `gpt-image-2` over a flat plain background
+  and cut it out afterwards.
 - **Legacy (`gpt-image-1.5`, `gpt-image-1`)**: only for backward compatibility
   while migrating validated workflows. See the full table in
   `references/api-reference.md`.

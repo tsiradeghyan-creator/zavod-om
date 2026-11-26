@@ -1,5 +1,9 @@
 # Commercial Prompt Library — Seedance 2.0 ad/promo formats
 
+> **Version note:** these formulas were written for Seedance 2.0. For Seedance 2.5, pass them
+> through the `seedance-25-director` skill (after `film-crew`), which holds the 2.5 prompt syntax
+> and limits.
+
 6 craft cards for short-form video prompts on Seedance 2.0 (Higgsfield).
 Consulted by **scene-director** (shot language for promo/cartoon briefs) and **asset-director**
 (prompt construction). Not standalone skills — reference material inside the zavod brain.
@@ -16,7 +20,7 @@ Consulted by **scene-director** (shot language for promo/cartoon briefs) and **a
 Source: [rediumvex/ai-video-generator-claude](https://github.com/rediumvex/ai-video-generator-claude)
 (258★, production pipeline of @theromanknox, 280K followers). Frontmatter stripped at ingest.
 Ingested 2026-07-09. For full Higgsfield platform mechanics (models, camera presets,
-Soul ID, failure modes) use the standalone `higgsfield` skill (`~/.claude/skills/higgsfield/`).
+Soul ID, failure modes) use the standalone `higgsfield` skill (`.claude/skills/higgsfield/` in my-first-project).
 
 `ai-cartoon-reel.md` source: owner's purchased *Soyuz AI Lab* commissioned-cartoon course
 (full transcripts in the owner Obsidian vault `ԴԱՍ Ai/`). Techniques distilled/adapted into zavod

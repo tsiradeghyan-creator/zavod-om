@@ -71,8 +71,8 @@ any cut — Reel, micro-drama episode, sizzle, or carousel-video hybrid.
 ## Color (one-line summary — full recipes in `color-craft.md`)
 
 Grade after picture lock; skin first, mood second, brand third. House looks: drama
-8:1 crushed warm golds on #0D0D0D · comedy (A3) 2:1 bright flat · memory/dream softened &
-cooled. Purple #6450D2 is accent only, never a wash. AI shots: normalize per engine →
+8:1 crushed warm golds on near-black · comedy (A3) 2:1 bright flat · memory/dream softened &
+cooled. The brand accent (Maghakian: red #D90429) is accent only, never a wash. AI shots: normalize per engine →
 show-LUT → shared grain on top (grain is the unifier). Everything else → `color-craft.md`.
 
 ## Sound (AI footage arrives SILENT — build it)
@@ -114,7 +114,7 @@ Codec baseline (all vertical): **H.264 High, 1080×1920, MP4/MOV, AAC 320kbps 48
 | ReelShort-style episode | 1080×1920 | 60–120s | ~10–12 Mbps | cliffhanger cut, ep number card |
 
 - **HDR:** master **SDR Rec.709**. IG passes Dolby Vision through, but mixed-feed HDR
-  grays out the #0D0D0D blacks on SDR screens — stay SDR until the pipeline is
+  grays out the deep blacks on SDR screens — stay SDR until the pipeline is
   HDR-monitored (`color-craft.md`).
 
 ## QC gate (before anything leaves the building)

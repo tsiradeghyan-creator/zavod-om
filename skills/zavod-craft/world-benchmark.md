@@ -240,7 +240,7 @@ Timeline ver · Color space (SDR Rec.709 unless HDR chain proven) · Hero stills
 Show-LUT · Skin protection · AI shot normalization · Grain · Dialogue chain · LUFS/TP ·
 Cue sheet IDs · Stems (DX/MX/FX/full) · Phone result · Earbuds result · Master archived
 ```
-Hard fails: purple spill on skin · auto-grade shipped unexamined · music without cue/license
+Hard fails: brand-accent spill on skin · auto-grade shipped unexamined · music without cue/license
 · dialogue unclear on phone · no stems for a paid/long-form deliverable.
 
 ### 9. ElevenLabs++ Localization / Dub QC
@@ -270,7 +270,7 @@ Armenian is rejected; one variable per test.
 
 ### 11. Catalog Intelligence Ledger (Rightsline / Cinelytic++)
 
-Use in `filmography.md`, `show-khaghaliq.md`, producer packaging — turns the 47-project
+Use in `filmography.md`, `show-khaghaliq.md`, producer packaging — turns the 48-project
 portfolio into an exportable business asset.
 
 ```md

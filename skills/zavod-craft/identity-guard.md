@@ -12,8 +12,9 @@ A design ships ONLY if it passes all four — otherwise it's rejected, not "twea
   centering-for-safety. If it whispers, it fails.
 - **Restraint-not-cheap:** premium = disciplined, not loud-busy. One idea, perfect execution
   (`brand-voice.md` confident-not-loud). No gradient-soup, no stock-AI sheen, no bevels/drop-glow.
-- **Brand-true:** palette black #0D0D0D / purple #6450D2 accent / gold; Armenian in proper
-  Unicode; type from the approved stack (`motion-design.md`). Purple is accent, never a wash.
+- **Brand-true:** palette from the active brand profile (Maghakian: black #000000 / white #FFFFFF / graphite #111111, one red accent #D90429);
+  Armenian in proper Unicode; type from the approved stack (`motion-design.md`). The accent
+  stays an accent, never a wash. With no brand profile active, the palette stays neutral.
 - **Reproducible:** works at 16px favicon AND on a building. If it dies when scaled, it fails.
 
 ## Engines & output

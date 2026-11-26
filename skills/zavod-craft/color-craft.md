@@ -28,7 +28,7 @@ have no register doctrine. Take the path, keep our doctrine on top:
    so a look can be dialled, not re-cut.
 4. **Emit the `.cube`** and apply it as the LAST node; use **tetrahedral interpolation** on
    apply (Resolve LUT settings / `ffmpeg lut3d=interp=tetrahedral`) — trilinear banding shows
-   up exactly in our crushed #0D0D0D shadows.
+   up exactly in our crushed near-black shadows.
 5. **Version the LUT with the series** (`showlut_v1.cube`, never "final") and log which stills
    built it — a LUT whose anchors aren't recorded cannot be rebuilt next episode.
 
@@ -50,7 +50,7 @@ output mode, take it — a flatter render is worth more than a pretty one straig
 ## Skin-tone protection (hard gate)
 
 - Pin skin hue with a **vector / HSL qualifier BEFORE any look adjustment.**
-- Brand purple **#6450D2 spill onto faces is a hard fail** — the accent is for UI/titles
+- Brand-accent **spill onto faces is a hard fail** (Maghakian: red #D90429) — the accent is for UI/titles
   (`motion-design.md`), never a wash on skin.
 - Protect skin first even when crushing to the 8:1 drama look below.
 
@@ -58,22 +58,22 @@ output mode, take it — a flatter render is worth more than a pretty one straig
 
 | Register | Look | Contrast |
 |---|---|---|
-| Drama (A1/A2/A6) | lifted blacks #0D0D0D, warm golds, crushed | 8:1 |
+| Drama (A1/A2/A6) | lifted blacks (near-black, e.g. graphite #111111), warm golds, crushed | 8:1 |
 | Comedy (A3) | bright, saturated, flat | 2:1 |
 | Memory / dream (A5 selavi, flashbacks) | softened highlights, cooled shadows | gentle |
 
-Brand purple #6450D2 only as accent (titles, UI), never a wash. (Mirrors the looks noted
+The brand accent (Maghakian: red #D90429) only as accent (titles, UI), never a wash. (Mirrors the looks noted
 in `post-production.md` — this file owns the recipes; post keeps a one-line summary.)
 
 ## Monochrome protocol (premium B&W — thriller / pitch design)
 
 For «Ճերմակ շապիկ»-type thrillers (the title literally is "white shirt") and pitch/key-art:
-- **Aggressive, high-acutance monochrome** — deep true blacks (#0D0D0D maps to pure black),
+- **Aggressive, high-acutance monochrome** — deep true blacks (near-black maps to pure black #000000),
   controlled highlight roll-off, and **preserved micro-contrast** so the image stays
   hyperreal, never muddy or "flat phone B&W".
 - Use a **channel-mixer / luminance-curve B&W** (not desaturation) — pick which colours become
   which greys; reds/skin to mid-grey, the practical to the brightest point.
-- **Accents drop:** purple #6450D2 has no place in mono; the gold becomes a tonal value, not a
+- **Accents drop:** the brand colour accent (Maghakian red #D90429) has no place in mono; the gold becomes a tonal value, not a
   hue. Texture and contrast carry the brand, not colour.
 - Keep skin protection + grain discipline identical to the colour looks above.
 
@@ -111,7 +111,7 @@ owns both lanes under one LUT. We do, because the same factory makes both.
 
 ## Halation & day-for-night recipes
 
-- **Halation:** glow on **highlights only** (gold practicals bloom on #0D0D0D); subtle,
+- **Halation:** glow on **highlights only** (gold practicals bloom on near-black); subtle,
   filmic — pairs with the DoP Pro-Mist look (`cinematography.md`). Never a full-frame bloom.
 - **Day-for-night:** underexpose 2 stops at the lens → in grade: blue-shift, kill the sky
   luminance, protect a hard "moon" rim, crush shadows but keep one readable highlight.
@@ -119,7 +119,7 @@ owns both lanes under one LUT. We do, because the same factory makes both.
 ## HDR policy (2026)
 
 - **Master SDR Rec.709.** IG now passes Dolby Vision/HDR through, but mixed-feed HDR
-  **grays out the #0D0D0D blacks on SDR screens** — stay SDR until the whole pipeline is
+  **grays out the deep blacks on SDR screens** — stay SDR until the whole pipeline is
   HDR-monitored. Revisit when the monitor chain is HDR end-to-end.
 
 ## Execution tools (our doctrine → their engine)
@@ -150,7 +150,7 @@ stays human — never ship an auto-grade unexamined.
 - [ ] Generation prompts carry palette as art direction only — no grade/filter words in the prompt.
 - [ ] Still lane graded: carousel BG / poster / key art ran the same show-LUT BEFORE text overlay;
       glyph gate re-run if a text region was touched.
-- [ ] Skin hue qualified and protected before any look; no purple spill on faces.
+- [ ] Skin hue qualified and protected before any look; no brand-accent spill on faces.
 - [ ] AI shots normalized per engine → show-LUT → shared grain on top.
 - [ ] Register look + contrast ratio match `cinematography.md` grade intention.
 - [ ] Halation on highlights only; day-for-night reads as night, not murk.

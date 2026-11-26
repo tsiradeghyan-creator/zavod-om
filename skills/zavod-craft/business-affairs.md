@@ -8,7 +8,7 @@ legal advice — it's the producer's checklist of what a lawyer must paper.
 
 - **Clean chain = signed transfer or option for every script** before any deck ships
   (her templates: «Հեղինակային իրավունքների փոխանցման պայմանագիր»).
-- **Catalog-rights audit (do this first):** of the 47 projects, which does Ani control
+- **Catalog-rights audit (do this first):** of the 48 projects, which does Ani control
   vs. work-for-hire owned by the channel? This answer gates the entire format-licensing
   strategy (`producer-craft.md`). Keep a one-row-per-title rights ledger.
 - **Option structure:** fee 3–5% of purchase price · 12–18 month term + paid extension ·
