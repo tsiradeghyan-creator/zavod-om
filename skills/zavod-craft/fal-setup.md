@@ -4,24 +4,22 @@ fal.ai is the single engine that exposes **Seedance · Kling · Veo · Nano Bana
 (matches the Jack-vs-AI workflow). It needs one API key tied to the user's fal.ai account.
 
 ## Official setup (recommended) — hosted MCP
-fal-ի պաշտոնական MCP-ն hosted սերվեր է՝ `https://mcp.fal.ai/mcp`; բանալին ուղարկվում է
-per-request `Authorization` header-ով և ոչ մի տեղ չի պահվում սերվերի կողմից։
-([fal docs → Setting up MCP](https://fal.ai/docs/documentation/setting-up/mcp))
+fal-ի պաշտոնական MCP-ն hosted սերվեր է՝ `https://mcp.fal.ai/mcp-relay`, մուտքը OAuth-ով
+(fal.ai account-ով), API key պետք չէ (fal docs-ով ստուգված 2026-11-26՝
+[Setting up MCP](https://fal.ai/docs/documentation/setting-up/mcp))։ Հին ձևը՝
+`https://mcp.fal.ai/mcp` + `Authorization: Bearer` header, այլևս առաջարկվող չէ (verify live)։
 
-1. Սեփականատերը fal.ai dashboard-ից ստեղծում է API key։
-2. **Բանալին ՉԻ ուղարկվում չատով** (չատի պատմությունը log/cache է լինում)։ Փոխարենը՝
-   սեփականատերն ինքն է վազեցնում terminal-ում.
+1. Սեփականատերը terminal-ում ավելացնում է սերվերը.
 ```bash
-claude mcp add --transport http fal-ai \
-  https://mcp.fal.ai/mcp \
-  --header "Authorization: Bearer YOUR_FAL_KEY"
+claude mcp add --transport http fal-ai https://mcp.fal.ai/mcp-relay
 ```
-3. Restart Claude Code։ Պաշտոնական գործիքները՝ `search_models` · `get_model_schema` ·
-   `get_pricing` · `search_docs` · `run_model` · `submit_job` · `check_job` ·
-   `get_job_result` · `cancel_job` · `upload_file` · `recommend_model`։
+2. Restart Claude Code, `/mcp` → fal-ai → մուտք fal.ai account-ով (OAuth)։ Բանալին չատով չի ուղարկվում։
+3. Պաշտոնական գործիքները՝ `search_models` · `get_model_schema` · `get_pricing` ·
+   `search_docs` · `recommend_model` · `run_model` · `submit_job` · `check_job` ·
+   `get_job_result` · `cancel_job` · `upload_file`։
 
-## Current install on this machine (legacy, works)
-Հիմա `~/.claude.json`-ում դրված է **երրորդ կողմի** `fal-ai-mcp-server` npm փաթեթը
+## Old laptop install (legacy, gone with the old computer)
+Հին laptop-ի `~/.claude.json`-ում դրված էր **երրորդ կողմի** `fal-ai-mcp-server` npm փաթեթը
 (`npx -y fal-ai-mcp-server`, `FAL_KEY` env-ով)։ Այն աշխատում է և `fal-ai-media` skill-ի
 գործիքներն էլ դրանից են — 2026-07 դրությամբ 12 գործիք՝ `search` · `find` · `models` ·
 `generate` · `result` · `status` · `cancel` · `upload` · `pricing` · `estimate_cost` ·
@@ -35,8 +33,8 @@ supply-chain ռիսկը սեփականատիրոջ գիտակցված ընտրո
 So the zavod is fully operational for photos/carousels without fal; fal.ai is the
 video/quality upgrade.
 
-Status: ✅ CONFIGURED via legacy npm server (FAL_KEY added 2026-06-05)։ Official hosted
-migration՝ pending owner decision։
+Status (2026-11-26): the old laptop is replaced; on the new computer set up the official hosted
+MCP above (OAuth) instead of the legacy npm server։
 
 > **This file is setup only.** The 2026 engine lineup (which model per need), the
 > Armenian-text protocol, the consistency/seed/cost workflow and render QC all live in
