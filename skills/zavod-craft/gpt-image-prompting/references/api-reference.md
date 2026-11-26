@@ -83,14 +83,14 @@ for i, item in enumerate(result.data, start=1):
 
 | Parameter | Values | Notes |
 | --- | --- | --- |
-| `model` | `gpt-image-2`, `gpt-image-1.5`, `gpt-image-1`, `gpt-image-1-mini` | Default to `gpt-image-2`. |
-| `quality` | `low`, `medium`, `high` | `low` = fast/cheap; `medium`/`high` for text, portraits, dense detail, high-res. |
+| `model` | `gpt-image-2.6-flare`, `gpt-image-2.6-sunburst`, `gpt-image-2.5-flare`, `gpt-image-2.5-sunburst` (+ `-2026-09-08` snapshots), `gpt-image-2` (+ `-2026-04-21`), `gpt-image-1.5`, `gpt-image-1-mini` | Default `gpt-image-2.6-flare` (verify live). `gpt-image-1` was shut down 2026-10-23. |
+| `quality` | `low`, `medium`, `high` (+ `xhigh`, `max` on the 2.5 models) | `low` = fast/cheap; `medium`/`high` for text, portraits, dense detail, high-res. |
 | `size` | see constraints | Portrait/landscape/square + arbitrary sizes on `gpt-image-2`. |
-| `input_fidelity` | `low`, `high` | **Edits only, older models only.** Helps preserve likeness during large edits. Not used on `gpt-image-2` (already high fidelity). |
-| `background` | `opaque`, `transparent`, `auto` | `transparent` works on `gpt-image-1.5` only: `gpt-image-2` returns HTTP 400 for it (since 2026-09-30). On `gpt-image-2`, generate on a flat plain background and cut out downstream. Force opaque for product mockups. |
+| `input_fidelity` | `low`, `high` | **Edits only, older models only** (`gpt-image-1.5`, `gpt-image-1-mini`). Leave it out on `gpt-image-2` and newer: they always process inputs at high fidelity and the API does not allow changing it. |
+| `background` | `opaque`, `transparent`, `auto` | `transparent` is supported on the 2.5 models and is a **preview** on `gpt-image-2`; use `png` or `webp` output. Check the alpha (edge halos are reported); fallback: flat plain background + cutout. Force opaque for product mockups on a set. |
 | `n` | integer | Number of variations per call. |
 
-## Model comparison (as of April 2026)
+## Model comparison (April 2026 table; see SKILL.md "Model selection" for the 2.5 / 2.6 models added since)
 
 | Model | `quality` | `input_fidelity` | Resolutions | Recommended use |
 | --- | --- | --- | --- | --- |

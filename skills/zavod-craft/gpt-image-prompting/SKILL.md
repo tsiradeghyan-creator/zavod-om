@@ -40,7 +40,7 @@ Before writing a prompt, run `film-crew` (single-shot mode for one shot, full mo
    image), and the use case (infographic, logo, ad, photorealism, UI mockup,
    translation, style transfer, try-on, compositing, object removal, lighting
    change, product mockup, character consistency, slide/chart).
-2. **Pick a model + quality** using the rules below (default `gpt-image-2`).
+2. **Pick a model + quality** using the rules below (default `gpt-image-2.6-flare`, verify live).
 3. **Write the prompt** following the fundamentals below. For a specific use
    case, read `references/use-cases.md` for a matching template.
 4. **Emit runnable code** using the setup helper in
@@ -50,25 +50,32 @@ Before writing a prompt, run `film-crew` (single-shot mode for one shot, full mo
 
 ## Model selection (quick rules)
 
-- **Default to `gpt-image-2`** for new work — strongest generation + editing,
-  text-heavy images, photorealism, compositing, identity-sensitive edits, and
-  flexible sizing. `input_fidelity` is not used on `gpt-image-2` (output is
-  already high fidelity); it *does* apply to the older models.
-- **`quality="low"`** on `gpt-image-2` when speed / cost dominate (high-volume
-  generation, ideation, previews). It's often good enough. `gpt-image-1-mini`
-  is an alternative for cheap batches.
-- **`quality="medium"` / `"high"`** for small or dense text, detailed
-  infographics, close-up portraits, identity-sensitive edits, slides/charts,
-  and high-resolution outputs.
-- **Transparent backgrounds:** `gpt-image-2` returns HTTP 400 for
-  `background="transparent"` (since 2026-09-30). For a transparent asset, use
-  `gpt-image-1.5`, or generate on `gpt-image-2` over a flat plain background
-  and cut it out afterwards.
-- **Legacy (`gpt-image-1.5`, `gpt-image-1`)**: only for backward compatibility
-  while migrating validated workflows. See the full table in
-  `references/api-reference.md`.
+Checked against OpenAI's API reference and image guide on 2026-11-26 (model names move fast:
+confirm with the live reference before a paid batch).
 
-Common `gpt-image-2` sizes: `1024x1024` (square default), `1024x1536`
+- **Current family (Sept 2026 onward):** GPT Image 2.5 shipped 2026-09-08 in two models,
+  `gpt-image-2.5-flare` (fast, "higher-quality images than GPT-Image-2 at 50% lower
+  latency") and `gpt-image-2.5-sunburst` (extra precision for detailed work, slower), with
+  dated snapshots `-2026-09-08`. The image guide now names **GPT-Image-2.6 Sunburst / Flare**
+  (`gpt-image-2.6-sunburst`, `gpt-image-2.6-flare`) for new integrations.
+- **Default:** `gpt-image-2.6-flare` for most work; `-sunburst` for detailed creative work,
+  dense text and identity-sensitive edits. If a 2.6 feature you need is not documented yet,
+  use the 2.5 model of the same name, whose features are documented. Pin a dated snapshot
+  for a production run that must not change.
+- **`gpt-image-2`** stays valid (and is what Higgsfield's "GPT Image 2" exposes); use it when
+  the user names it or a platform only offers it.
+- **Quality:** `low` / `medium` / `high` on all GPT image models; the 2.5 models also take
+  `xhigh` and `max`.
+- **`input_fidelity`:** leave it out on `gpt-image-2` and newer; those models process every
+  image input at high fidelity and the API does not let you change it.
+- **Transparent backgrounds:** supported on the 2.5 models (and their snapshots); on
+  `gpt-image-2` it is a **preview** feature. Use `png` or `webp` output with `transparent`.
+  Developers report occasional grey edge halos and ignored requests, so check the alpha
+  channel; the reliable fallback is a flat plain background plus a cutout.
+- **Legacy:** `gpt-image-1` was shut down on 2026-10-23. `gpt-image-1.5` and
+  `gpt-image-1-mini` remain for validated older workflows and cheap batches.
+
+Common sizes (same rules on `gpt-image-2` and the 2.5 models): `1024x1024` (square default), `1024x1536`
 (portrait), `1536x1024` (landscape), `1536x864` (deck slide), `2560x1440`
 (2K, upper reliability boundary). Full size constraints live in
 `references/api-reference.md`.
